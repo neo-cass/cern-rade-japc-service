@@ -1,6 +1,6 @@
-package requesthandlers;
+package cern.rade.services.japc.requesthandlers;
 
-import communication.messages.Request;
+import cern.rade.services.japc.communication.messages.Request;
 
 public class Handler {
     private Request request;

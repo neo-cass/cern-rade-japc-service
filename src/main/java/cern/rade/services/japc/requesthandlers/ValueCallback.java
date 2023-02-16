@@ -1,4 +1,4 @@
-package requesthandlers;
+package cern.rade.services.japc.requesthandlers;
 
 import cern.japc.core.AcquiredParameterValue;
 import cern.japc.core.ParameterException;

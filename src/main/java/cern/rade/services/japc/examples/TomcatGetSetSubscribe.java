@@ -1,10 +1,9 @@
-package examples;
+package cern.rade.services.japc.examples;
 
 import cern.japc.core.*;
 import cern.japc.core.factory.ParameterFactory;
 import cern.japc.core.factory.SelectorFactory;
 import cern.japc.core.factory.SimpleParameterValueFactory;
-import cern.japc.core.spi.factory.ParameterCreator;
 import cern.japc.value.ParameterValue;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;

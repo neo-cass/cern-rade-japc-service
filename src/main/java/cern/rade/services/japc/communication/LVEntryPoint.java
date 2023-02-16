@@ -1,12 +1,12 @@
-package communication;
+package cern.rade.services.japc.communication;
 
 import cern.rade.services.codec.javatolv.LVDataEncoder;
 import cern.rade.services.codec.javatolv.LVTypeEncoder;
 import cern.rade.services.codec.lvtojava.LVDecoder;
 import com.google.gson.Gson;
-import communication.messages.LVMetaData;
-import communication.messages.MetaData;
-import communication.messages.Request;
+import cern.rade.services.japc.communication.messages.LVMetaData;
+import cern.rade.services.japc.communication.messages.MetaData;
+import cern.rade.services.japc.communication.messages.Request;
 import jakarta.servlet.ServletInputStream;
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServlet;
@@ -17,7 +17,6 @@ import cern.rade.services.common.types.labview.LVRawTypeDescriptor;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
 
 public class LVEntryPoint extends HttpServlet {

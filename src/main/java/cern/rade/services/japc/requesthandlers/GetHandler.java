@@ -1,4 +1,4 @@
-package requesthandlers;
+package cern.rade.services.japc.requesthandlers;
 
 import cern.japc.core.AcquiredParameterValue;
 import cern.japc.core.Parameter;
@@ -6,8 +6,8 @@ import cern.japc.core.ParameterException;
 import cern.japc.core.Parameters;
 import cern.japc.core.factory.ParameterFactory;
 import cern.japc.core.factory.SelectorFactory;
-import communication.messages.MetaData;
-import communication.messages.Request;
+import cern.rade.services.japc.communication.messages.MetaData;
+import cern.rade.services.japc.communication.messages.Request;
 import cern.rade.services.common.types.JavaContainer;
 
 public class GetHandler {

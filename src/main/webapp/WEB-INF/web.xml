@@ -16,7 +16,7 @@
 
     <servlet>
         <servlet-name>japcTest</servlet-name>
-        <servlet-class>examples.TomcatGetSetSubscribe</servlet-class>
+        <servlet-class>cern.rade.services.japc.examples.TomcatGetSetSubscribe</servlet-class>
     </servlet>
 
     <servlet-mapping>
@@ -26,7 +26,7 @@
 
     <servlet>
         <servlet-name>entryPoint</servlet-name>
-        <servlet-class>communication.LVEntryPoint</servlet-class>
+        <servlet-class>cern.rade.services.japc.communication.LVEntryPoint</servlet-class>
     </servlet>
 
     <servlet-mapping>
@@ -36,7 +36,7 @@
 
     <servlet>
         <servlet-name>CodecTest</servlet-name>
-        <servlet-class>communication.CodecTestListener</servlet-class>
+        <servlet-class>cern.rade.services.japc.communication.CodecTestListener</servlet-class>
     </servlet>
 
     <servlet-mapping>
@@ -46,7 +46,7 @@
 
     <servlet>
         <servlet-name>HelloServlet</servlet-name>
-        <servlet-class>examples.HelloServlet</servlet-class>
+        <servlet-class>cern.rade.services.japc.examples.HelloServlet</servlet-class>
     </servlet>
 
     <servlet-mapping>

@@ -1,4 +1,4 @@
-package examples;
+package cern.rade.services.japc.examples;
 
 import cern.japc.core.AcquiredParameterValue;
 import cern.japc.core.SubscriptionHandle;
@@ -9,7 +9,6 @@ import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.LinkedBlockingQueue;
 

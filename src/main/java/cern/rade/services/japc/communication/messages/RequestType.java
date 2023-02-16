@@ -1,4 +1,4 @@
-package communication.messages;
+package cern.rade.services.japc.communication.messages;
 
 public enum RequestType {
     GET("get"),

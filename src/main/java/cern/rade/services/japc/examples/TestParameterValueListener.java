@@ -1,4 +1,4 @@
-package examples;
+package cern.rade.services.japc.examples;
 
 import java.util.concurrent.LinkedBlockingQueue;
 import cern.japc.core.AcquiredParameterValue;
