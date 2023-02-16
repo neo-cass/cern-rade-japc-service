@@ -12,7 +12,7 @@ ENV webappDir=/buildDir/webapp-build
 EXPOSE 9090
 WORKDIR $CATALINA_HOME
 
-COPY --from=build $webappDir/japc-new-1.0.0.war webapps
+COPY --from=build $webappDir/japc-1.0.0.war webapps
 COPY --from=build $webappDir/server.xml conf
 
 RUN groupadd -r serverUser -g 501

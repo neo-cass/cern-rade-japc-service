@@ -146,7 +146,7 @@
                prefix="localhost_access_log" suffix=".txt"
                pattern="%h %l %u %t &quot;%r&quot; %s %b" />
 
-        <Context path="" docBase="japc-new-1.0.0.war"/>
+        <Context path="" docBase="japc-1.0.0.war"/>
 
       </Host>
     </Engine>
