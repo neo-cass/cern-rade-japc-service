@@ -1,0 +1,11 @@
+Dockerfile
+build
+webapp-build/*.war
+.idea
+gradlew.bat
+*.log
+.gradle
+gradle
+gradlew*
+
+
