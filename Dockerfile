@@ -9,7 +9,7 @@ RUN gradle --no-daemon clean war
 
 FROM tomcat:11.0.0-jdk17
 ENV webappDir=/buildDir/webapp-build
-EXPOSE 9090
+EXPOSE 9090 9999
 WORKDIR $CATALINA_HOME
 
 COPY --from=build $webappDir/japc-1.0.0.war webapps
