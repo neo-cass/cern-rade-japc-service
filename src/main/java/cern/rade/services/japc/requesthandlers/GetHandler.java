@@ -6,6 +6,9 @@ import cern.japc.core.ParameterException;
 import cern.japc.core.Parameters;
 import cern.japc.core.factory.ParameterFactory;
 import cern.japc.core.factory.SelectorFactory;
+import cern.japc.core.Selector;
+import cern.japc.core.factory.SimpleParameterValueFactory;
+import cern.rade.services.common.types.PropertyContainer;
 import cern.rade.services.japc.communication.messages.MetaData;
 import cern.rade.services.japc.communication.messages.Request;
 import cern.rade.services.common.types.JavaContainer;
@@ -15,14 +18,21 @@ public class GetHandler {
         MetaData metaData = request.getMetaData();
         String name = Parameters.buildParameterName(metaData.device, request.getData().getFieldName());
         Parameter p = ParameterFactory.newInstance().newParameter(name);
-        cern.japc.core.Selector s = SelectorFactory.newSelector(metaData.selector);
+        Selector s = SelectorFactory.newSelector(metaData.selector);
         AcquiredParameterValue apv = p.getValue(s);
+
+        PropertyContainer propertyContainer = (PropertyContainer) request.getData();
+        JavaContainer<?>[] javaContainers = propertyContainer.getData();
+        for (int i = 0; i<javaContainers.length; i++){
+
+        }
         apv.getValue().castAsSimple().getDouble();
+
         return null;
     }
 
     private JavaContainer<?> apvCast(AcquiredParameterValue apv){
-        //apv.getValue().castAsMap()
+
         return null;
     }
 }

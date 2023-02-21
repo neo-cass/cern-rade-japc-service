@@ -7,14 +7,18 @@ import cern.japc.core.ParameterValueListener;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class ValueCallback implements ParameterValueListener {
-    private LinkedBlockingQueue<AcquiredParameterValue> acquiredValsQueue;
+    private LinkedBlockingQueue<AcquiredParameterValue> valueQueue;
     public ValueCallback() {
-        this.acquiredValsQueue = new LinkedBlockingQueue<>();
+        this.valueQueue = new LinkedBlockingQueue<>();
+    }
+
+    public LinkedBlockingQueue<AcquiredParameterValue> valueQueue() {
+        return valueQueue;
     }
 
     @Override
     public void valueReceived(String parameterName, AcquiredParameterValue value) {
-        acquiredValsQueue.add(value);
+        valueQueue.add(value);
     }
 
     @Override

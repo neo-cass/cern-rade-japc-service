@@ -1,8 +1,15 @@
 package cern.rade.services.japc.communication;
 
+import cern.japc.core.*;
+import cern.japc.core.factory.ParameterFactory;
+import cern.japc.core.factory.SelectorFactory;
 import cern.rade.services.codec.javatolv.LVDataEncoder;
 import cern.rade.services.codec.javatolv.LVTypeEncoder;
 import cern.rade.services.codec.lvtojava.LVDecoder;
+import cern.rade.services.japc.examples.TestParameterValueListener;
+import cern.rade.services.japc.examples.UDPSender;
+import cern.rade.services.japc.requesthandlers.SubscriptionHandler;
+import cern.rade.services.japc.requesthandlers.ValueCallback;
 import com.google.gson.Gson;
 import cern.rade.services.japc.communication.messages.LVMetaData;
 import cern.rade.services.japc.communication.messages.MetaData;
@@ -16,24 +23,55 @@ import cern.rade.services.common.types.JavaContainer;
 import cern.rade.services.common.types.labview.LVRawTypeDescriptor;
 
 import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.nio.ByteBuffer;
+import java.nio.channels.ServerSocketChannel;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 public class LVEntryPoint extends HttpServlet {
+    //TODO: put type descriptor in json
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         Request req = decodeMessage(request);
+        MetaData metaData = req.getMetaData();
         JavaContainer<?> jc = req.getData();
-        byte[] typeStringBytes = LVTypeEncoder.encodeTypeDescriptor(jc);
-        System.out.println(LVRawTypeDescriptor.wrap(typeStringBytes));
-        byte[] dataBytes = LVDataEncoder.serialise(jc);
-        ServletOutputStream out = response.getOutputStream();
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream( );
-        outputStream.write( typeStringBytes );
-        outputStream.write(".....".getBytes());
-        outputStream.write( dataBytes );
-        outputStream.writeTo(out);
-    }
 
+        String name = Parameters.buildParameterName(metaData.device, jc.getFieldName());
+
+        ServletOutputStream out = response.getOutputStream();
+
+        Selector s = SelectorFactory.newSelector(metaData.selector);
+        ValueCallback valueCallback = new ValueCallback();
+
+        Parameter p = null;
+        try {
+            p = ParameterFactory.newInstance().newParameter(name);
+            SubscriptionHandle sh = p.createSubscription(s, valueCallback);
+            sh.startMonitoring();
+        } catch (ParameterException e) {
+            System.out.println("Parameter could not be created.");
+            System.out.println("Subscription could not be started.");
+        }
+
+        ServerSocket serverSocket = new ServerSocket(9999);
+        Socket client = serverSocket.accept();
+        DataOutputStream dos = new DataOutputStream(client.getOutputStream());
+
+       while(true){
+           AcquiredParameterValue apv = null;
+           try {
+               apv = valueCallback.valueQueue().take();
+           } catch (InterruptedException e) {
+               System.out.println("Error");
+           }
+           double val = apv.getValue().castAsMap().getDouble("ts0");
+           dos.writeDouble(val);
+       }
+    }
     public Request decodeMessage(HttpServletRequest request) throws IOException {
         Gson gson = new Gson();
         String jsonMsg = request.getHeader("metaData");
