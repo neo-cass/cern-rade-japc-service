@@ -14,6 +14,7 @@ import com.google.gson.Gson;
 import cern.rade.services.japc.communication.messages.LVMetaData;
 import cern.rade.services.japc.communication.messages.MetaData;
 import cern.rade.services.japc.communication.messages.Request;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletInputStream;
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServlet;
@@ -30,10 +31,12 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
+import java.util.ArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 public class LVEntryPoint extends HttpServlet {
+    private ServerSocket server;
     //TODO: put type descriptor in json
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         Request req = decodeMessage(request);
@@ -48,30 +51,27 @@ public class LVEntryPoint extends HttpServlet {
         ValueCallback valueCallback = new ValueCallback();
 
         Parameter p = null;
+        SubscriptionHandle sh;
         try {
             p = ParameterFactory.newInstance().newParameter(name);
-            SubscriptionHandle sh = p.createSubscription(s, valueCallback);
+            sh = p.createSubscription(s, valueCallback);
             sh.startMonitoring();
         } catch (ParameterException e) {
             System.out.println("Parameter could not be created.");
             System.out.println("Subscription could not be started.");
+            return;
         }
 
-        ServerSocket serverSocket = new ServerSocket(9999);
-        Socket client = serverSocket.accept();
-        DataOutputStream dos = new DataOutputStream(client.getOutputStream());
-
-       while(true){
-           AcquiredParameterValue apv = null;
-           try {
-               apv = valueCallback.valueQueue().take();
-           } catch (InterruptedException e) {
-               System.out.println("Error");
-           }
-           double val = apv.getValue().castAsMap().getDouble("ts0");
-           dos.writeDouble(val);
-       }
+        Socket client = server.accept();
+        SubscriptionThread thread = new SubscriptionThread(client, sh, valueCallback);
+        ArrayList<Thread> threads = new ArrayList<>();
+        Thread t = new Thread(thread);
+        threads.add(t);
+        t.start();
     }
+
+
+
     public Request decodeMessage(HttpServletRequest request) throws IOException {
         Gson gson = new Gson();
         String jsonMsg = request.getHeader("metaData");
@@ -95,5 +95,15 @@ public class LVEntryPoint extends HttpServlet {
 //            case SET ->
 //            case SUBSCRIBE ->
 //        }
+    }
+
+    @Override
+    public void init() throws ServletException {
+        super.init();
+        try {
+            server = new ServerSocket(9999);
+        } catch (IOException e) {
+            System.out.println("Server port occupied");
+        }
     }
 }

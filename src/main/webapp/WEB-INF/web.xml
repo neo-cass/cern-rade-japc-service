@@ -17,6 +17,7 @@
     <servlet>
         <servlet-name>japcTest</servlet-name>
         <servlet-class>cern.rade.services.japc.examples.TomcatGetSetSubscribe</servlet-class>
+        <load-on-startup>0</load-on-startup>
     </servlet>
 
     <servlet-mapping>
