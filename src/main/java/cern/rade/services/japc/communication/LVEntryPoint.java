@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.util.ArrayList;
@@ -45,7 +46,7 @@ public class LVEntryPoint extends HttpServlet {
 
         String name = Parameters.buildParameterName(metaData.device, jc.getFieldName());
 
-        ServletOutputStream out = response.getOutputStream();
+        PrintWriter out = response.getWriter();
 
         Selector s = SelectorFactory.newSelector(metaData.selector);
         ValueCallback valueCallback = new ValueCallback();
@@ -62,11 +63,25 @@ public class LVEntryPoint extends HttpServlet {
             return;
         }
 
-        Socket client = server.accept();
+        Socket client;
+        server.setSoTimeout(10000);
+        try{
+            client = server.accept();
+            System.out.println("Connection accepted");
+            out.write("Success, connection made");
+            out.flush();
+            out.close();
+        }
+        catch(SocketTimeoutException e){
+            System.out.println("Timeout");
+            sh.stopMonitoring();
+            out.write("Connection not made");
+            out.flush();
+            out.close();
+            return;
+        }
         SubscriptionThread thread = new SubscriptionThread(client, sh, valueCallback);
-        ArrayList<Thread> threads = new ArrayList<>();
         Thread t = new Thread(thread);
-        threads.add(t);
         t.start();
     }
 
