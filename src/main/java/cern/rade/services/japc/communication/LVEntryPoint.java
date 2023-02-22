@@ -116,7 +116,7 @@ public class LVEntryPoint extends HttpServlet {
     public void init() throws ServletException {
         super.init();
         try {
-            server = new ServerSocket(9999);
+            server = new ServerSocket(9090);
         } catch (IOException e) {
             System.out.println("Server port occupied");
         }
