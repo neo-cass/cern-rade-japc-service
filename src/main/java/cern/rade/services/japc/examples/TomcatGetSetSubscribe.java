@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
-@WebServlet(name = "tomcatGetSetSubscribe", value = "/get-set-subscribe")
+@WebServlet(value = "/japcTest")
 public class TomcatGetSetSubscribe extends HttpServlet{
     private SubscriptionHandle sh;
     private HashMap<UDPSender, Thread> threadPool;
