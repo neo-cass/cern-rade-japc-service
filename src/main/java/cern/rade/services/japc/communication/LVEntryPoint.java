@@ -17,6 +17,7 @@ import cern.rade.services.japc.communication.messages.Request;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletInputStream;
 import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -36,6 +37,7 @@ import java.util.ArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+@WebServlet(value = "/entryPoint", loadOnStartup = 0)
 public class LVEntryPoint extends HttpServlet {
     private ServerSocket server;
     //TODO: put type descriptor in json

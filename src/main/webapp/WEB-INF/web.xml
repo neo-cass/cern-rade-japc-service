@@ -26,16 +26,6 @@
     </servlet-mapping>
 
     <servlet>
-        <servlet-name>entryPoint</servlet-name>
-        <servlet-class>cern.rade.services.japc.communication.LVEntryPoint</servlet-class>
-    </servlet>
-
-    <servlet-mapping>
-        <servlet-name>entryPoint</servlet-name>
-        <url-pattern>/entryPoint</url-pattern>
-    </servlet-mapping>
-
-    <servlet>
         <servlet-name>CodecTest</servlet-name>
         <servlet-class>cern.rade.services.japc.communication.CodecTestListener</servlet-class>
     </servlet>
