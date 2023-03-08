@@ -1,19 +1,12 @@
-package cern.rade.services.japc.communication;
+package cern.rade.services.japc.examples;
 
 import cern.japc.core.AcquiredParameterValue;
 import cern.japc.core.SubscriptionHandle;
-import cern.rade.services.japc.requesthandlers.ValueCallback;
-import jakarta.servlet.http.HttpServletResponse;
+import cern.rade.services.japc.handlers.ValueCallback;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.LinkedBlockingQueue;
 
 public class SubscriptionThread implements Runnable{
     Socket client;
@@ -23,14 +16,6 @@ public class SubscriptionThread implements Runnable{
       this.sh=sh;
       this.client=client;
       this.vc=vc;
-    }
-
-    private int coinFlip(){
-        if (Math.random() < 0.5){
-            return 1;
-        }else{
-            return 0;
-        }
     }
 
 
@@ -53,10 +38,8 @@ public class SubscriptionThread implements Runnable{
                 System.out.println("Could not get data for subscription");
                 return;
             }
-            int flip = coinFlip();
             double val;
-            if(flip == 1){ val = apv.getValue().castAsMap().getDouble("ts0");}
-            else{ val = apv.getValue().castAsMap().getDouble("ts1");}
+             val = apv.getValue().castAsMap().getDouble("ts0");
             dos.writeDouble(val);
         }
     }

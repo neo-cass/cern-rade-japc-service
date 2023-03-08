@@ -27,6 +27,7 @@ public class LVMetaData extends MetaData {
         stringBuilder.append("\n");
         return stringBuilder.toString();
     }
+
     public Request toRequest() {
         return null; //new Request(username, password, LVDecoder.decode(typeString, data), selector, device);
     }

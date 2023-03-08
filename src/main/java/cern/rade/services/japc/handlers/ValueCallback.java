@@ -1,4 +1,4 @@
-package cern.rade.services.japc.requesthandlers;
+package cern.rade.services.japc.handlers;
 
 import cern.japc.core.AcquiredParameterValue;
 import cern.japc.core.ParameterException;
@@ -7,6 +7,7 @@ import cern.japc.core.ParameterValueListener;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class ValueCallback implements ParameterValueListener {
+    //TODO: add conversion here
     private LinkedBlockingQueue<AcquiredParameterValue> valueQueue;
     public ValueCallback() {
         this.valueQueue = new LinkedBlockingQueue<>();

@@ -4,6 +4,7 @@ import cern.japc.core.*;
 import cern.japc.core.factory.ParameterFactory;
 import cern.japc.core.factory.SelectorFactory;
 import cern.japc.core.factory.SimpleParameterValueFactory;
+import cern.japc.core.spi.subscription.SubscriptionFilter;
 import cern.japc.value.ParameterValue;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -83,7 +84,13 @@ public class TomcatGetSetSubscribe extends HttpServlet{
         //pass in queue which will be used to pass values to this class when pvl's valueReceived method is called by JAPC
         TestParameterValueListener pvl = new TestParameterValueListener(queue);
         sh = p.createSubscription(s, pvl);
-
+        SubscriptionFilter sf;
+        sf = new SubscriptionFilter() {
+            @Override
+            protected ParameterSelectorSubscriptions createNewPSS(Parameter parameter, Selector selector, ParameterValueListener pvl) throws ParameterException {
+                return null;
+            }
+        };
         //start subscription
         sh.startMonitoring();
         int hostPort = portPool.get(0);
