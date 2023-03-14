@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.io.Writer;
 
 @ServerEndpoint(value = "/subs/{username}_{device}_{property}_{selector}")
-public class SubscriptionWebsocket extends Thread{
+public class SubscriptionWebsocket {
     private String username;
     private String property;
     private String selector;
@@ -22,12 +22,13 @@ public class SubscriptionWebsocket extends Thread{
     private Writer writer;
     private SubscriptionThread st;
     @OnOpen
-    public void onOpen(Session session, @PathParam("username") String username, @PathParam("device") String device, @PathParam("property") String property, @PathParam("selector") String selector) throws IOException {
+    public void onOpen(Session session, @PathParam("username") String username, @PathParam("device") String device, @PathParam("property") String property, @PathParam("selector") String selector) {
         this.username=username;
         this.device = device;
         this.property=property;
         this.selector = selector;
-        this.request = SubscriptionHandler.getRequest(request.id);
+        System.out.println(this.username+"_"+device+"_"+property+"_"+selector);
+        this.request = SubscriptionHandler.getRequest(username+"_"+device+"_"+property+"_"+selector);
 
         init(session);
     }
@@ -49,7 +50,9 @@ public class SubscriptionWebsocket extends Thread{
 
         ValueCallback vc = new ValueCallback();
         SubscriptionHandle sh;
-        Selector selectorObj = SelectorFactory.newSelector(selector);
+        Selector selectorObj;
+        if(!selector.equals("NO-SELECTOR")){selectorObj = SelectorFactory.newSelector(selector);}
+        else{selectorObj = SelectorFactory.newSelector("");}
         sh = parameter.createSubscription(selectorObj, vc);
         this.st = new SubscriptionThread(sh, vc, writer);
         st.start();
@@ -57,6 +60,7 @@ public class SubscriptionWebsocket extends Thread{
 
     @OnMessage
     public void onMessage(Session session, String message) throws IOException {
+        System.out.println("hi");
         if(message.equals("END_SESSION")){session.close();}
     }
 
@@ -71,6 +75,7 @@ public class SubscriptionWebsocket extends Thread{
     }
 
     private void close(Session session, Throwable throwable){
+        throwable.printStackTrace();
         st.interrupt();
         SubscriptionHandler.removeSub(this);
         try {

@@ -1,5 +1,6 @@
 package cern.rade.services.japc;
 import cern.rade.services.codec.lvtojava.LVDecoder;
+import cern.rade.services.japc.messages.RequestType;
 import com.google.gson.Gson;
 import cern.rade.services.japc.messages.MetaData;
 import cern.rade.services.japc.messages.Request;
@@ -24,7 +25,8 @@ public class RequestRouter extends HttpServlet {
         String jsonMsg = request.getHeader("MetaData");
 
         MetaData metaData = gson.fromJson(jsonMsg, MetaData.class);
-        switch(metaData.reqType){
+        //TODO: this is messy change it
+        switch(RequestType.getType(metaData.reqType)){
             case LV_GET, LV_SET, LV_SUBSCRIBE -> {return decodeLVRequest(request, metaData);}
             //TODO: cases for other languages
         }
