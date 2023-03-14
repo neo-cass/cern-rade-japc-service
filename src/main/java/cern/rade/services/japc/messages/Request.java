@@ -1,4 +1,4 @@
-package cern.rade.services.japc.communication.messages;
+package cern.rade.services.japc.messages;
 
 import cern.rade.services.common.types.JavaContainer;
 
@@ -13,6 +13,7 @@ public class Request {
         this.metaData = metaData;
         this.data=data;
         this.requestType=requestType;
+
         this.id =createID();
     }
     public String toString(){
@@ -31,9 +32,13 @@ public class Request {
     private String createID(){
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append(metaData.username).append("_");
-        stringBuilder.append(data.getFieldName());
+        stringBuilder.append(metaData.device).append("_");
+        stringBuilder.append(data.getFieldName()).append("_");
         if(!metaData.selector.equals("")){
-            stringBuilder.append("_").append(metaData.selector);
+            stringBuilder.append(metaData.selector);
+        }
+        else{
+            stringBuilder.append("NO_SELECTOR");
         }
         return stringBuilder.toString();
     }

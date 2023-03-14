@@ -1,4 +1,4 @@
-package cern.rade.services.japc.handlers;
+package cern.rade.services.japc;
 
 import cern.japc.core.AcquiredParameterValue;
 import cern.japc.core.ParameterException;
@@ -20,6 +20,10 @@ public class ValueCallback implements ParameterValueListener {
     @Override
     public void valueReceived(String parameterName, AcquiredParameterValue value) {
         valueQueue.add(value);
+    }
+
+    public AcquiredParameterValue getLatest() throws InterruptedException {
+        return valueQueue.take();
     }
 
     @Override

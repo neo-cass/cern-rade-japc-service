@@ -1,4 +1,4 @@
-package cern.rade.services.japc.communication.messages;
+package cern.rade.services.japc.messages;
 
 import cern.rade.services.common.types.labview.LVRawTypeDescriptor;
 

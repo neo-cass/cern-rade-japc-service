@@ -2,7 +2,7 @@ package cern.rade.services.japc.examples;
 
 import cern.japc.core.AcquiredParameterValue;
 import cern.japc.core.SubscriptionHandle;
-import cern.rade.services.japc.handlers.ValueCallback;
+import cern.rade.services.japc.ValueCallback;
 
 import java.io.DataOutputStream;
 import java.io.IOException;

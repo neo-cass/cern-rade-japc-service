@@ -1,4 +1,4 @@
-package cern.rade.services.japc.communication.servlets;
+package cern.rade.services.japc;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;

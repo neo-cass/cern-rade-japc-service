@@ -1,4 +1,4 @@
-package cern.rade.services.japc.communication.messages;
+package cern.rade.services.japc.messages;
 public class MetaData {
     public String username;
     public String password;
@@ -19,14 +19,15 @@ public class MetaData {
     }
 
     protected RequestType setReqType(String reqString){
-        if(reqString.equals(RequestType.GET.getStr())){
-            return RequestType.GET;
+        System.out.println("HELLO");
+        if(reqString.equals(RequestType.LV_GET.getStr())){
+            return RequestType.LV_SET;
         }
-        else if(reqString.equals(RequestType.SET.getStr())){
-            return RequestType.SET;
+        else if(reqString.equals(RequestType.LV_SET.getStr())){
+            return RequestType.LV_SET;
         }
         else{
-            return RequestType.SUBSCRIBE;
+            return RequestType.LV_SUBSCRIBE;
         }
     }
 
