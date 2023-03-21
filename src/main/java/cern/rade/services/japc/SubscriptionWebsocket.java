@@ -12,7 +12,7 @@ import jakarta.websocket.server.ServerEndpoint;
 import java.io.IOException;
 import java.io.Writer;
 
-@ServerEndpoint(value = "/subs/{username}_{device}_{property}_{selector}")
+@ServerEndpoint(value = "/subs/{username}/{device}/{property}/{selector}")
 public class SubscriptionWebsocket {
     private String username;
     private String property;
