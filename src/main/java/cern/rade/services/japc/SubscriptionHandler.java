@@ -16,12 +16,9 @@ public final class SubscriptionHandler {
         subscriptions.remove(sub);
     }
 
-    public static void addRequest(Request request){
-        requests.put(request.id, request);
-    }
+    public static void addRequest(Request request){requests.put(request.id, request);}
 
-    public static Request getRequest(String id){
-        System.out.println(requests.get(id).toString());
-        return requests.remove(id);
-    }
+    public static Request getRequest(String id){return requests.get(id);}
+
+    public static Request removeRequest(String id){return requests.remove(id);}
 }

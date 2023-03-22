@@ -30,11 +30,11 @@ public class Request {
     }
     private String createID(){
         StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append(metaData.username).append("_");
-        stringBuilder.append(metaData.device).append("_");
-        stringBuilder.append(data.getFieldName()).append("_");
+        stringBuilder.append(metaData.username).append("/");
+        stringBuilder.append(metaData.device).append("/");
+        stringBuilder.append(data.getFieldName()).append("/");
         if(metaData.selector.equals("")){
-            stringBuilder.append("NO-SELECTOR");
+            stringBuilder.append("NO_SELECTOR");
         }
         else{
             stringBuilder.append(metaData.selector);
