@@ -35,12 +35,14 @@ public class SubscriptionWebsocket {
     private void init(Session session){
         SubscriptionHandler.addSub(this);
         String name = Parameters.buildParameterName(device, property);
+
         Parameter parameter = null;
         try {
             parameter = ParameterFactory.newInstance().newParameter(name);
         } catch (ParameterException e) {
             throw new RuntimeException(e);
         }
+
         writer = session.getBasicRemote();
 
         ValueCallback vc = new ValueCallback();

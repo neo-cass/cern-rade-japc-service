@@ -28,7 +28,8 @@ public class SubscriptionThread extends Thread{
         }
         while(!isInterrupted()){
             try {
-                writer.sendText(String.valueOf(vc.getLatest().getValue().castAsMap().getDouble("ts0")));
+                writer.sendText(String.valueOf(vc.getLatest().getValue().castAsMap().getDouble("dbl0")));
+                writer.sendText(String.valueOf(vc.getLatest().getValue().castAsMap().getDouble("dbl0")));
             } catch (InterruptedException e) {
                 break;
             }
