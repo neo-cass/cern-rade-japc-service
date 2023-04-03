@@ -25,7 +25,6 @@ public class RequestRouter extends HttpServlet {
         String jsonMsg = request.getHeader("MetaData");
 
         MetaData metaData = gson.fromJson(jsonMsg, MetaData.class);
-        //TODO: this is messy change it
         switch(RequestType.getType(metaData.reqType)){
             case LV_GET, LV_SET, LV_SUBSCRIBE -> {return decodeLVRequest(request, metaData);}
             //TODO: cases for other languages
@@ -43,7 +42,7 @@ public class RequestRouter extends HttpServlet {
     }
 
     public void requestCaller(Request request, HttpServletResponse response) throws IOException {
-        switch(request.requestType){
+        switch(request.getRequestType()){
             case LV_GET -> handleJAPCGet(request, response);
             case LV_SET -> handleJAPCSet(request, response);
             case LV_SUBSCRIBE -> handleJAPCSub(request, response);
@@ -64,7 +63,7 @@ public class RequestRouter extends HttpServlet {
 
     public void handleJAPCSub(Request request, HttpServletResponse response) throws IOException {
         SubscriptionHandler.addRequest(request);
-        response.getWriter().println(request.id);
+        response.getWriter().println(request.getId());
         response.getWriter().flush();
     }
 }

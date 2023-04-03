@@ -12,22 +12,30 @@ import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
 
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.io.Writer;
 
-@ServerEndpoint(value = "/test/{username}/{username2}")
+@ServerEndpoint(value = "/test/{sessionID}")
 
 public class TestWebsocket {
-
+    private PrintWriter writer;
     @OnOpen
-    public void onOpen(Session session, @PathParam("username") String username, @PathParam("username2") String username2) {
-        System.out.println(username);
-        System.out.println(username2);
+    public void onOpen(Session session, @PathParam("sessionID") String sessionID) throws IOException {
+        writer = new PrintWriter(session.getBasicRemote().getSendWriter());
+        writer.println("hi");
+        writer.close();
+//        OutputStreamWriter t = new OutputStreamWriter(session.getBasicRemote().getSendStream());
+//        t.write("hi\r\n");
+
     }
 
 
     @OnMessage
     public void onMessage(Session session, String message) throws IOException {
 
+        writer.println("hi");
+        writer.close();
     }
 
     @OnClose

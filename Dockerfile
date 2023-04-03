@@ -15,7 +15,7 @@ RUN chown -R catalina:catalina /usr/local/tomcat
 RUN chmod -R 777 /usr/local/tomcat
 USER catalina
 ENV webappDir=/buildDir/webapp-build
-EXPOSE 8080 9090
+EXPOSE 8080
 WORKDIR $CATALINA_HOME
 
 COPY --from=build $webappDir/japc-1.0.0.war webapps

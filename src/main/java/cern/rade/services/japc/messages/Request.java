@@ -3,10 +3,10 @@ package cern.rade.services.japc.messages;
 import cern.rade.services.common.types.JavaContainer;
 
 public class Request {
-    public MetaData metaData;
-    public JavaContainer<?> data;
-    public RequestType requestType;
-    public String id;
+    private MetaData metaData;
+    private JavaContainer<?> data;
+    private RequestType requestType;
+    private int id;
 
     public Request(MetaData metaData, JavaContainer<?> data, String requestType)
     {
@@ -28,7 +28,7 @@ public class Request {
 
         return stringBuilder.toString();
     }
-    private String createID(){
+    private int createID(){
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append(metaData.username).append("/");
         stringBuilder.append(metaData.device).append("/");
@@ -39,7 +39,8 @@ public class Request {
         else{
             stringBuilder.append(metaData.selector);
         }
-        return stringBuilder.toString();
+
+        return stringBuilder.toString().hashCode();
     }
     public MetaData getMetaData() {
         return metaData;
@@ -60,5 +61,13 @@ public class Request {
         else{
             return RequestType.LV_SUBSCRIBE;
         }
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public RequestType getRequestType() {
+        return requestType;
     }
 }

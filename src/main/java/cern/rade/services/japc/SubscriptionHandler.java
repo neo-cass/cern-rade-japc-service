@@ -6,17 +6,16 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public final class SubscriptionHandler {
-    private static ConcurrentLinkedQueue<SubscriptionWebsocket> subscriptions = new ConcurrentLinkedQueue<>();
-    private static ConcurrentHashMap<String, Request> requests = new ConcurrentHashMap<>();
-    public static void addSub(SubscriptionWebsocket sub){
-        subscriptions.add(sub);
+    private static ConcurrentHashMap<Integer, SubscriptionWebsocket> subscriptions = new ConcurrentHashMap<>();
+    private static ConcurrentHashMap<Integer, Request> requests = new ConcurrentHashMap<>();
+    public static void addSub(int sessionID, SubscriptionWebsocket sub){
+        subscriptions.put(sessionID, sub);
     }
-    public static void removeSub(SubscriptionWebsocket sub){
-        subscriptions.remove(sub);
+    public static void removeSub(int sessionID){
+        subscriptions.remove(sessionID);
     }
-    public static void addRequest(Request request){requests.put(request.id, request);}
+    public static void addRequest(Request request){requests.put(request.getId(), request);}
+    public static Request getRequest(int id){return requests.get(id);}
 
-    public static Request getRequest(String id){return requests.get(id);}
-
-    public static Request removeRequest(String id){return requests.remove(id);}
+    public static Request removeRequest(int id){return requests.remove(id);}
 }
