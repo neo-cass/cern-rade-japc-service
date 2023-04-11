@@ -2,9 +2,7 @@ package cern.rade.services.japc;
 import cern.japc.core.*;
 import cern.japc.core.factory.ParameterFactory;
 import cern.japc.core.factory.SelectorFactory;
-import cern.japc.core.factory.SimpleParameterValueFactory;
 import cern.rade.services.common.types.JavaContainer;
-import cern.rade.services.japc.SubscriptionThread;
 import cern.rade.services.japc.messages.MetaData;
 import cern.rade.services.japc.messages.Request;
 import jakarta.websocket.*;
@@ -12,61 +10,54 @@ import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
 
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.Writer;
+import java.util.Arrays;
 
-@ServerEndpoint(value = "/subs/{sessionID}")
+@ServerEndpoint(value = "/subs/{id}")
 public class SubscriptionWebsocket {
-    private int sessionID;
-    private String username;
-    private String selector;
-    private String device;
-    private String propertyName;
-    private Request request;
-    private MetaData metaData;
-    private JavaContainer<?> property;
+    private int id;
     private RemoteEndpoint.Basic writer;
-    private SubscriptionThread st;
+    private SubscriptionClient client;
+    private Session session;
+
     @OnOpen
-    public void onOpen(Session session, @PathParam("sessionID") int sessionID) {
-        this.sessionID=sessionID;
-        this.request = SubscriptionHandler.getRequest(sessionID);
-        this.metaData=request.getMetaData();
-        this.username=metaData.username;
-        this.device = metaData.device;
-        this.selector = metaData.selector;
-        this.property=request.getData();
-        this.propertyName=property.getFieldName();
+    public void onOpen(Session session, @PathParam("id") int id) {
+        this.id=id;
+        this.client = SubscriptionManager.getSubClient(id);
+        this.session=session;
         init(session);
     }
 
     private void init(Session session) {
-        SubscriptionHandler.addSub(sessionID, this);
-        SubscriptionHandler.removeRequest(sessionID);
-        String name = Parameters.buildParameterName(device, propertyName);
-
-        Parameter parameter = null;
-        try {
-            parameter = ParameterFactory.newInstance().newParameter(name);
-        } catch (ParameterException e) {
-            e.printStackTrace();
-        }
-
         writer = session.getBasicRemote();
+        try {
+            client.startSubscription();
+        }
+        catch (ParameterException e) {
+            e.printStackTrace();
+            try {
+                writer.sendText(Arrays.toString(e.getStackTrace()));
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        }
+        sendValues();
+    }
 
-        ValueCallback vc = new ValueCallback();
-        SubscriptionHandle sh;
-        Selector selectorObj;
-        if(!selector.equals("NO_SELECTOR")){selectorObj = SelectorFactory.newSelector(selector);}
-        else{selectorObj = SelectorFactory.newSelector("");}
-        sh = parameter.createSubscription(selectorObj, vc);
-        this.st = new SubscriptionThread(sh, vc, writer);
-        st.start();
+    private void sendValues(){
+        while(session.isOpen()){
+            try {
+                writer.sendText(client.getLatest());
+                System.out.println("val");
+            } catch (IOException | InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @OnMessage
     public void onMessage(Session session, String message) throws IOException {
         if(message.equals("END_SESSION")){close(session);}
+        if(message.equals("IS_OPEN")){writer.sendText("YES");}
     }
 
     @OnClose
@@ -80,8 +71,7 @@ public class SubscriptionWebsocket {
     }
 
     private void close(Session session){
-        st.interrupt();
-        SubscriptionHandler.removeSub(sessionID);
+        SubscriptionManager.removeSubSock(id);
         try {
             session.close();
         } catch (IOException e) {

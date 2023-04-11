@@ -1,0 +1,40 @@
+package cern.rade.services.japc;
+
+import cern.japc.core.*;
+import cern.japc.core.factory.ParameterFactory;
+import cern.japc.core.factory.SelectorFactory;
+import cern.rade.services.japc.messages.Request;
+
+import java.util.concurrent.ConcurrentHashMap;
+
+public final class SubscriptionManager {
+    private static ConcurrentHashMap<Integer, SubscriptionWebsocket> sockets = new ConcurrentHashMap<>();
+    private static ConcurrentHashMap<Integer, Request> requests = new ConcurrentHashMap<>();
+    private static ConcurrentHashMap<Integer, SubscriptionClient> clients = new ConcurrentHashMap<>();
+    public static void addSubSock(int sessionID, SubscriptionWebsocket sub){
+        sockets.put(sessionID, sub);
+    }
+    public static void removeSubSock(int id){
+        sockets.remove(id);
+    }
+    public static void addSubClient(int id, SubscriptionClient client){
+        clients.put(id, client);
+    }
+    public static void removeSubClient(int sessionID){
+        clients.remove(sessionID);
+    }
+    public static SubscriptionClient getSubClient(int id){
+        return clients.get(id);
+    }
+    public static void addRequest(Request request){
+        requests.put(request.getId(), request);
+    }
+    public static Request getRequest(int id){
+        return requests.get(id);
+    }
+
+    public static Request removeRequest(int id){
+        return requests.remove(id);
+    }
+
+}

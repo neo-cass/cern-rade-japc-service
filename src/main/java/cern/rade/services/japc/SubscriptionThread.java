@@ -1,5 +1,6 @@
 package cern.rade.services.japc;
 
+import cern.japc.core.AcquiredParameterValue;
 import cern.japc.core.ParameterException;
 import cern.japc.core.SubscriptionHandle;
 import jakarta.websocket.RemoteEndpoint;
@@ -20,26 +21,30 @@ public class SubscriptionThread extends Thread{
     }
     @Override
     public void run() {
-        try {
-            init();
-        } catch (ParameterException e) {
-            System.out.println("An error occurred starting the subscription. Here is the stack trace: \n");
-            e.printStackTrace();
-        }
-        while(!isInterrupted()){
-            try {
-                writer.sendText(vc.getLatest().getValue().castAsMap().getString());
-
-            } catch (InterruptedException e) {
-                break;
-            }
-            catch(IOException e){
-                System.out.println("An error occurred sending the latest value from the subscription. Here is the stack trace:\n");
-                e.printStackTrace();
-                break;
-            }
-        }
-        close();
+//        try {
+//            init();
+//        } catch (ParameterException e) {
+//            System.out.println("An error occurred starting the subscription. Here is the stack trace: \n");
+//            e.printStackTrace();
+//        }
+//        while(!isInterrupted()){
+//            try {
+//                String str = vc.getLatest(59);
+//                String val;
+//                if (apv==null){val = "TIMEOUT";}
+//                else{val = apv.getValue().castAsMap().getString();}
+//                writer.sendText(val);
+//            }
+//            catch (InterruptedException e) {
+//                break;
+//            }
+//            catch(IOException e){
+//                System.out.println("An error occurred sending the latest value from the subscription. Here is the stack trace:\n");
+//                e.printStackTrace();
+//                break;
+//            }
+//        }
+//        close();
     }
 
     private void close() {

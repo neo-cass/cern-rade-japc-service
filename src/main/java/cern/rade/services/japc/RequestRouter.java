@@ -1,4 +1,5 @@
 package cern.rade.services.japc;
+import cern.japc.core.ParameterException;
 import cern.rade.services.codec.lvtojava.LVDecoder;
 import cern.rade.services.japc.messages.RequestType;
 import com.google.gson.Gson;
@@ -51,40 +52,28 @@ public class RequestRouter extends HttpServlet {
 
     public void handleJAPCGet(Request request, HttpServletResponse response) throws IOException {
         //TODO: send data or error message
-        GetSetHandler.get(request);
+        GetSetManager.get(request);
         response.getWriter().println("");
     }
 
     public void handleJAPCSet(Request request, HttpServletResponse response) throws IOException {
         //TODO: send data or error message
-        GetSetHandler.set(request);
+        GetSetManager.set(request);
         response.getWriter().println("");
     }
 
     public void handleJAPCSub(Request request, HttpServletResponse response) throws IOException {
-        SubscriptionHandler.addRequest(request);
-        response.getWriter().println(request.getId());
+        SubscriptionClient client;
+        String message;
+        try {
+             client = new SubscriptionClient(request);
+             SubscriptionManager.addSubClient(request.getId(), client);
+             message= String.valueOf(request.getId());
+        } catch (ParameterException e) {
+            e.printStackTrace();
+            message = "Failed to create parameter, please check the server, device, property, field and the entry in CCDE";
+        }
+        response.getWriter().println(message);
         response.getWriter().flush();
     }
 }
-
-
-
-
-
-   // String name = Parameters.buildParameterName(metaData.device, jc.getFieldName());
-//
-//        PrintWriter out = response.getWriter();
-//
-//        Selector s = SelectorFactory.newSelector(metaData.selector);
-//        ValueCallback valueCallback = new ValueCallback();
-//
-//        Parameter p = null;
-//        SubscriptionHandle sh;
-//        try {
-//            p = ParameterFactory.newInstance().newParameter(name);
-//            sh = p.createSubscription(s, valueCallback);
-//            sh.startMonitoring();
-//        } catch (ParameterException e) {
-//            System.out.println(Arrays.toString(e.getStackTrace()));
-//        }

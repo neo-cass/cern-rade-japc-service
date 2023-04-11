@@ -2,7 +2,7 @@ package cern.rade.services.japc;
 
 import cern.rade.services.japc.messages.Request;
 
-public final class GetSetHandler {
+public final class GetSetManager {
     public static byte[] get(Request request){
         //TODO: do get, convert then return
         return null;

@@ -5,6 +5,7 @@ import cern.japc.core.ParameterException;
 import cern.japc.core.ParameterValueListener;
 
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 public class ValueCallback implements ParameterValueListener {
     //TODO: add conversion here
@@ -22,8 +23,16 @@ public class ValueCallback implements ParameterValueListener {
         valueQueue.add(value);
     }
 
-    public AcquiredParameterValue getLatest() throws InterruptedException {
-        return valueQueue.take();
+    public String getLatest(int timeout) throws InterruptedException {
+        AcquiredParameterValue apv = valueQueue.poll(timeout, TimeUnit.SECONDS);
+        String val;
+        if (apv == null) {
+            val = "TIMEOUT";
+        }
+        else{
+            val = apv.getValue().castAsMap().getString();
+        }
+        return val;
     }
 
     @Override
