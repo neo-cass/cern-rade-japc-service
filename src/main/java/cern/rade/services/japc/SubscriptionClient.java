@@ -40,9 +40,10 @@ public class SubscriptionClient {
         Parameter parameter;
         parameter = ParameterFactory.newInstance().newParameter(name);
         Selector selectorObj;
+        System.out.println(selector);
         selectorObj = SelectorFactory.newSelector(selector);
-        this.sh = parameter.createSubscription(selectorObj, vc);
         this.vc = new ValueCallback();
+        this.sh = parameter.createSubscription(selectorObj, vc);
     }
 
     public void startSubscription() throws ParameterException {
