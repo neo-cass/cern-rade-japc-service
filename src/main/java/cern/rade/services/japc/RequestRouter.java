@@ -52,7 +52,7 @@ public class RequestRouter extends HttpServlet {
     }
 
     private Request decodePYRequest(HttpServletRequest request, MetaData metaData) throws IOException {
-        String name = request.getHeader("Property");
+        String name = metaData.property;
         return new Request(metaData, new JavaContainer<>(name, null, DataType.DT_DATA), metaData.reqType);
     }
 

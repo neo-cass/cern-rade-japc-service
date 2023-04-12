@@ -10,9 +10,10 @@ public class LVMetaData extends MetaData {
                       String password,
                       String reqType,
                       String selector,
-                      String device)
+                      String device,
+                      String property)
     {
-        super(username, password, reqType, selector, device);
+        super(username, password, reqType, selector, device, property);
     }
 
     public void setTypeBuf(ByteBuffer typeBuf){

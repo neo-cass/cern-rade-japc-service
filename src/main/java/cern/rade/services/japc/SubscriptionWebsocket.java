@@ -47,9 +47,8 @@ public class SubscriptionWebsocket {
         while(session.isOpen()){
             try {
                 writer.sendText(client.getLatest());
-                System.out.println("val");
             } catch (IOException | InterruptedException e) {
-                e.printStackTrace();
+                System.out.println("Connection closed");
             }
         }
     }

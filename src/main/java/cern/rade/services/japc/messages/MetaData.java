@@ -5,17 +5,20 @@ public class MetaData {
     public String reqType;
     public String selector;
     public String device;
+    public String property;
     public MetaData(String username,
                     String password,
                     String reqType,
                     String selector,
-                    String device)
+                    String device,
+                    String property)
     {
         this.username=username;
         this.password=password;
         this.reqType=reqType;
         this.selector=selector;
         this.device=device;
+        this.property=property;
     }
 
 
