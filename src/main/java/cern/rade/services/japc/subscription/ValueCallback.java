@@ -1,4 +1,4 @@
-package cern.rade.services.japc;
+package cern.rade.services.japc.subscription;
 
 import cern.japc.core.AcquiredParameterValue;
 import cern.japc.core.ParameterException;
@@ -23,9 +23,15 @@ public class ValueCallback implements ParameterValueListener {
         valueQueue.add(value);
     }
 
-    public String getLatest(int timeout) throws InterruptedException {
-        AcquiredParameterValue apv = valueQueue.poll(timeout, TimeUnit.SECONDS);
-        //AcquiredParameterValue apv = valueQueue.take();
+    public String getLatest(int timeout) {
+        AcquiredParameterValue apv;
+        try{
+            apv = valueQueue.poll(timeout, TimeUnit.SECONDS);
+        }
+        catch(InterruptedException e){
+            apv = null;
+        }
+
         String val;
         if (apv == null) {
             val = "TIMEOUT";

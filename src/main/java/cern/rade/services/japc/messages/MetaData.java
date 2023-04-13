@@ -2,20 +2,20 @@ package cern.rade.services.japc.messages;
 public class MetaData {
     public String username;
     public String password;
-    public String reqType;
+    public String request_type;
     public String selector;
     public String device;
     public String property;
     public MetaData(String username,
                     String password,
-                    String reqType,
+                    String request_type,
                     String selector,
                     String device,
                     String property)
     {
         this.username=username;
         this.password=password;
-        this.reqType=reqType;
+        this.request_type = request_type;
         this.selector=selector;
         this.device=device;
         this.property=property;
@@ -31,7 +31,7 @@ public class MetaData {
         stringBuilder.append("\n");
 
         stringBuilder.append("request type: ");
-        stringBuilder.append(reqType);
+        stringBuilder.append(request_type);
         stringBuilder.append("\n");
 
         stringBuilder.append("selector: ");
@@ -40,6 +40,10 @@ public class MetaData {
 
         stringBuilder.append("device: ");
         stringBuilder.append(device);
+        stringBuilder.append("\n");
+
+        stringBuilder.append("property: ");
+        stringBuilder.append(property);
         stringBuilder.append("\n");
 
         return stringBuilder.toString();

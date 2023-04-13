@@ -12,21 +12,19 @@ argParser.add_argument("-r", "--server", help="request server name")
 argParser.add_argument("-t", "--secure", help="secure connection or not", default=False, action='store_true')
 args = argParser.parse_args()
 
-metadata = {"username": args.username, "password": args.password, "reqType": "PY_SUBSCRIBE", "selector": args.selector,
+metadata = {"username": args.username, "password": args.password, "request_type": "PY_SUBSCRIBE", "selector": args.selector,
             "device": args.device, "property": args.property}
 
 # data = hex(0x002240500002000A400A0464626C3000000A400A0464626C310007646F75626C65730000000000000000BFF0000000000000)
 headers = {"MetaData": str(metadata)}
 post_protocol = ''
 ws_protocol = ''
-print(args.secure)
 if args.secure==True:
     post_protocol = 'https://'
     ws_protocol = 'wss://'
 else:
     post_protocol = 'http://'
     ws_protocol = 'ws://'
-print(post_protocol)
 response = requests.post(post_protocol + args.server + '/request', headers=headers)
 sessionID = response.text
 print(sessionID)
@@ -36,4 +34,4 @@ try:
     while True:
         print(ws.recv())
 except KeyboardInterrupt:
-    ws.send("END_SESSION")
+    ws.close()

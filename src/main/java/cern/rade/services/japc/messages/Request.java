@@ -12,7 +12,7 @@ public class Request {
     {
         this.metaData = metaData;
         this.data=data;
-        this.requestType=setReqType(requestType);
+        this.requestType=RequestType.valueOf(requestType);
         this.id =createID();
     }
     public String toString(){
@@ -32,14 +32,8 @@ public class Request {
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append(metaData.username).append("/");
         stringBuilder.append(metaData.device).append("/");
-        stringBuilder.append(data.getFieldName()).append("/");
-        if(metaData.selector.equals("")){
-            stringBuilder.append("NO_SELECTOR");
-        }
-        else{
-            stringBuilder.append(metaData.selector);
-        }
-
+        stringBuilder.append(metaData.property).append("/");
+        stringBuilder.append(metaData.selector);
         return stringBuilder.toString().hashCode();
     }
     public MetaData getMetaData() {
@@ -48,19 +42,6 @@ public class Request {
 
     public JavaContainer<?> getData() {
         return data;
-    }
-
-
-    private RequestType setReqType(String reqString){
-        if(reqString.equals(RequestType.LV_GET.getStr())){
-            return RequestType.LV_SET;
-        }
-        else if(reqString.equals(RequestType.LV_SET.getStr())){
-            return RequestType.LV_SET;
-        }
-        else{
-            return RequestType.LV_SUBSCRIBE;
-        }
     }
 
     public int getId() {
