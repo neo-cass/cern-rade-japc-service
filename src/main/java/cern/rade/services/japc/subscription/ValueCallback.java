@@ -23,14 +23,9 @@ public class ValueCallback implements ParameterValueListener {
         valueQueue.add(value);
     }
 
-    public String getLatest(int timeout) {
+    public String getLatest(int timeout) throws InterruptedException {
         AcquiredParameterValue apv;
-        try{
-            apv = valueQueue.poll(timeout, TimeUnit.SECONDS);
-        }
-        catch(InterruptedException e){
-            apv = null;
-        }
+        apv = valueQueue.poll(timeout, TimeUnit.SECONDS);
 
         String val;
         if (apv == null) {

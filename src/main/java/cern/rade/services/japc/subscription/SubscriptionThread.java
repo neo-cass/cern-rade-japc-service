@@ -19,17 +19,7 @@ public class SubscriptionThread extends Thread{
 
     @Override
     public void run() {
-        while(!isInterrupted()){
 
-            String val = client.getLatest();
-            try {
-                //TODO: send in parts
-                writer.sendText(val);
-            } catch (IOException e) {
-                System.out.println("Failed to send latest value due to IOException.");
-            }
-        }
-        client.stopSubscription();
     }
 
 }

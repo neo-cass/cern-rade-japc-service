@@ -15,13 +15,13 @@ public class SubscriptionWebsocket {
     private SubscriptionClient client;
     private Session session;
     private OutputStreamWriter out;
-    private SubscriptionThread st;
 
     @OnOpen
     public void onOpen(Session session, @PathParam("id") int id) {
         this.id=id;
         this.client = SubscriptionManager.getSubClient(id);
         this.session=session;
+        Thread.currentThread().setName("Subscription-Thread-"+client.getSessionID());
         init(session);
     }
 
@@ -42,8 +42,21 @@ public class SubscriptionWebsocket {
     }
 
     private void pushToClient(){
-        st = new SubscriptionThread(client, writer);
-        st.start();
+        while(session.isOpen() && !Thread.currentThread().isInterrupted()){
+            String val = null;
+            try {
+                val = client.getLatest();
+            } catch (InterruptedException e) {
+                return;
+            }
+            try {
+                //TODO: send in parts
+                writer.sendText(val);
+            } catch (IOException e) {
+                System.out.println("Failed to send latest value due to IOException.");
+            }
+        }
+        client.stopSubscription();
     }
 
     private void sendData(String value) throws IOException {
@@ -68,7 +81,7 @@ public class SubscriptionWebsocket {
     }
 
     private void close(Session session){
-        st.interrupt();
+        getThreadByName("Subscription-Thread-"+client.getSessionID()).interrupt();
         SubscriptionManager.removeSubSock(id);
         try {
             session.close(new CloseReason(CloseReason.CloseCodes.NORMAL_CLOSURE, "Deliberate disconnect"));
@@ -76,5 +89,12 @@ public class SubscriptionWebsocket {
             System.out.println("Error while ending session. Here is the stack trace:\n");
             e.printStackTrace();
         }
+    }
+
+    public Thread getThreadByName(String threadName) {
+        for (Thread t : Thread.getAllStackTraces().keySet()) {
+            if (t.getName().equals(threadName)) return t;
+        }
+        return null;
     }
 }

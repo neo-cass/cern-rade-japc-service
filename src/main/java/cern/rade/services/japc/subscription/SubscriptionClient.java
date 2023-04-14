@@ -8,11 +8,8 @@ import cern.rade.services.japc.messages.MetaData;
 import cern.rade.services.japc.messages.Request;
 import cern.rbac.util.authentication.LoginService;
 import cern.rbac.client.authentication.AuthenticationException;
-import cern.rbac.common.RbacConfiguration;
 import cern.rbac.common.authentication.LoginPolicy;
 import cern.rbac.util.authentication.LoginServiceBuilder;
-import cern.rbac.util.holder.ClientTierTokenHolder;
-
 
 public class SubscriptionClient {
     private int sessionID;
@@ -67,7 +64,7 @@ public class SubscriptionClient {
         sh.stopMonitoring();
     }
 
-    public String getLatest()  {
+    public String getLatest() throws InterruptedException {
         return vc.getLatest(59);
     }
 
