@@ -66,14 +66,24 @@ public class RequestRouter extends HttpServlet {
 
     public void handleJAPCGet(Request request, HttpServletResponse response) throws IOException {
         //TODO: send data or error message
-        GetSetManager.get(request);
-        response.getWriter().println("");
+        String val;
+        try {
+            val = new GetSetManager(request).get();
+        } catch (ParameterException e) {
+            throw new RuntimeException(e);
+        }
+        response.getWriter().println(val);
+        response.getWriter().flush();
     }
 
     public void handleJAPCSet(Request request, HttpServletResponse response) throws IOException {
         //TODO: send data or error message
-        GetSetManager.set(request);
-        response.getWriter().println("");
+        try {
+            new GetSetManager(request).set();
+        } catch (ParameterException e) {
+            throw new RuntimeException(e);
+        }
+        response.getWriter().flush();
     }
 
     public void handleJAPCSub(Request request, HttpServletResponse response) throws IOException {
