@@ -6,12 +6,14 @@ public class MetaData {
     public String selector;
     public String device;
     public String property;
+    public short[] type_descriptor;
     public MetaData(String username,
                     String password,
                     String request_type,
                     String selector,
                     String device,
-                    String property)
+                    String property,
+                    short[] type_descriptor)
     {
         this.username=username;
         this.password=password;
@@ -19,6 +21,7 @@ public class MetaData {
         this.selector=selector;
         this.device=device;
         this.property=property;
+        this.type_descriptor = type_descriptor;
     }
 
 

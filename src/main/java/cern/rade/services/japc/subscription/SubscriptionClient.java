@@ -30,7 +30,7 @@ public class SubscriptionClient {
         this.device = metaData.device;
         this.selector = metaData.selector;
         this.property=request.getData();
-        this.propertyName=property.getFieldName();
+        this.propertyName=property.getName();
         init();
     }
 

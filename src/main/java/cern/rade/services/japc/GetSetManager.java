@@ -6,7 +6,10 @@ import cern.japc.core.factory.ParameterFactory;
 import cern.japc.core.factory.SelectorFactory;
 import cern.japc.value.MapParameterValue;
 import cern.japc.value.ParameterValue;
+import cern.rade.services.codec.japcjava.JAPCDecoder;
+import cern.rade.services.codec.japcjava.JAPCEncoder;
 import cern.rade.services.common.types.JavaContainer;
+import cern.rade.services.common.types.PropertyContainer;
 import cern.rade.services.japc.messages.MetaData;
 import cern.rade.services.japc.messages.Request;
 
@@ -26,17 +29,19 @@ public class GetSetManager {
         this.device = metaData.device;
         this.selector = metaData.selector;
         this.property=request.getData();
-        this.propertyName=property.getFieldName();
+        this.propertyName=property.getName();
     }
-    public String get() throws ParameterException {
+
+    public JavaContainer<?> get() throws ParameterException {
         String name = Parameters.buildParameterName(device, propertyName);
         Parameter parameter;
         parameter = ParameterFactory.newInstance().newParameter(name);
         Selector selectorObj;
         selectorObj = SelectorFactory.newSelector(selector);
-        AcquiredParameterValue apv = parameter.getValue(selectorObj);
 
-        return apv.getValue().castAsMap().getString();
+        AcquiredParameterValue apv = parameter.getValue(selectorObj);
+        JAPCDecoder.decode((PropertyContainer) property, apv);
+        return property;
     }
 
     public void set() throws ParameterException {
@@ -45,11 +50,8 @@ public class GetSetManager {
         parameter = ParameterFactory.newInstance().newParameter(name);
         Selector selectorObj;
         selectorObj = SelectorFactory.newSelector(selector);
-        MapParameterValue map = MapParameterValueFactory.newMapParameterValue();
-        map.setDouble("dbl0", 1);
-        map.setDouble("dbl1", 3);
-        parameter.setValue(selectorObj, map);
-
-
+        ParameterValue pv = JAPCEncoder.encode(property);
+        System.out.println(pv);
+        parameter.setValue(selectorObj, pv);
     }
 }
