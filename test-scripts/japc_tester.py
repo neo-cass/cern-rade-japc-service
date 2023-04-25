@@ -16,11 +16,10 @@ args = argParser.parse_args()
 metadata = {"username": args.username, "password": args.authorisation, "request_type": args.request,
             "selector": args.selector, "device": args.device, "property": args.property}
 
-# data = hex(0x002240500002000A400A0464626C3000000A400A0464626C310007646F75626C65730000000000000000BFF0000000000000)
 headers = {"MetaData": str(metadata)}
 post_protocol = ''
 ws_protocol = ''
-if args.tls == True:
+if args.tls:
     post_protocol = 'https://'
     ws_protocol = 'wss://'
 else:

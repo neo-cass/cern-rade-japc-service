@@ -1,11 +1,6 @@
 package cern.rade.services.japc.subscription;
 
-import cern.japc.core.ParameterException;
-import cern.japc.core.SubscriptionHandle;
-import cern.rade.services.japc.subscription.ValueCallback;
 import jakarta.websocket.RemoteEndpoint;
-
-import java.io.IOException;
 
 
 public class SubscriptionThread extends Thread{

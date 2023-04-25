@@ -17,10 +17,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
@@ -39,7 +36,7 @@ public class RequestRouter extends HttpServlet {
         MetaData metaData = gson.fromJson(jsonMsg, MetaData.class);
         switch(RequestType.valueOf(metaData.request_type)){
             case LV_GET, LV_SET, LV_SUBSCRIBE -> {return decodeLVRequest(request, metaData);}
-            case PY_SUBSCRIBE, PY_GET, PY_SET -> {return decodePYRequest(request, metaData);}
+            case PY_GET, PY_SET, PY_SUBSCRIBE -> {return decodePYRequest(request, metaData);}
             //TODO: cases for other languages
         }
         return null;
@@ -48,19 +45,17 @@ public class RequestRouter extends HttpServlet {
     private Request decodeLVRequest(HttpServletRequest request, MetaData metaData) throws IOException {
         ServletInputStream reader = request.getInputStream();
         byte[] data = reader.readAllBytes();
+
         //TODO: change how to data is converted or how it arrives from LabVIEW
         byte[] typeDescriptor = shortArrToByteArr(metaData.type_descriptor);
+
         ByteBuffer dataBuf = ByteBuffer.wrap(data);
         ByteBuffer typeBuf = ByteBuffer.wrap(typeDescriptor);
-//        short typeLen = buf.getShort();
-//        ByteBuffer typeBuf = buf.slice(0, typeLen);
-//        ByteBuffer dataBuf = buf.slice(typeLen, buf.capacity() - typeLen);
         return new Request(metaData, LVDecoder.decode(typeBuf, dataBuf), metaData.request_type);
     }
 
     private Request decodePYRequest(HttpServletRequest request, MetaData metaData)  {
-        String name = metaData.property;
-        return new Request(metaData, new JavaContainer<>(name, null, DataType.DT_DATA), metaData.request_type);
+        return new Request(metaData, null, metaData.request_type);
     }
 
     public void requestCaller(Request request, HttpServletResponse response) throws IOException {
@@ -92,38 +87,30 @@ public class RequestRouter extends HttpServlet {
 
     public void handleJAPCGet(Request request, HttpServletResponse response) throws IOException {
         //TODO: send data or error message
-        JavaContainer javaContainer ;
-        try {
-            javaContainer = new GetSetManager(request).get();
-        } catch (ParameterException e) {
-            throw new RuntimeException(e);
-        }
-        sendData(response,javaContainer,request);
+        JavaContainer<?> javaContainer = JAPCActions.get(request);
+        sendData(response, javaContainer, request);
     }
 
     public void handleJAPCSet(Request request, HttpServletResponse response) throws IOException {
         //TODO: send data or error message
-        JavaContainer javaContainer ;
-        try {
-            new GetSetManager(request).set();
-        } catch (ParameterException e) {
-            throw new RuntimeException(e);
-        }
+        JAPCActions.set(request);
     }
 
     public void handleJAPCSub(Request request, HttpServletResponse response) throws IOException {
         SubscriptionClient client;
         String message;
+        PrintWriter writer = response.getWriter();
         try {
              client = new SubscriptionClient(request);
              SubscriptionManager.addSubClient(request.getId(), client);
              message= String.valueOf(request.getId());
+
         } catch (ParameterException e) {
             e.printStackTrace();
             message = "Failed to create parameter, please check the server, device, property, field and the entry in CCDE";
         }
-        response.getWriter().println(message);
-        response.getWriter().flush();
+        writer.println(message);
+        writer.flush();
     }
 
     public static byte [] shortArrToByteArr(short [] input)

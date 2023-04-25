@@ -2,7 +2,7 @@ package cern.rade.services.japc.examples;
 
 import cern.japc.core.AcquiredParameterValue;
 import cern.japc.core.SubscriptionHandle;
-import cern.rade.services.japc.subscription.ValueCallback;
+import cern.rade.services.japc.subscription.SubscriptionCallback;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -11,8 +11,8 @@ import java.net.Socket;
 public class SubscriptionThread implements Runnable{
     Socket client;
     SubscriptionHandle sh;
-    ValueCallback vc;
-    public SubscriptionThread(Socket client, SubscriptionHandle sh, ValueCallback vc){
+    SubscriptionCallback vc;
+    public SubscriptionThread(Socket client, SubscriptionHandle sh, SubscriptionCallback vc){
       this.sh=sh;
       this.client=client;
       this.vc=vc;

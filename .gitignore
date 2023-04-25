@@ -1,6 +1,8 @@
 build
 *.log
-.idea
 .gradle
 webapp-build/*.war
-*.idea/
+.idea
+*idea
+test-scripts/venv
+test-scripts/.idea

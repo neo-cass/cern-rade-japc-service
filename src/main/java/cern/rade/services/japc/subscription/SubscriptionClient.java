@@ -21,7 +21,7 @@ public class SubscriptionClient {
     private MetaData metaData;
     private JavaContainer<?> property;
     private SubscriptionHandle sh;
-    private ValueCallback vc;
+    private SubscriptionCallback vc;
     public SubscriptionClient(Request request) throws ParameterException {
         this.sessionID = request.getId();
         this.request = request;
@@ -45,7 +45,7 @@ public class SubscriptionClient {
             parameter = ParameterFactory.newInstance().newParameter(name);
             Selector selectorObj;
             selectorObj = SelectorFactory.newSelector(selector);
-            this.vc = new ValueCallback();
+            this.vc = new SubscriptionCallback();
             this.sh = parameter.createSubscription(selectorObj, vc);
         }
 
@@ -65,7 +65,7 @@ public class SubscriptionClient {
     }
 
     public String getLatest() throws InterruptedException {
-        return vc.getLatest(59);
+        return vc.getLatest(50);
     }
 
     public int getSessionID() {

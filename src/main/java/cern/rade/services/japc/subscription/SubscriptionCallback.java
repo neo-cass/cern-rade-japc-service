@@ -7,10 +7,10 @@ import cern.japc.core.ParameterValueListener;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-public class ValueCallback implements ParameterValueListener {
+public class SubscriptionCallback implements ParameterValueListener {
     //TODO: add conversion here
     private LinkedBlockingQueue<AcquiredParameterValue> valueQueue;
-    public ValueCallback() {
+    public SubscriptionCallback() {
         this.valueQueue = new LinkedBlockingQueue<>();
     }
 
