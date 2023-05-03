@@ -26,7 +26,6 @@ public class SubscriptionCallback implements ParameterValueListener {
     public String getLatest(int timeout) throws InterruptedException {
         AcquiredParameterValue apv;
         apv = valueQueue.poll(timeout, TimeUnit.SECONDS);
-
         String val;
         if (apv == null) {
             val = "TIMEOUT";

@@ -8,19 +8,20 @@ import cern.japc.value.MapParameterValue;
 import cern.japc.value.ParameterValue;
 import cern.rade.services.codec.japcjava.JAPCDecoder;
 import cern.rade.services.codec.japcjava.JAPCEncoder;
-import cern.rade.services.common.types.JavaContainer;
-import cern.rade.services.common.types.PropertyContainer;
-import cern.rade.services.japc.messages.MetaData;
-import cern.rade.services.japc.messages.Request;
-import zmq.socket.reqrep.Req;
+import cern.rade.services.common.communication.client.ClientMetaData;
+import cern.rade.services.common.communication.client.Request;
+import cern.rade.services.common.containers.java.DataContainer;
+import cern.rade.services.common.containers.java.PropertyContainer;
+
+
 
 public final class JAPCActions {
 
-    public static JavaContainer<?> get(Request request) {
-        JavaContainer<?> data = request.getData();
-        MetaData metaData = request.getMetaData();
-        Parameter parameter = buildParameter(metaData.property, metaData.device, null);
-        Selector selectorObj = SelectorFactory.newSelector(metaData.selector);
+    public static DataContainer<?> get(Request request) {
+        DataContainer<?> data = request.getData();
+        ClientMetaData metaData = request.getMetaData();
+        Parameter parameter = buildParameter(metaData.getProperty(), metaData.getDevice(), null);
+        Selector selectorObj = SelectorFactory.newSelector(metaData.getSelector());
         AcquiredParameterValue apv = get(parameter,selectorObj);
 
         if(data==null){JAPCDecoder.decode(apv);}
@@ -39,10 +40,10 @@ public final class JAPCActions {
     }
 
     public static void set(Request request) {
-        JavaContainer<?> data = request.getData();
-        MetaData metaData = request.getMetaData();
-        Parameter parameter = buildParameter(data.getName(), metaData.device, null);
-        Selector selectorObj = SelectorFactory.newSelector(metaData.selector);
+        DataContainer<?> data = request.getData();
+        ClientMetaData metaData = request.getMetaData();
+        Parameter parameter = buildParameter(data.getName(), metaData.getDevice(), null);
+        Selector selectorObj = SelectorFactory.newSelector(metaData.getSelector());
         ParameterValue pv = JAPCEncoder.encode(data);
         System.out.println(pv);
         set(parameter, selectorObj, pv);
@@ -51,6 +52,7 @@ public final class JAPCActions {
     public static void set(Parameter parameter, Selector selector, ParameterValue parameterValue) {
         try {
             parameter.setValue(selector, parameterValue);
+
         } catch (ParameterException e) {
             System.out.println("Set operation failed");
         }
@@ -59,7 +61,7 @@ public final class JAPCActions {
 
     public static Parameter buildParameter(String property, String device, String field) {
         String url;
-        if(field==null){url = Parameters.buildParameterName(device, property);;}
+        if(field==null){url = Parameters.buildParameterName(device, property);}
         else{url = Parameters.buildParameterName(device, property, field);}
 
         Parameter parameter = null;

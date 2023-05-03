@@ -1,72 +1,36 @@
 package cern.rade.services.japc;
-import cern.cmw.data.DataType;
 import cern.japc.core.ParameterException;
-import cern.rade.services.codec.javatolv.LVDataEncoder;
-import cern.rade.services.codec.lvtojava.LVDecoder;
-import cern.rade.services.common.types.JavaContainer;
-import cern.rade.services.common.types.PropertyContainer;
-import cern.rade.services.japc.messages.RequestType;
+import cern.rade.services.codec.RequestDecoder;
+import cern.rade.services.common.communication.client.Request;
+import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.japc.subscription.SubscriptionClient;
 import cern.rade.services.japc.subscription.SubscriptionManager;
-import com.google.gson.Gson;
-import cern.rade.services.japc.messages.MetaData;
-import cern.rade.services.japc.messages.Request;
-import jakarta.servlet.ServletInputStream;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-import java.io.*;
-import java.nio.ByteBuffer;
-import java.util.Arrays;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintWriter;
 
 @WebServlet(value = "/request")
 public class RequestRouter extends HttpServlet {
     //TODO: put type descriptor in json (remember encoding issue)
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        Request japcRequest = decodeMessage(request);
+        Request japcRequest = RequestDecoder.decodeMessage(request);
         requestCaller(japcRequest, response);
     }
 
-    public Request decodeMessage(HttpServletRequest request) throws IOException {
-        Gson gson = new Gson();
-        String jsonMsg = request.getHeader("MetaData");
-
-        MetaData metaData = gson.fromJson(jsonMsg, MetaData.class);
-        switch(RequestType.valueOf(metaData.request_type)){
-            case LV_GET, LV_SET, LV_SUBSCRIBE -> {return decodeLVRequest(request, metaData);}
-            case PY_GET, PY_SET, PY_SUBSCRIBE -> {return decodePYRequest(request, metaData);}
-            //TODO: cases for other languages
-        }
-        return null;
-    }
-
-    private Request decodeLVRequest(HttpServletRequest request, MetaData metaData) throws IOException {
-        ServletInputStream reader = request.getInputStream();
-        byte[] data = reader.readAllBytes();
-
-        //TODO: change how to data is converted or how it arrives from LabVIEW
-        byte[] typeDescriptor = shortArrToByteArr(metaData.type_descriptor);
-
-        ByteBuffer dataBuf = ByteBuffer.wrap(data);
-        ByteBuffer typeBuf = ByteBuffer.wrap(typeDescriptor);
-        return new Request(metaData, LVDecoder.decode(typeBuf, dataBuf), metaData.request_type);
-    }
-
-    private Request decodePYRequest(HttpServletRequest request, MetaData metaData)  {
-        return new Request(metaData, null, metaData.request_type);
-    }
-
     public void requestCaller(Request request, HttpServletResponse response) throws IOException {
-        switch(request.getRequestType()){
-            case LV_GET, PY_GET -> handleJAPCGet(request, response);
-            case LV_SET, PY_SET -> handleJAPCSet(request, response);
-            case LV_SUBSCRIBE, PY_SUBSCRIBE -> handleJAPCSub(request, response);
+        switch(request.getRequestAction()){
+            case GET -> handleJAPCGet(request, response);
+            case SET -> handleJAPCSet(request, response);
+            case SUBSCRIBE-> handleJAPCSub(request, response);
         }
     }
 
-    public void sendData(HttpServletResponse response, JavaContainer data, Request request){
+    public void sendData(HttpServletResponse response, DataContainer data, Request request){
         OutputStream out;
         try {
              out = response.getOutputStream();
@@ -74,20 +38,11 @@ public class RequestRouter extends HttpServlet {
             throw new RuntimeException(e);
         }
 
-        switch(request.getRequestType()){
-            case LV_GET -> {
-                try {
-                    out.write(LVDataEncoder.encode(data));
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        }
     }
 
     public void handleJAPCGet(Request request, HttpServletResponse response) throws IOException {
         //TODO: send data or error message
-        JavaContainer<?> javaContainer = JAPCActions.get(request);
+        DataContainer<?> javaContainer = JAPCActions.get(request);
         sendData(response, javaContainer, request);
     }
 
@@ -113,18 +68,5 @@ public class RequestRouter extends HttpServlet {
         writer.flush();
     }
 
-    public static byte [] shortArrToByteArr(short [] input)
-    {
-        int index;
-        int iterations = input.length;
 
-        ByteBuffer bb = ByteBuffer.allocate(input.length * 2);
-
-        for(index = 0; index != iterations; ++index)
-        {
-            bb.putShort(input[index]);
-        }
-
-        return bb.array();
-    }
 }

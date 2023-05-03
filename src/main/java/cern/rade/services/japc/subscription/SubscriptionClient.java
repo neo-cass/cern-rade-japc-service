@@ -3,9 +3,9 @@ package cern.rade.services.japc.subscription;
 import cern.japc.core.*;
 import cern.japc.core.factory.ParameterFactory;
 import cern.japc.core.factory.SelectorFactory;
-import cern.rade.services.common.types.JavaContainer;
-import cern.rade.services.japc.messages.MetaData;
-import cern.rade.services.japc.messages.Request;
+import cern.rade.services.common.communication.client.ClientMetaData;
+import cern.rade.services.common.communication.client.Request;
+import cern.rade.services.common.containers.java.DataContainer;
 import cern.rbac.util.authentication.LoginService;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.authentication.LoginPolicy;
@@ -18,17 +18,17 @@ public class SubscriptionClient {
     private String device;
     private String propertyName;
     private Request request;
-    private MetaData metaData;
-    private JavaContainer<?> property;
+    private ClientMetaData metaData;
+    private DataContainer<?> property;
     private SubscriptionHandle sh;
     private SubscriptionCallback vc;
     public SubscriptionClient(Request request) throws ParameterException {
         this.sessionID = request.getId();
         this.request = request;
         this.metaData=request.getMetaData();
-        this.username=metaData.username;
-        this.device = metaData.device;
-        this.selector = metaData.selector;
+        this.username=metaData.getUsername();
+        this.device = metaData.getDevice();
+        this.selector = metaData.getSelector();
         this.property=request.getData();
         this.propertyName=property.getName();
         init();
@@ -53,7 +53,7 @@ public class SubscriptionClient {
 
     private LoginService rbacAuth() throws AuthenticationException{
             return LoginServiceBuilder.newInstance().autoRefresh(true).loginPolicy(LoginPolicy.EXPLICIT)
-                    .userName(username).userPassword(metaData.password).build();
+                    .userName(username).userPassword(metaData.getPassword()).build();
     }
 
     public void startSubscription() throws ParameterException {

@@ -3,6 +3,7 @@ plugins {
     id 'war'
     id ("cern.devops.cbng.dependency") version "4.0.52"
 }
+
 repositories {
     mavenCentral()
     // our package index to resolve dependencies
@@ -11,22 +12,28 @@ repositories {
     }
 }
 
+configurations.configureEach {
+    resolutionStrategy {
+        cacheChangingModulesFor 0, 'seconds'
+    }
+}
+
 dependencies {
-    implementation ("cern.japc:japc:PRO")
-    implementation ("cern.japc:japc-ext-cmwrda3:PRO")
-    implementation ("cern.japc:japc-value:PRO")
-    implementation ("cern.japc:japc-ext-remote:PRO")
-    implementation ("cern.accsoft.security:rbac-client:PRO")
-    implementation ("cern.accsoft.security:rbac-common:PRO")
-    implementation ("cern.accsoft.security:rbac-util:PRO")
-    implementation ("cern.cmw:cmw-data:PRO")
+    implementation ("cern.japc:japc:PRO") {changing = true}
+    implementation ("cern.japc:japc-ext-cmwrda3:PRO") {changing = true}
+    implementation ("cern.japc:japc-value:PRO") {changing = true}
+    implementation ("cern.japc:japc-ext-remote:PRO") {changing = true}
+    implementation ("cern.accsoft.security:rbac-client:PRO") {changing = true}
+    implementation ("cern.accsoft.security:rbac-common:PRO") {changing = true}
+    implementation ("cern.accsoft.security:rbac-util:PRO") {changing = true}
+    implementation ("cern.cmw:cmw-data:PRO") {changing = true}
     implementation ("org.apache.commons:commons-lang3:3.12.0")
     implementation ("jakarta.servlet:jakarta.servlet-api:5.0.0-M1")
     implementation ("jakarta.websocket:jakarta.websocket-api:2.0.0-M1")
     implementation ("jakarta.ws.rs:jakarta.ws.rs-api:3.1.0")
     implementation ("com.google.code.gson:gson:2.10.1")
-    implementation ("cern.rade.services:codec:1.0.3")
-    implementation ("cern.rade.services:common:1.0.3")
+    implementation ("cern.rade.services:codec:1.0.3") {changing = true}
+    implementation ("cern.rade.services:common:1.0.3") {changing = true}
 }
 
 war{
