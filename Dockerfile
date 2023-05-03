@@ -2,8 +2,8 @@ FROM gradle:7.5.1-jdk17-alpine AS build
 WORKDIR /buildDir
 COPY . .
 RUN apk update && apk add wget
-RUN wget -O root.cert https://cafiles.cern.ch/cafiles/certificates/CERN%20Root%20Certification%20Authority%202.crt
-RUN wget -O auth.cert https://cafiles.cern.ch/cafiles/certificates/CERN%20Certification%20Authority(2).crt
+RUN wget -O root.cert "https://cafiles.cern.ch/cafiles/certificates/CERN%20Root%20Certification%20Authority%202.crt"
+RUN wget -O auth.cert "https://cafiles.cern.ch/cafiles/certificates/CERN%20Certification%20Authority(2).crt"
 
 USER root
 RUN keytool -cacerts -keypass changeit -alias root.cert -storepass changeit -noprompt -importcert file root.cert
