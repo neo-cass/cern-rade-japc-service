@@ -6,8 +6,8 @@ RUN wget -O root.cert "https://cafiles.cern.ch/cafiles/certificates/CERN%20Root%
 RUN wget -O auth.cert "https://cafiles.cern.ch/cafiles/certificates/CERN%20Certification%20Authority(2).crt"
 
 USER root
-RUN keytool -cacerts -keypass changeit -alias root.cert -storepass changeit -noprompt -importcert file root.cert
-RUN keytool -cacerts -keypass changeit -alias auth.cert -storepass changeit -noprompt -importcert file auth.cert
+RUN keytool -cacerts -keypass changeit -alias root.cert -storepass changeit -noprompt -importcert -file root.cert
+RUN keytool -cacerts -keypass changeit -alias auth.cert -storepass changeit -noprompt -importcert -file auth.cert
 RUN gradle --no-daemon clean war
 
 FROM tomcat:11.0.0-jdk17
