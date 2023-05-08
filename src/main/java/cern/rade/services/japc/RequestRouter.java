@@ -5,6 +5,7 @@ import cern.rade.services.codec.javatolv.LVDataEncoder;
 import cern.rade.services.codec.javatolv.LVTypeEncoder;
 import cern.rade.services.common.communication.client.Request;
 import cern.rade.services.common.containers.java.DataContainer;
+import cern.rade.services.japc.rbac.RBACClient;
 import cern.rade.services.japc.subscription.SubscriptionClient;
 import cern.rade.services.japc.subscription.SubscriptionManager;
 import com.google.gson.Gson;
@@ -31,9 +32,16 @@ public class RequestRouter extends HttpServlet {
     public void requestCaller(Request request, HttpServletResponse response) throws IOException {
         switch(request.getRequestAction()){
             case GET -> handleJAPCGet(request, response);
+            case GET_SECURE -> rbacTest(request, response);
             case SET -> handleJAPCSet(request, response);
-            case SUBSCRIBE-> handleJAPCSub(request, response);
+            case SUBSCRIBE -> handleJAPCSub(request, response);
         }
+    }
+
+    private void rbacTest(Request request, HttpServletResponse response) {
+        RBACClient client = new RBACClient(request.getMetaData().getUsername(), request.getMetaData().getPassword());
+        client.login();
+        client.getApplicationToken();
     }
 
     public void sendData(HttpServletResponse response, DataContainer data, Request request) throws IOException {
@@ -41,7 +49,6 @@ public class RequestRouter extends HttpServlet {
             case LABVIEW -> sendLVData(response, data);
             case PYTHON -> {return;} //TODO: implement
         }
-
     }
 
     public void sendLVData(HttpServletResponse response, DataContainer data) throws IOException {

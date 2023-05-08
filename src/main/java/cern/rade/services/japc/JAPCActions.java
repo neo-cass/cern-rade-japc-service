@@ -1,10 +1,8 @@
 package cern.rade.services.japc;
 
 import cern.japc.core.*;
-import cern.japc.core.factory.MapParameterValueFactory;
 import cern.japc.core.factory.ParameterFactory;
 import cern.japc.core.factory.SelectorFactory;
-import cern.japc.value.MapParameterValue;
 import cern.japc.value.ParameterValue;
 import cern.rade.services.codec.japcjava.JAPCDecoder;
 import cern.rade.services.codec.japcjava.JAPCEncoder;
