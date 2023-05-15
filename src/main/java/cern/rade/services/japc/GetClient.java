@@ -15,6 +15,8 @@ import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.common.containers.java.PropertyContainer;
 import cern.rade.services.japc.examples.JAPCActions;
 import cern.rade.services.japc.rbac.RBACClient;
+import cern.rade.services.japc.rbac.RBACManager;
+import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.RbaToken;
 import static cern.rade.services.common.BytesUtil.byteArrToShortArr;
 import cern.rbac.util.holder.MiddleTierRbaTokenHolder;
@@ -34,19 +36,41 @@ public class GetClient {
     private Selector selector;
     private AcquiredParameterValue apv;
     private RBACClient rbacClient;
+    private int rbac_id;
 
     public GetClient(HttpServletResponse response, Request request){
         this.request = request;
         this.response = response;
     }
-    private void init() throws ParameterException {
+    private void init() throws ParameterException, IOException {
         this.metaData = request.getMetaData();
-        if(request.getRequestAction() == RequestAction.GET_SECURE){
-            this.rbacClient = new RBACClient(metaData.getUsername(), metaData.getPassword());
-        }
         this.data = request.getData();
         this.parameter = JAPCActions.buildParameter(metaData.getProperty(), metaData.getDevice(), null);
         this.selector = SelectorFactory.newSelector(metaData.getSelector());
+        if(request.getRequestAction() == RequestAction.GET_SECURE){
+            initRBAC();
+        }
+    }
+
+    private void initRBAC() throws IOException {
+        this.rbac_id = metaData.getRbac_id();
+        if(rbac_id == 0){
+            initNewRBAC();
+        }
+        else {
+            rbacClient = RBACManager.getClient(rbac_id);
+        }
+    }
+
+    private void initNewRBAC() throws IOException {
+        try{
+            this.rbacClient = new RBACClient(metaData.getUsername(), metaData.getPassword());
+            response.addHeader("rbac_id", String.valueOf(rbacClient.hashCode()));
+            RBACManager.addClient(rbacClient);
+        }
+        catch (AuthenticationException e){
+            response.getWriter().write("auth failed");
+        }
     }
 
     public void get() throws ParameterException {
@@ -67,6 +91,7 @@ public class GetClient {
         MiddleTierRbaTokenHolder.set(token);
         japcGET();
         MiddleTierRbaTokenHolder.clear();
+
     }
 
     private void send() throws IOException {
@@ -97,7 +122,7 @@ public class GetClient {
     public void execute(){
         try {
             init();
-        } catch (ParameterException e) {
+        } catch (ParameterException | IOException e) {
             throw new RuntimeException(e);
         }
 
