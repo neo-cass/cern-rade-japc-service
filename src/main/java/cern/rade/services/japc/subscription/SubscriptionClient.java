@@ -4,13 +4,9 @@ import cern.japc.core.*;
 import cern.japc.core.factory.ParameterFactory;
 import cern.japc.core.factory.SelectorFactory;
 import cern.rade.services.common.communication.client.ClientMetaData;
+import cern.rade.services.common.communication.client.MetaData;
 import cern.rade.services.common.communication.client.Request;
 import cern.rade.services.common.containers.java.DataContainer;
-import cern.rbac.util.authentication.LoginService;
-import cern.rbac.client.authentication.AuthenticationException;
-import cern.rbac.common.authentication.LoginPolicy;
-import cern.rbac.util.authentication.LoginServiceBuilder;
-
 public class SubscriptionClient {
     private int sessionID;
     private String username;
@@ -18,7 +14,7 @@ public class SubscriptionClient {
     private String device;
     private String propertyName;
     private Request request;
-    private ClientMetaData metaData;
+    private MetaData metaData;
     private DataContainer<?> property;
     private SubscriptionHandle sh;
     private SubscriptionCallback vc;
@@ -35,10 +31,6 @@ public class SubscriptionClient {
     }
 
     private void init() throws ParameterException{
-        //System.setProperty(RbacConfiguration.SYSTEM_PROPERTY_RBAC_ENV, RbacConfiguration.Environment.TEST.name());
-        //ClientTierTokenHolder.addRbaTokenChangeListener(System.out::println);
-        try (LoginService login = rbacAuth()) {
-            login.loginNewUser();
             SubscriptionManager.addSubClient(sessionID, this);
             String name = Parameters.buildParameterName(device, propertyName);
             Parameter parameter;
@@ -47,13 +39,6 @@ public class SubscriptionClient {
             selectorObj = SelectorFactory.newSelector(selector);
             this.vc = new SubscriptionCallback();
             this.sh = parameter.createSubscription(selectorObj, vc);
-        }
-
-    }
-
-    private LoginService rbacAuth() throws AuthenticationException{
-            return LoginServiceBuilder.newInstance().autoRefresh(true).loginPolicy(LoginPolicy.EXPLICIT)
-                    .userName(username).userPassword(metaData.getPassword()).build();
     }
 
     public void startSubscription() throws ParameterException {

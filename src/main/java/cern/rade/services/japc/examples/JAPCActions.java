@@ -1,4 +1,4 @@
-package cern.rade.services.japc;
+package cern.rade.services.japc.examples;
 
 import cern.japc.core.*;
 import cern.japc.core.factory.ParameterFactory;
@@ -7,6 +7,7 @@ import cern.japc.value.ParameterValue;
 import cern.rade.services.codec.japcjava.JAPCDecoder;
 import cern.rade.services.codec.japcjava.JAPCEncoder;
 import cern.rade.services.common.communication.client.ClientMetaData;
+import cern.rade.services.common.communication.client.MetaData;
 import cern.rade.services.common.communication.client.Request;
 import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.common.containers.java.PropertyContainer;
@@ -15,9 +16,9 @@ import cern.rade.services.common.containers.java.PropertyContainer;
 
 public final class JAPCActions {
 
-    public static DataContainer<?> get(Request request) {
+    public static DataContainer<?> get(Request request) throws ParameterException {
         DataContainer<?> data = request.getData();
-        ClientMetaData metaData = request.getMetaData();
+        MetaData metaData = request.getMetaData();
         Parameter parameter = buildParameter(metaData.getProperty(), metaData.getDevice(), null);
         Selector selectorObj = SelectorFactory.newSelector(metaData.getSelector());
         AcquiredParameterValue apv = get(parameter,selectorObj);
@@ -37,9 +38,9 @@ public final class JAPCActions {
         return apv;
     }
 
-    public static void set(Request request) {
+    public static void set(Request request) throws ParameterException {
         DataContainer<?> data = request.getData();
-        ClientMetaData metaData = request.getMetaData();
+        MetaData metaData = request.getMetaData();
         Parameter parameter = buildParameter(data.getName(), metaData.getDevice(), null);
         Selector selectorObj = SelectorFactory.newSelector(metaData.getSelector());
         ParameterValue pv = JAPCEncoder.encode(data);
@@ -53,21 +54,20 @@ public final class JAPCActions {
 
         } catch (ParameterException e) {
             System.out.println("Set operation failed");
+            e.printStackTrace();
         }
     }
 
 
-    public static Parameter buildParameter(String property, String device, String field) {
+    public static Parameter buildParameter(String property, String device, String field) throws ParameterException {
         String url;
         if(field==null){url = Parameters.buildParameterName(device, property);}
         else{url = Parameters.buildParameterName(device, property, field);}
 
         Parameter parameter = null;
-        try {
-            parameter = ParameterFactory.newInstance().newParameter(url);
-        } catch (ParameterException e) {
-            System.out.println("Failed to create parameter");
-        }
+
+        parameter = ParameterFactory.newInstance().newParameter(url);
+
         return parameter;
     }
 
