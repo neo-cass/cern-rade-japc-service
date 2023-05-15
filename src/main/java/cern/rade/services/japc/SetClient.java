@@ -34,13 +34,14 @@ public class SetClient {
     }
     private void init() throws ParameterException {
         this.metaData = request.getMetaData();
-        if(request.getRequestAction()== RequestAction.GET_SECURE){
+        if(request.getRequestAction() == RequestAction.SET_SECURE){
             this.rbacClient = new RBACClient(metaData.getUsername(), metaData.getPassword());
         }
         this.data = request.getData();
         this.parameter = JAPCActions.buildParameter(metaData.getProperty(), metaData.getDevice(), null);
         this.selector = SelectorFactory.newSelector(metaData.getSelector());
     }
+
     private void set() throws ParameterException {
         switch(request.getRequestAction()){
             case SET -> japcSET();
