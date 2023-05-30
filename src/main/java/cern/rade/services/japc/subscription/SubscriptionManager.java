@@ -1,6 +1,6 @@
 package cern.rade.services.japc.subscription;
 
-import cern.rade.services.common.communication.client.Request;
+import cern.rade.services.common.communication.Request;
 
 import java.util.concurrent.ConcurrentHashMap;
 

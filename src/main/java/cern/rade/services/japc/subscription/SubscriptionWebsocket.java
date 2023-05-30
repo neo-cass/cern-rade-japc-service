@@ -38,20 +38,21 @@ public class SubscriptionWebsocket {
                 ex.printStackTrace();
             }
         }
-        pushToClient();
+        sendData();
     }
 
-    private void pushToClient(){
+    private void sendData(){
         while(session.isOpen() && !Thread.currentThread().isInterrupted()){
-            String val = null;
+            AcquiredParameterValue val = null;
             try {
-                val = client.getLatest();
+                val = client.getLatest(30);
             } catch (InterruptedException e) {
                 return;
             }
             try {
                 //TODO: send in parts
-                writer.sendText(val);
+                writer.sendText(String.valueOf(val));
+
             } catch (IOException e) {
                 System.out.println("Failed to send latest value due to IOException.");
             }

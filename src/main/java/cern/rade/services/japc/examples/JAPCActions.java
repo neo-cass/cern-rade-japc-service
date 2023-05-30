@@ -6,9 +6,9 @@ import cern.japc.core.factory.SelectorFactory;
 import cern.japc.value.ParameterValue;
 import cern.rade.services.codec.japcjava.JAPCDecoder;
 import cern.rade.services.codec.japcjava.JAPCEncoder;
-import cern.rade.services.common.communication.client.ClientMetaData;
-import cern.rade.services.common.communication.client.MetaData;
-import cern.rade.services.common.communication.client.Request;
+
+import cern.rade.services.common.communication.MetaData;
+import cern.rade.services.common.communication.Request;
 import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.common.containers.java.PropertyContainer;
 

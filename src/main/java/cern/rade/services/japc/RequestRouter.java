@@ -1,7 +1,7 @@
 package cern.rade.services.japc;
 import cern.japc.core.ParameterException;
 import cern.rade.services.codec.RequestDecoder;
-import cern.rade.services.common.communication.client.Request;
+import cern.rade.services.common.communication.Request;
 import cern.rade.services.japc.subscription.SubscriptionClient;
 import cern.rade.services.japc.subscription.SubscriptionManager;
 import jakarta.servlet.annotation.WebServlet;
@@ -41,18 +41,11 @@ public class RequestRouter extends HttpServlet {
     }
 
     public void handleJAPCSub(Request request, HttpServletResponse response) throws IOException {
-        SubscriptionClient client;
         String message;
         PrintWriter writer = response.getWriter();
-        try {
-             client = new SubscriptionClient(request);
-             SubscriptionManager.addSubClient(request.getId(), client);
-             message= String.valueOf(request.getId());
-
-        } catch (ParameterException e) {
-            e.printStackTrace();
-            message = "Failed to create parameter, please check the server, device, property, field and the entry in CCDE";
-        }
+        SubscriptionClient client = new SubscriptionClient(request);
+        SubscriptionManager.addSubClient(request.getId(), client);
+        message= String.valueOf(request.getId());
         writer.println(message);
         writer.flush();
     }

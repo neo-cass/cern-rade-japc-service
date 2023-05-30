@@ -13,12 +13,15 @@ public class RBACClient {
         masterToken = RBACManager.getMasterToken(username, password);
     }
 
-    public RbaToken login() throws AuthenticationException {
-        if(masterToken==null || !masterToken.isValid()){return null;}
-        return RBACManager.getRbaToken(masterToken);
+    private RbaToken login() throws AuthenticationException {
+        this.applicationToken= RBACManager.getRbaToken(masterToken);
+        return applicationToken;
     }
 
     public RbaToken getApplicationToken() {
+        if (applicationToken!=null && !applicationToken.isValid()){
+            return login();
+        }
         return applicationToken;
     }
 }

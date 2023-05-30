@@ -3,6 +3,7 @@ package cern.rade.services.japc.subscription;
 import cern.japc.core.AcquiredParameterValue;
 import cern.japc.core.ParameterException;
 import cern.japc.core.ParameterValueListener;
+import cern.rade.services.codec.japcjava.JAPCDecoder;
 
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -23,17 +24,10 @@ public class SubscriptionCallback implements ParameterValueListener {
         valueQueue.add(value);
     }
 
-    public String getLatest(int timeout) throws InterruptedException {
+    public AcquiredParameterValue getLatest(int timeout) throws InterruptedException {
         AcquiredParameterValue apv;
         apv = valueQueue.poll(timeout, TimeUnit.SECONDS);
-        String val;
-        if (apv == null) {
-            val = "TIMEOUT";
-        }
-        else{
-            val = apv.getValue().castAsMap().getString();
-        }
-        return val;
+        return apv;
     }
 
     @Override

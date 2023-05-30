@@ -8,9 +8,10 @@ import cern.japc.core.factory.SelectorFactory;
 import cern.rade.services.codec.japcjava.JAPCDecoder;
 import cern.rade.services.codec.javatolv.LVDataEncoder;
 import cern.rade.services.codec.javatolv.LVTypeEncoder;
-import cern.rade.services.common.communication.client.MetaData;
-import cern.rade.services.common.communication.client.Request;
-import cern.rade.services.common.communication.client.RequestAction;
+import cern.rade.services.common.BytesUtil;
+import cern.rade.services.common.communication.MetaData;
+import cern.rade.services.common.communication.Request;
+import cern.rade.services.common.communication.RequestAction;
 import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.common.containers.java.PropertyContainer;
 import cern.rade.services.japc.examples.JAPCActions;
@@ -37,12 +38,14 @@ public class GetClient {
     private AcquiredParameterValue apv;
     private RBACClient rbacClient;
     private int rbac_id;
+    private GetSetSender sender;
 
     public GetClient(HttpServletResponse response, Request request){
         this.request = request;
         this.response = response;
     }
     private void init() throws ParameterException, IOException {
+        this.sender = new GetSetSender(response);
         this.metaData = request.getMetaData();
         this.data = request.getData();
         this.parameter = JAPCActions.buildParameter(metaData.getProperty(), metaData.getDevice(), null);
@@ -54,11 +57,9 @@ public class GetClient {
 
     private void initRBAC() throws IOException {
         this.rbac_id = metaData.getRbac_id();
-        if(rbac_id == 0){
+        this.rbacClient = RBACManager.getClient(rbac_id);
+        if(rbac_id == 0 || rbacClient==null){
             initNewRBAC();
-        }
-        else {
-            rbacClient = RBACManager.getClient(rbac_id);
         }
     }
 
@@ -87,7 +88,7 @@ public class GetClient {
     }
 
     private void japcGET_SECURE() throws ParameterException {
-        RbaToken token = rbacClient.login();
+        RbaToken token = rbacClient.getApplicationToken();
         MiddleTierRbaTokenHolder.set(token);
         japcGET();
         MiddleTierRbaTokenHolder.clear();
@@ -102,21 +103,22 @@ public class GetClient {
     }
 
     private void sendLV() throws IOException {
-        response.addHeader("acq_stamp", String.valueOf(apv.getHeader().getAcqStamp()));
-        response.addHeader("type_descriptor", Arrays.toString(byteArrToShortArr(LVTypeEncoder.encodeTypeDescriptor(data))));
-        OutputStream out = response.getOutputStream();
-        out.write(LVDataEncoder.encode(data));
-        out.flush();
-        out.close();
+        MetaData responseMetaData = new MetaData();
+        responseMetaData.setAcq_stamp(apv.getHeader().getAcqStamp());
+        if (request.getData() == null){
+            short[] type_desc = byteArrToShortArr(LVTypeEncoder.encodeTypeDescriptor(data));
+            responseMetaData.setType_descriptor(type_desc);
+        }
+
+        if(rbac_id != 0){
+            responseMetaData.setRbac_id(rbac_id);
+        }
+
+        sender.send(LVDataEncoder.encode(data), responseMetaData);
     }
 
     private void sendPY() throws IOException {
-        response.addHeader("acq_stamp", String.valueOf(apv.getHeader().getAcqStamp()));
-        response.addHeader("type_descriptor", Arrays.toString(LVTypeEncoder.encodeTypeDescriptor(data)));
-        PrintWriter out = response.getWriter();
-        out.write(data.toString());
-        out.flush();
-        out.close();
+        sender.send(data.toString());
     }
 
     public void execute(){
