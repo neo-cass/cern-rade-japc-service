@@ -8,10 +8,9 @@ import cern.japc.core.factory.SelectorFactory;
 import cern.rade.services.codec.japcjava.JAPCDecoder;
 import cern.rade.services.codec.javatolv.LVDataEncoder;
 import cern.rade.services.codec.javatolv.LVTypeEncoder;
-import cern.rade.services.common.BytesUtil;
+import cern.rade.services.common.communication.AuthenticationType;
 import cern.rade.services.common.communication.MetaData;
 import cern.rade.services.common.communication.Request;
-import cern.rade.services.common.communication.RequestAction;
 import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.common.containers.java.PropertyContainer;
 import cern.rade.services.japc.examples.JAPCActions;
@@ -24,11 +23,9 @@ import cern.rbac.util.holder.MiddleTierRbaTokenHolder;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintWriter;
 import java.util.Arrays;
 
-public class GetClient {
+public class GetHandler {
     private HttpServletResponse response;
     private Request request;
     private DataContainer data;
@@ -38,24 +35,24 @@ public class GetClient {
     private AcquiredParameterValue apv;
     private RBACClient rbacClient;
     private int rbac_id;
-    private GetSetSender sender;
+    private HttpSender sender;
 
-    public GetClient(HttpServletResponse response, Request request){
+    public GetHandler(HttpServletResponse response, Request request){
         this.request = request;
         this.response = response;
     }
     private void init() throws ParameterException, IOException {
-        this.sender = new GetSetSender(response);
+        this.sender = new HttpSender(response);
         this.metaData = request.getMetaData();
         this.data = request.getData();
         this.parameter = JAPCActions.buildParameter(metaData.getProperty(), metaData.getDevice(), null);
         this.selector = SelectorFactory.newSelector(metaData.getSelector());
-        if(request.getRequestAction() == RequestAction.GET_SECURE){
+        if(request.getAuthenticationType() != AuthenticationType.NORMAL){
             initRBAC();
         }
     }
 
-    private void initRBAC() throws IOException {
+    private void initRBAC() {
         this.rbac_id = metaData.getRbac_id();
         this.rbacClient = RBACManager.getClient(rbac_id);
         if(rbac_id == 0 || rbacClient==null){
@@ -63,21 +60,20 @@ public class GetClient {
         }
     }
 
-    private void initNewRBAC() throws IOException {
+    private void initNewRBAC() {
         try{
             this.rbacClient = new RBACClient(metaData.getUsername(), metaData.getPassword());
-            response.addHeader("rbac_id", String.valueOf(rbacClient.hashCode()));
             RBACManager.addClient(rbacClient);
         }
         catch (AuthenticationException e){
-            response.getWriter().write("auth failed");
+           sender.send("auth failed");
         }
     }
 
     public void get() throws ParameterException {
-        switch(request.getRequestAction()){
-            case GET -> japcGET();
-            case GET_SECURE -> japcGET_SECURE();
+        switch(request.getAuthenticationType()){
+            case NORMAL -> japcGET();
+            case SECURE -> japcGET_SECURE();
         }
     }
 
@@ -92,7 +88,6 @@ public class GetClient {
         MiddleTierRbaTokenHolder.set(token);
         japcGET();
         MiddleTierRbaTokenHolder.clear();
-
     }
 
     private void send() throws IOException {
@@ -110,7 +105,7 @@ public class GetClient {
             responseMetaData.setType_descriptor(type_desc);
         }
 
-        if(rbac_id != 0){
+        if(request.getAuthenticationType() != AuthenticationType.NORMAL){
             responseMetaData.setRbac_id(rbac_id);
         }
 
@@ -125,19 +120,21 @@ public class GetClient {
         try {
             init();
         } catch (ParameterException | IOException e) {
-            throw new RuntimeException(e);
+            sender.send(Arrays.toString(e.getStackTrace()));
+            return;
         }
 
         try {
             get();
         } catch (ParameterException e) {
-            throw new RuntimeException(e);
+            sender.send(Arrays.toString(e.getStackTrace()));
+            return;
         }
 
         try {
             send();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            sender.send(Arrays.toString(e.getStackTrace()));
         }
     }
 }

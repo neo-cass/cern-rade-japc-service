@@ -6,6 +6,7 @@ import cern.japc.core.Selector;
 import cern.japc.core.factory.SelectorFactory;
 import cern.japc.value.ParameterValue;
 import cern.rade.services.codec.japcjava.JAPCEncoder;
+import cern.rade.services.common.communication.AuthenticationType;
 import cern.rade.services.common.communication.MetaData;
 import cern.rade.services.common.communication.Request;
 import cern.rade.services.common.communication.RequestAction;
@@ -19,10 +20,9 @@ import cern.rbac.util.holder.MiddleTierRbaTokenHolder;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.Arrays;
 
-public class SetClient {
+public class SetHandler {
     private HttpServletResponse response;
     private Request request;
     private DataContainer data;
@@ -31,24 +31,24 @@ public class SetClient {
     private Selector selector;
     private RBACClient rbacClient;
     private int rbac_id;
-    private GetSetSender sender;
+    private HttpSender sender;
 
-    public SetClient(HttpServletResponse response, Request request){
+    public SetHandler(HttpServletResponse response, Request request){
         this.request = request;
         this.response = response;
     }
     private void init() throws ParameterException, IOException {
-        this.sender=new GetSetSender(response);
+        this.sender=new HttpSender(response);
         this.metaData = request.getMetaData();
         this.data = request.getData();
         this.parameter = JAPCActions.buildParameter(metaData.getProperty(), metaData.getDevice(), null);
         this.selector = SelectorFactory.newSelector(metaData.getSelector());
-        if(request.getRequestAction() == RequestAction.SET_SECURE){
+        if(request.getAuthenticationType() != AuthenticationType.NORMAL){
             initRBAC();
         }
     }
 
-    private void initRBAC() throws IOException {
+    private void initRBAC() {
         this.rbac_id = metaData.getRbac_id();
         this.rbacClient = RBACManager.getClient(rbac_id);
         if(rbac_id == 0 || rbacClient==null){
@@ -56,21 +56,20 @@ public class SetClient {
         }
     }
 
-    private void initNewRBAC() throws IOException {
+    private void initNewRBAC() {
         try{
             this.rbacClient = new RBACClient(metaData.getUsername(), metaData.getPassword());
-            response.addHeader("rbac_id", String.valueOf(rbacClient.hashCode()));
             RBACManager.addClient(rbacClient);
         }
         catch (AuthenticationException e){
-            response.getWriter().write("auth failed");
+            sender.send("auth failed");
         }
     }
 
     private void set() throws ParameterException {
-        switch(request.getRequestAction()){
-            case SET -> japcSET();
-            case SET_SECURE -> japcSET_SECURE();
+        switch(request.getAuthenticationType()){
+            case NORMAL -> japcSET();
+            case SECURE -> japcSET_SECURE();
         }
     }
 
@@ -89,7 +88,15 @@ public class SetClient {
 
 
     private void send() throws IOException {
-       sender.send("ok");
+        if (request.getAuthenticationType() != AuthenticationType.NORMAL){
+            MetaData responseMetaData = new MetaData();
+            responseMetaData.setRbac_id(rbacClient.hashCode());
+            sender.send("ok", metaData);
+        }
+        else{
+            sender.send("ok");
+        }
+
     }
     public void execute(){
         try {

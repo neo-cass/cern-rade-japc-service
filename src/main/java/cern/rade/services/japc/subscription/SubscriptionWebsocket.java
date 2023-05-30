@@ -3,16 +3,15 @@ import cern.japc.core.*;
 import jakarta.websocket.*;
 import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
-import org.apache.commons.lang3.CharSet;
 
 import java.io.*;
-import java.util.Arrays;
+import java.nio.ByteBuffer;
 
 @ServerEndpoint(value = "/subs/{id}")
 public class SubscriptionWebsocket {
     private int id;
     private RemoteEndpoint.Basic writer;
-    private SubscriptionClient client;
+    private SubscriptionHandler client;
     private Session session;
     private OutputStreamWriter out;
 
@@ -31,44 +30,36 @@ public class SubscriptionWebsocket {
             client.startSubscription();
         }
         catch (ParameterException e) {
-            e.printStackTrace();
-            try {
-                writer.sendText("Failed to create parameter. Please check device, property, field, CCDE and that you are on the correct network.");
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
+            sendMessage("Failed to create parameter. Please check device, property, field, CCDE and that you are on the correct network.");
         }
-        sendData();
+        try {
+            sendData();
+        } catch (IOException | InterruptedException e) {
+            sendMessage("TODO");
+        }
     }
 
-    private void sendData(){
+    private void sendData() throws IOException, InterruptedException {
         while(session.isOpen() && !Thread.currentThread().isInterrupted()){
-            AcquiredParameterValue val = null;
-            try {
-                val = client.getLatest(30);
-            } catch (InterruptedException e) {
-                return;
-            }
-            try {
-                //TODO: send in parts
-                writer.sendText(String.valueOf(val));
-
-            } catch (IOException e) {
-                System.out.println("Failed to send latest value due to IOException.");
-            }
+            writer.sendBinary(ByteBuffer.wrap(client.getLatest(30)));
         }
-        client.stopSubscription();
     }
 
-    private void sendData(String value) throws IOException {
-        out = new OutputStreamWriter(session.getBasicRemote().getSendStream());
-        out.write(value);
-        out.close();
+    private void sendMessage(String value)  {
+        try {
+            out = new OutputStreamWriter(session.getBasicRemote().getSendStream());
+            out.write(value);
+            out.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @OnMessage
     public void onMessage(Session session, String message) throws IOException {
-
+        if(message.equals("CLOSE_SUBSCRIPTION")){
+            client.stopSubscription();
+        }
     }
 
     @OnClose
