@@ -29,4 +29,8 @@ public class RBACManager {
     public static RBACClient getClient(int id){
         return rbacClients.get(id);
     }
+
+    public static void clearRBACClients(){
+        rbacClients.clear();
+    }
 }

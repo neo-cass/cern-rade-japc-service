@@ -15,6 +15,7 @@ import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.common.containers.java.PropertyContainer;
 import cern.rade.services.japc.examples.JAPCActions;
 import cern.rade.services.japc.rbac.RBACClient;
+import cern.rade.services.japc.rbac.RBACClientFactory;
 import cern.rade.services.japc.rbac.RBACManager;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.RbaToken;
@@ -47,33 +48,22 @@ public class GetHandler {
         this.data = request.getData();
         this.parameter = JAPCActions.buildParameter(metaData.getProperty(), metaData.getDevice(), null);
         this.selector = SelectorFactory.newSelector(metaData.getSelector());
-        if(request.getAuthenticationType() != AuthenticationType.NORMAL){
-            initRBAC();
-        }
+        if(request.getAuthenticationType()!=AuthenticationType.NONE){initRBAC();}
     }
 
     private void initRBAC() {
-        this.rbac_id = metaData.getRbac_id();
-        this.rbacClient = RBACManager.getClient(rbac_id);
-        if(rbac_id == 0 || rbacClient==null){
-            initNewRBAC();
-        }
-    }
-
-    private void initNewRBAC() {
         try{
-            this.rbacClient = new RBACClient(metaData.getUsername(), metaData.getPassword());
-            RBACManager.addClient(rbacClient);
+            this.rbacClient = new RBACClientFactory(request).createClient();
         }
         catch (AuthenticationException e){
-           sender.send("auth failed");
+            sender.send(Arrays.toString(e.getStackTrace()));
         }
     }
 
     public void get() throws ParameterException {
         switch(request.getAuthenticationType()){
-            case NORMAL -> japcGET();
-            case SECURE -> japcGET_SECURE();
+            case NONE -> japcGET();
+            case RBAC_CACHED, RBAC_EXPLICIT, RBAC_LOCATION -> japcGET_SECURE();
         }
     }
 
@@ -90,29 +80,28 @@ public class GetHandler {
         MiddleTierRbaTokenHolder.clear();
     }
 
-    private void send() throws IOException {
+    private void respond() throws IOException {
         switch(request.getRequestLanguage()){
-            case LABVIEW -> sendLV();
-            case PYTHON -> sendPY();
+            case LABVIEW -> respondLV();
+            case PYTHON -> respondPY();
         }
     }
 
-    private void sendLV() throws IOException {
+    private void respondLV() throws IOException {
         MetaData responseMetaData = new MetaData();
         responseMetaData.setAcq_stamp(apv.getHeader().getAcqStamp());
         if (request.getData() == null){
-            short[] type_desc = byteArrToShortArr(LVTypeEncoder.encodeTypeDescriptor(data));
+            short[] type_desc = LVTypeEncoder.encodeTypeDescriptor(data);
             responseMetaData.setType_descriptor(type_desc);
         }
 
-        if(request.getAuthenticationType() != AuthenticationType.NORMAL){
-            responseMetaData.setRbac_id(rbac_id);
+        if(request.getAuthenticationType() != AuthenticationType.NONE){
+            responseMetaData.setRbac_id(rbacClient.getRbac_id());
         }
-
         sender.send(LVDataEncoder.encode(data), responseMetaData);
     }
 
-    private void sendPY() throws IOException {
+    private void respondPY() throws IOException {
         sender.send(data.toString());
     }
 
@@ -132,7 +121,7 @@ public class GetHandler {
         }
 
         try {
-            send();
+            respond();
         } catch (IOException e) {
             sender.send(Arrays.toString(e.getStackTrace()));
         }

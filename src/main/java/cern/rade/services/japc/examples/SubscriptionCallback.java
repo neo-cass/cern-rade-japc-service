@@ -1,4 +1,4 @@
-package cern.rade.services.japc.subscription;
+package cern.rade.services.japc.examples;
 
 import cern.japc.core.AcquiredParameterValue;
 import cern.japc.core.ParameterException;

@@ -20,7 +20,7 @@ public class SubscriptionWebsocket {
         this.id=id;
         this.client = SubscriptionManager.getSubClient(id);
         this.session=session;
-        Thread.currentThread().setName("Subscription-Thread-"+client.getSessionID());
+        Thread.currentThread().setName("Subscription-Thread-"+client.getSub_id());
         init(session);
     }
 
@@ -56,15 +56,15 @@ public class SubscriptionWebsocket {
     }
 
     @OnMessage
-    public void onMessage(Session session, String message) throws IOException {
+    public void onMessage(String message) throws IOException {
         if(message.equals("CLOSE_SUBSCRIPTION")){
             client.stopSubscription();
         }
     }
 
     @OnClose
-    public void onClose(Session session)  {
-        close(session);
+    public void onClose()  {
+        close();
     }
 
     @OnError
@@ -72,8 +72,8 @@ public class SubscriptionWebsocket {
         ;
     }
 
-    private void close(Session session){
-        getThreadByName("Subscription-Thread-"+client.getSessionID()).interrupt();
+    public void close(){
+        getThreadByName("Subscription-Thread-"+client.getSub_id()).interrupt();
         SubscriptionManager.removeSubSock(id);
         try {
             session.close(new CloseReason(CloseReason.CloseCodes.NORMAL_CLOSURE, "Deliberate disconnect"));
@@ -89,4 +89,5 @@ public class SubscriptionWebsocket {
         }
         return null;
     }
+
 }

@@ -15,13 +15,12 @@ import cern.rade.services.japc.rbac.RBACClient;
 import cern.rade.services.japc.rbac.RBACManager;
 import cern.rbac.util.holder.MiddleTierRbaTokenHolder;
 
-import javax.xml.crypto.Data;
 import java.io.IOException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 public class SubscriptionHandler implements ParameterValueListener{
-    private int sessionID;
+    private int sub_id;
     private String selector;
     private String device;
     private String propertyName;
@@ -31,15 +30,15 @@ public class SubscriptionHandler implements ParameterValueListener{
     private RBACClient rbacClient;
     private SubscriptionHandle sh;
     private DataContainer data;
-    private byte[] type_descriptor;
+    private short[] type_descriptor;
     private int rbac_id;
     private LinkedBlockingQueue<AcquiredParameterValue> valueQueue;
     public SubscriptionHandler(Request request) {
+        this.metaData=request.getMetaData();
         this.valueQueue = new LinkedBlockingQueue<>();
-        this.sessionID = this.hashCode();
+        this.sub_id = this.hashCode();
         this.rbac_id = metaData.getRbac_id();
         this.request = request;
-        this.metaData=request.getMetaData();
         this.rbacClient = RBACManager.getClient(rbac_id);
         this.device = metaData.getDevice();
         this.selector = metaData.getSelector();
@@ -51,15 +50,16 @@ public class SubscriptionHandler implements ParameterValueListener{
         String name = Parameters.buildParameterName(device, propertyName);
         Parameter parameter = ParameterFactory.newInstance().newParameter(name);
         Selector selectorObj = SelectorFactory.newSelector(selector);
-        switch (request.getAuthenticationType()){
-            case SECURE -> MiddleTierRbaTokenHolder.set(rbacClient.getApplicationToken());
-            case SECURE_BY_LOCATION -> MiddleTierRbaTokenHolder.set(rbacClient.getApplicationToken()); //TODO: implement by location
-        }
         this.sh = parameter.createSubscription(selectorObj, this);
-        MiddleTierRbaTokenHolder.clear();
     }
 
     public void startSubscription() throws ParameterException {
+        switch (request.getAuthenticationType()){
+            case RBAC_EXPLICIT, RBAC_CACHED -> MiddleTierRbaTokenHolder.set(rbacClient.getApplicationToken());
+            case RBAC_LOCATION -> {
+                //TODO: implement by location
+            }
+        }
         sh.startMonitoring();
     }
 
@@ -67,8 +67,8 @@ public class SubscriptionHandler implements ParameterValueListener{
         sh.stopMonitoring();
     }
 
-    public int getSessionID() {
-        return sessionID;
+    public int getSub_id() {
+        return sub_id;
     }
 
     @Override

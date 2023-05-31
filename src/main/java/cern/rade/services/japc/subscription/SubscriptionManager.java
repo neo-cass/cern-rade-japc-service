@@ -23,4 +23,12 @@ public final class SubscriptionManager {
     public static SubscriptionHandler getSubClient(int id){
         return clients.get(id);
     }
+    public static void clearSubClients(){
+        clients.forEach((id, client) -> client.stopSubscription());
+        clients.clear();
+    }
+    public static void clearSubWebsockets(){
+        sockets.forEach((id, socket) -> socket.close());
+        sockets.clear();
+    }
 }

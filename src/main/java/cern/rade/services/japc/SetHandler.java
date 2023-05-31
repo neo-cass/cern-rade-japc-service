@@ -13,6 +13,7 @@ import cern.rade.services.common.communication.RequestAction;
 import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.japc.examples.JAPCActions;
 import cern.rade.services.japc.rbac.RBACClient;
+import cern.rade.services.japc.rbac.RBACClientFactory;
 import cern.rade.services.japc.rbac.RBACManager;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.RbaToken;
@@ -30,7 +31,6 @@ public class SetHandler {
     private Parameter parameter;
     private Selector selector;
     private RBACClient rbacClient;
-    private int rbac_id;
     private HttpSender sender;
 
     public SetHandler(HttpServletResponse response, Request request){
@@ -38,44 +38,33 @@ public class SetHandler {
         this.response = response;
     }
     private void init() throws ParameterException, IOException {
-        this.sender=new HttpSender(response);
+        this.sender= new HttpSender(response);
         this.metaData = request.getMetaData();
         this.data = request.getData();
         this.parameter = JAPCActions.buildParameter(metaData.getProperty(), metaData.getDevice(), null);
         this.selector = SelectorFactory.newSelector(metaData.getSelector());
-        if(request.getAuthenticationType() != AuthenticationType.NORMAL){
-            initRBAC();
-        }
+        if(request.getAuthenticationType()!=AuthenticationType.NONE){initRBAC();}
     }
 
     private void initRBAC() {
-        this.rbac_id = metaData.getRbac_id();
-        this.rbacClient = RBACManager.getClient(rbac_id);
-        if(rbac_id == 0 || rbacClient==null){
-            initNewRBAC();
+        try{
+            this.rbacClient = new RBACClientFactory(request).createClient();
+        }
+        catch (AuthenticationException e){
+            sender.send(Arrays.toString(e.getStackTrace()));
         }
     }
 
-    private void initNewRBAC() {
-        try{
-            this.rbacClient = new RBACClient(metaData.getUsername(), metaData.getPassword());
-            RBACManager.addClient(rbacClient);
-        }
-        catch (AuthenticationException e){
-            sender.send("auth failed");
-        }
-    }
 
     private void set() throws ParameterException {
         switch(request.getAuthenticationType()){
-            case NORMAL -> japcSET();
-            case SECURE -> japcSET_SECURE();
+            case NONE -> japcSET();
+            case RBAC_CACHED, RBAC_EXPLICIT, RBAC_LOCATION -> japcSET_SECURE();
         }
     }
 
     private void japcSET() throws ParameterException {
         ParameterValue pv = JAPCEncoder.encode(data);
-        System.out.println(pv);
         parameter.setValue(selector, pv);
     }
 
@@ -87,16 +76,15 @@ public class SetHandler {
     }
 
 
-    private void send() throws IOException {
-        if (request.getAuthenticationType() != AuthenticationType.NORMAL){
-            MetaData responseMetaData = new MetaData();
-            responseMetaData.setRbac_id(rbacClient.hashCode());
-            sender.send("ok", metaData);
+    private void respond() throws IOException {
+        switch(request.getAuthenticationType()){
+            case NONE -> sender.send("ok");
+            case RBAC_CACHED, RBAC_EXPLICIT, RBAC_LOCATION -> {
+                MetaData responseMetaData = new MetaData();
+                responseMetaData.setRbac_id(rbacClient.getRbac_id());
+                sender.send("ok", responseMetaData);
+            }
         }
-        else{
-            sender.send("ok");
-        }
-
     }
     public void execute(){
         try {
@@ -114,7 +102,7 @@ public class SetHandler {
         }
 
         try {
-            send();
+            respond();
         } catch (IOException e) {
             sender.send(Arrays.toString(e.getStackTrace()));
         }
