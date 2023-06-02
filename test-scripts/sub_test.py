@@ -7,10 +7,10 @@ argParser.add_argument("-d", "--device", help="device name")
 argParser.add_argument("-t", "--tls", help="secure connection or not", default=False, action='store_true')
 args = argParser.parse_args()
 
-metadata = {"username": "ncass", "req_action": "SUBSCRIBE",
+metadata = {"username": "ncass", "password": "", "req_action": "SUBSCRIBE",
             "req_lang": "PYTHON", "selector": "", "device": args.device,
-            "property": "doubles", "auth_type": "NONE", "rbac_id": 0}
-
+            "property": "doubles", "auth_type": "RBAC_EXPLICIT", "rbac_id": 0}
+#765009652
 #-d rade-japc-test01
 headers = {"MetaData": str(metadata)}
 post_protocol = ''
@@ -21,16 +21,18 @@ if args.tls:
 else:
     post_protocol = 'http://'
     ws_protocol = 'ws://'
-
-response = requests.post(post_protocol + "localhost:8080" + '/request', headers=headers)
+#server = "collimator-test-rade-services.app.cern.ch"
+server="localhost:8080"
+response = requests.post(post_protocol + server + '/request', headers=headers)
+#print(dict(eval(response.headers.get("MetaData")))["rbac_id"])
 sessionID = response.text
 print(sessionID)
 
-url = ws_protocol + "localhost:8080" + '/subs/' + sessionID
+url = ws_protocol + server + '/subs/' + sessionID
 ws = create_connection(url=url)
 try:
     while True:
         print(ws.recv())
-except Exception:
+except KeyboardInterrupt:
     ws.close()
     print("FAILED")
