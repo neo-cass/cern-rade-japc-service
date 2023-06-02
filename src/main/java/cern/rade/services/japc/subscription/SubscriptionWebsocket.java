@@ -1,5 +1,9 @@
 package cern.rade.services.japc.subscription;
 import cern.japc.core.*;
+import cern.rade.services.codec.japcjava.JAPCDecoder;
+import cern.rade.services.codec.javatolv.LVTypeEncoder;
+import cern.rade.services.common.communication.Request;
+import cern.rade.services.common.containers.java.PropertyContainer;
 import jakarta.websocket.*;
 import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
@@ -14,12 +18,14 @@ public class SubscriptionWebsocket {
     private SubscriptionHandler client;
     private Session session;
     private OutputStreamWriter out;
+    private Request request;
 
     @OnOpen
     public void onOpen(Session session, @PathParam("id") int id) {
         this.id=id;
         this.client = SubscriptionManager.getSubClient(id);
         this.session=session;
+        this.request=client.getRequest();
         Thread.currentThread().setName("Subscription-Thread-"+client.getSub_id());
         init(session);
     }
@@ -40,8 +46,21 @@ public class SubscriptionWebsocket {
     }
 
     private void sendData() throws IOException, InterruptedException {
+        switch(request.getRequestLanguage()){
+            case LABVIEW -> sendLVData();
+            case PYTHON -> sendPYData();
+        }
+    }
+
+    private void sendLVData() throws IOException, InterruptedException {
         while(session.isOpen() && !Thread.currentThread().isInterrupted()){
-            writer.sendBinary(ByteBuffer.wrap(client.getLatest(30)));
+            writer.sendBinary(ByteBuffer.wrap(client.getLVData(30).getSecond()));
+        }
+    }
+
+    private void sendPYData() throws InterruptedException, IOException {
+        while(session.isOpen() && !Thread.currentThread().isInterrupted()){
+            writer.sendText(client.getPYData(30));
         }
     }
 

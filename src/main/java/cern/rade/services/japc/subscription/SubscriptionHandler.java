@@ -1,5 +1,6 @@
 package cern.rade.services.japc.subscription;
 
+import cern.accsoft.commons.util.value.Pair;
 import cern.japc.core.*;
 import cern.japc.core.factory.ParameterFactory;
 import cern.japc.core.factory.SelectorFactory;
@@ -43,7 +44,7 @@ public class SubscriptionHandler implements ParameterValueListener{
         this.device = metaData.getDevice();
         this.selector = metaData.getSelector();
         this.property=request.getData();
-        this.propertyName=property.getName();
+        this.propertyName=metaData.getProperty();
     }
 
     public void init() throws ParameterException {
@@ -75,16 +76,30 @@ public class SubscriptionHandler implements ParameterValueListener{
     public void valueReceived(String parameterName, AcquiredParameterValue value) {
         valueQueue.add(value);
     }
-    public byte[] getLatest(int timeout) throws InterruptedException, IOException {
+    public AcquiredParameterValue getLatest(int timeout) throws InterruptedException {
         AcquiredParameterValue apv = valueQueue.poll(timeout, TimeUnit.SECONDS);
+        return apv;
+    }
+
+    public Pair<short[], byte[]> getLVData(int timeout) throws IOException, InterruptedException {
+        AcquiredParameterValue apv = getLatest(timeout);
         data = request.getData();
         if(data==null){
             data = JAPCDecoder.decode(apv);
             type_descriptor = LVTypeEncoder.encodeTypeDescriptor(data);
         }
         else{JAPCDecoder.decode((PropertyContainer) data, apv);}
-        return LVDataEncoder.encode(data);
+
+        byte[] dataBytes = LVDataEncoder.encode(data);
+
+        return new Pair<>(type_descriptor, dataBytes);
     }
+
+    public String getPYData(int timeout) throws InterruptedException {
+        AcquiredParameterValue apv = getLatest(timeout);
+        return apv.getValue().castAsMap().getString();
+    }
+
     @Override
     public void exceptionOccured(String parameterName, String description, ParameterException exception) {
         System.out.println("Exception occurred in subscription to parameter: " + parameterName + "\n Exception details: " + description);
@@ -94,4 +109,7 @@ public class SubscriptionHandler implements ParameterValueListener{
         return rbac_id;
     }
 
+    public Request getRequest() {
+        return request;
+    }
 }
