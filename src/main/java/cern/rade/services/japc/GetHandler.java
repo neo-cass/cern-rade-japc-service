@@ -13,13 +13,10 @@ import cern.rade.services.common.communication.MetaData;
 import cern.rade.services.common.communication.Request;
 import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.common.containers.java.PropertyContainer;
-import cern.rade.services.japc.examples.JAPCActions;
 import cern.rade.services.japc.rbac.RBACClient;
 import cern.rade.services.japc.rbac.RBACClientFactory;
-import cern.rade.services.japc.rbac.RBACManager;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.RbaToken;
-import static cern.rade.services.common.BytesUtil.byteArrToShortArr;
 import cern.rbac.util.holder.MiddleTierRbaTokenHolder;
 import jakarta.servlet.http.HttpServletResponse;
 
