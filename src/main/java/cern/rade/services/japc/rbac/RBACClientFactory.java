@@ -9,8 +9,6 @@ public class RBACClientFactory {
     private Request request;
     private MetaData metaData;
     private AuthenticationType authenticationType;
-    private RBACClient rbacClient;
-    private int rbac_id;
     public RBACClientFactory(Request request){
         this.request=request;
         this.metaData=request.getMetaData();
@@ -20,34 +18,36 @@ public class RBACClientFactory {
     public RBACClient createClient() throws AuthenticationException{
         switch(request.getAuthenticationType()){
             case RBAC_CACHED -> {
-                initRBACCached();
+                return initRBACCached();
             }
             case RBAC_EXPLICIT -> {
-                initRBACExplicit();
+                return initRBACExplicit();
             }
             case RBAC_LOCATION -> {
                 //TODO
             }
         }
-
-        return rbacClient;
+        return null;
     }
 
-    private void initRBACExplicit() throws AuthenticationException{
+    private RBACClient initRBACExplicit() throws AuthenticationException{
+        RBACClient rbacClient;
         try{
-            this.rbacClient = new RBACClient(metaData.getUsername(), metaData.getPassword());
+            rbacClient = new RBACClient(metaData.getUsername(), metaData.getPassword());
             RBACManager.addClient(rbacClient);
         }
         catch (AuthenticationException e){
-            this.rbacClient = null;
+            rbacClient = null;
         }
+        return rbacClient;
     }
 
-    private void initRBACCached() throws AuthenticationException{
-        this.rbac_id = metaData.getRbac_id();
-        this.rbacClient = RBACManager.getClient(rbac_id);
+    private RBACClient initRBACCached() throws AuthenticationException{
+        int rbac_id = metaData.getRbac_id();
+        RBACClient rbacClient = RBACManager.getClient(rbac_id);
         if (rbacClient==null){
             throw new AuthenticationException("No RBAC token associated with this ID");
         }
+        return rbacClient;
     }
 }

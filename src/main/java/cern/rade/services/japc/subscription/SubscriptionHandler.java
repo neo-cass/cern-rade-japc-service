@@ -8,15 +8,19 @@ import cern.japc.core.factory.SelectorFactory;
 import cern.rade.services.codec.japcjava.JAPCDecoder;
 import cern.rade.services.codec.javatolv.LVDataEncoder;
 import cern.rade.services.codec.javatolv.LVTypeEncoder;
+import cern.rade.services.common.communication.AuthenticationType;
 import cern.rade.services.common.communication.MetaData;
 import cern.rade.services.common.communication.Request;
 import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.common.containers.java.PropertyContainer;
 import cern.rade.services.japc.rbac.RBACClient;
+import cern.rade.services.japc.rbac.RBACClientFactory;
 import cern.rade.services.japc.rbac.RBACManager;
+import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.util.holder.MiddleTierRbaTokenHolder;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -32,15 +36,12 @@ public class SubscriptionHandler implements ParameterValueListener{
     private SubscriptionHandle sh;
     private DataContainer data;
     private short[] type_descriptor;
-    private int rbac_id;
     private LinkedBlockingQueue<AcquiredParameterValue> valueQueue;
     public SubscriptionHandler(Request request) {
         this.metaData=request.getMetaData();
         this.valueQueue = new LinkedBlockingQueue<>();
         this.sub_id = this.hashCode();
-        this.rbac_id = metaData.getRbac_id();
         this.request = request;
-        this.rbacClient = RBACManager.getClient(rbac_id);
         this.device = metaData.getDevice();
         this.selector = metaData.getSelector();
         this.property=request.getData();
@@ -48,10 +49,20 @@ public class SubscriptionHandler implements ParameterValueListener{
     }
 
     public void init() throws ParameterException {
+        if(request.getAuthenticationType()!= AuthenticationType.NONE){initRBAC();}
         String name = Parameters.buildParameterName(device, propertyName);
         Parameter parameter = ParameterFactory.newInstance().newParameter(name);
         Selector selectorObj = SelectorFactory.newSelector(selector);
         this.sh = parameter.createSubscription(selectorObj, this);
+    }
+
+    private void initRBAC() {
+        try{
+            this.rbacClient = (new RBACClientFactory(request)).createClient();
+        }
+        catch (AuthenticationException e){
+
+        }
     }
 
     public void startSubscription() throws ParameterException {
@@ -106,9 +117,8 @@ public class SubscriptionHandler implements ParameterValueListener{
     }
 
     public int getRbac_id(){
-        return rbac_id;
+        return rbacClient.getRbac_id();
     }
-
     public Request getRequest() {
         return request;
     }
