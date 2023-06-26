@@ -18,29 +18,35 @@ public class HttpSender {
         this.writer = new OutputStreamWriter(out);
     }
 
-    public void send(String message) {
+    public boolean send(String message) {
         try {
             writer.write(message);
             writer.flush();
             writer.close();
+            return true;
         } catch (IOException e) {
+            //TODO: LOG AS ERROR
             e.printStackTrace();
+            return false;
         }
     }
 
-    public void send(String message, MetaData metaData) {
+    public boolean send(String message, MetaData metaData) {
         response.addHeader("MetaData", metaData.flatten());
-        send(message);
+        return send(message);
     }
 
-    public void send(byte[] data, MetaData metaData)  {
+    public boolean send(byte[] data, MetaData metaData)  {
         response.setHeader("MetaData", metaData.flatten());
         try {
             out.write(data);
             out.flush();
             out.close();
+            return true;
         } catch (IOException e) {
+            //TODO: LOG AS ERROR
             e.printStackTrace();
+            return false;
         }
     }
 }

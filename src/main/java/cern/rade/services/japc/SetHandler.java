@@ -12,6 +12,7 @@ import cern.rade.services.common.communication.Request;
 import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.japc.rbac.RBACClient;
 import cern.rade.services.japc.rbac.RBACClientFactory;
+import cern.rade.services.japc.rbac.RBACManager;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.RbaToken;
 import cern.rbac.util.holder.MiddleTierRbaTokenHolder;
@@ -73,36 +74,39 @@ public class SetHandler {
     }
 
 
-    private void respond() throws IOException {
+    private boolean respond() {
         switch(request.getAuthenticationType()){
-            case NONE -> sender.send("ok");
+            case NONE -> {
+                return sender.send("OK");
+            }
             case RBAC_CACHED, RBAC_EXPLICIT, RBAC_LOCATION -> {
                 MetaData responseMetaData = new MetaData();
                 responseMetaData.setRbac_id(rbacClient.getRbac_id());
-                sender.send("ok", responseMetaData);
+                return sender.send("OK", responseMetaData);
             }
         }
+        //TODO: why does java force return at the end of this if every case is covered
+        return false;
     }
     public void execute(){
         try {
             init();
         } catch (ParameterException | IOException e) {
-            sender.send(Arrays.toString(e.getStackTrace()));
+            sender.send("ERROR: " + Arrays.toString(e.getStackTrace()));
+            RBACManager.removeRBACClient(rbacClient.getRbac_id());
             return;
         }
 
         try {
             set();
         } catch (ParameterException e) {
-            sender.send(Arrays.toString(e.getStackTrace()));
+            sender.send("ERROR: " + Arrays.toString(e.getStackTrace()));
+            RBACManager.removeRBACClient(rbacClient.getRbac_id());
             return;
         }
 
-        try {
-            respond();
-        } catch (IOException e) {
-            sender.send(Arrays.toString(e.getStackTrace()));
-        }
+        //respond and if send fails remove the rbac client
+        if (!respond()){RBACManager.removeRBACClient(rbacClient.getRbac_id());}
     }
 
 }

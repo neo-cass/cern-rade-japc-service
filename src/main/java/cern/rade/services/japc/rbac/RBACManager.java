@@ -33,4 +33,8 @@ public class RBACManager {
     public static void clearRBACClients(){
         rbacClients.clear();
     }
+
+    public static void removeRBACClient(int id){
+        rbacClients.remove(id);
+    }
 }
