@@ -1,0 +1,119 @@
+Device Name,Accelerator,PPM,Server Name,Responsible,Fec Name,State,Laser,LSA,OASIS,NXCALS,Description
+TCDIV.88121,LHC,false,LHCCollimator_OP.cfc-sr8-tccs8,Mathieu Donze,cfc-sr8-tccs8,operational,true,true,false,true,Collimator TCDIH_88121
+TCDIH.87822,LHC,false,LHCCollimator_OP.cfc-sr8-tccs8,Mathieu Donze,cfc-sr8-tccs8,operational,true,true,false,true,Collimator TCDIH_87904
+TCDIH.87939,LHC,false,LHCCollimator_OP.cfc-sr8-tccs8,Mathieu Donze,cfc-sr8-tccs8,operational,true,true,false,true,Collimator TCDIV_88123
+TCDIH.29049,LHC,false,LHCCollimator_OP.cfc-sr2-tccs2,Mathieu Donze,cfc-sr2-tccs2,operational,true,true,false,true,Collimator TCDIH_29049
+TCDIH.29464,LHC,false,LHCCollimator_OP.cfc-sr2-tccs2,Mathieu Donze,cfc-sr2-tccs2,operational,true,true,false,true,Collimator TCDIH_29464
+TCDIV.29011,LHC,false,LHCCollimator_OP.cfc-sr2-tccs2,Mathieu Donze,cfc-sr2-tccs2,operational,true,true,false,true,Collimator TCDIV_29011
+TCDIV.29233,LHC,false,LHCCollimator_OP.cfc-sr2-tccs2,Mathieu Donze,cfc-sr2-tccs2,operational,true,true,false,true,Collimator TCDIV_29233
+TCDIV.29508,LHC,false,LHCCollimator_OP.cfc-sr2-tccs2,Mathieu Donze,cfc-sr2-tccs2,operational,true,true,false,true,Collimator TCDIV_29508
+TCDIH.29206,LHC,false,LHCCollimator_OP.cfc-sr2-tccs2,Mathieu Donze,cfc-sr2-tccs2,operational,true,true,false,true,Collimator TCDIH_29205
+TCLA.C6L7.B2,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCLA.C6L7.B2
+TCLA.C6R7.B1,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCLA.C6R7.B1
+TCLA.D6L7.B2,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCLA.D6L7.B2
+TCLA.D6R7.B1,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCLA.D6R7.B1
+TCSG.A4L7.B1,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCSG.A4L7.B1
+TCSG.A4L7.B2,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCSG.A4L7.B2
+TCSG.A4R7.B1,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCSG.A4R7.B1
+TCSG.A4R7.B2,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCSG.A4R7.B2
+TCSG.A5L7.B1,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCSG.A5L7.B1
+TCSG.A5R7.B2,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCSG.A5R7.B2
+TCSG.A6L7.B1,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCSG.A6L7.B1
+TCP.6L3.B1,LHC,false,LHCCollimator_OP.cfc-sr3-tccs3b1,Mathieu Donze,cfc-sr3-tccs3b1,operational,true,true,false,true,Collimator TCP.6L3.B1
+TCP.6R3.B2,LHC,false,LHCCollimator_OP.cfc-sr3-tccs3b1,Mathieu Donze,cfc-sr3-tccs3b1,operational,true,true,false,true,Collimator TCP.6R3.B2
+TCLA.6L3.B2,LHC,false,LHCCollimator_OP.cfc-sr3-tccs3b1,Mathieu Donze,cfc-sr3-tccs3b1,operational,true,true,false,true,Collimator TCLA.6L3.B2
+TCLA.6R3.B1,LHC,false,LHCCollimator_OP.cfc-sr3-tccs3b1,Mathieu Donze,cfc-sr3-tccs3b1,operational,true,true,false,true,Collimator TCLA.6R3.B1
+TCLA.7L3.B2,LHC,false,LHCCollimator_OP.cfc-sr3-tccs3b1,Mathieu Donze,cfc-sr3-tccs3b1,operational,true,true,false,true,Collimator TCLA.7L3.B2
+TCLA.7R3.B1,LHC,false,LHCCollimator_OP.cfc-sr3-tccs3b1,Mathieu Donze,cfc-sr3-tccs3b1,operational,true,true,false,true,Collimator TCLA.7R3.B1
+TCLA.A5L3.B2,LHC,false,LHCCollimator_OP.cfc-sr3-tccs3b1,Mathieu Donze,cfc-sr3-tccs3b1,operational,true,true,false,true,Collimator TCLA.A5L3.B2
+TCLA.A5R3.B1,LHC,false,LHCCollimator_OP.cfc-sr3-tccs3b1,Mathieu Donze,cfc-sr3-tccs3b1,operational,true,true,false,true,Collimator TCLA.A5R3.B1
+TCLA.B5L3.B2,LHC,false,LHCCollimator_OP.cfc-sr3-tccs3b1,Mathieu Donze,cfc-sr3-tccs3b1,operational,true,true,false,true,Collimator TCLA.B5L3.B2
+TCLA.B5R3.B1,LHC,false,LHCCollimator_OP.cfc-sr3-tccs3b1,Mathieu Donze,cfc-sr3-tccs3b1,operational,true,true,false,true,Collimator TCLA.B5R3.B1
+TCSG.A5L3.B2,LHC,false,LHCCollimator_OP.cfc-sr3-tccs3b1,Mathieu Donze,cfc-sr3-tccs3b1,operational,true,true,false,true,Collimator TCSG.A5L3.B2
+TCSG.A5R3.B1,LHC,false,LHCCollimator_OP.cfc-sr3-tccs3b1,Mathieu Donze,cfc-sr3-tccs3b1,operational,true,true,false,true,Collimator TCSG.A5R3.B1
+TCSG.B5L3.B2,LHC,false,LHCCollimator_OP.cfc-sr3-tccs3b1,Mathieu Donze,cfc-sr3-tccs3b1,operational,true,true,false,true,Collimator TCSG.B5L3.B2
+TCSG.B5R3.B1,LHC,false,LHCCollimator_OP.cfc-sr3-tccs3b1,Mathieu Donze,cfc-sr3-tccs3b1,operational,true,true,false,true,Collimator TCSG.B5R3.B1
+TCP.B6L7.B1,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCP.B6L7.B1
+TCP.B6R7.B2,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCP.B6R7.B2
+TCP.C6L7.B1,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,
+TCP.C6R7.B2,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCP.C6R7.B2
+TCP.D6L7.B1,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,TCP.D6L7.B1 collimator
+TCP.D6R7.B2,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCP.D6R7.B2
+TCSG.6L7.B2,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCSG.6L7.B2
+TCSG.4L3.B2,LHC,false,LHCCollimator_OP.cfc-sr3-tccs3b1,Mathieu Donze,cfc-sr3-tccs3b1,operational,true,true,false,true,Collimator TCSG.4L3.B2
+TCSG.4R3.B1,LHC,false,LHCCollimator_OP.cfc-sr3-tccs3b1,Mathieu Donze,cfc-sr3-tccs3b1,operational,true,true,false,true,Collimator TCSG.4R3.B1
+TCSG.5L3.B1,LHC,false,LHCCollimator_OP.cfc-sr3-tccs3b1,Mathieu Donze,cfc-sr3-tccs3b1,operational,true,true,false,true,Collimator TCSG.5L3.B1
+TCSG.5R3.B2,LHC,false,LHCCollimator_OP.cfc-sr3-tccs3b1,Mathieu Donze,cfc-sr3-tccs3b1,operational,true,true,false,true,Collimator TCSG.5R3.B2
+TCSG.6R7.B1,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCSG.6R7.B1
+TCLA.A6L7.B2,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCLA.A6L7.B2
+TCLA.A6R7.B1,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCLA.A6R7.B1
+TCLA.A7L7.B2,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCLA.A7L7.B2.
+TCLA.A7R7.B1,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,TCLA.A7R7.B1 collimator
+TCLA.B6L7.B2,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCLA.B6L7.B2
+TCLA.B6R7.B1,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCLA.B6R7.B1
+TCSG.A6R7.B2,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCSG.A6R7.B2
+TCSG.B4L7.B1,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCSG.B4L7.B1
+TCSG.B4R7.B2,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCSG.B4R7.B2
+TCSG.B5L7.B1,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,TCSG.B5L7.B1 collimator
+TCSG.B5L7.B2,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,TCSG.B5L7.B2 collimator
+TCSG.B5R7.B1,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,TCSG.B5R7.B1 collimator
+TCSG.B5R7.B2,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,TCSG.B5R7.B2 collimator
+TCSG.D4L7.B1,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,
+TCSG.D4R7.B2,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,TCSG.D4R7.B2 collimator
+TCSG.D5L7.B2,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,TCSG.D5L7.B2 collimator
+TCSG.D5R7.B1,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,TCSG.D5R7.B1 collimator
+TCSG.E5L7.B2,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCSG.E5L7.B2
+TCSG.E5R7.B1,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCSG.E5R7.B1
+TCSPM.D4R7.B2,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,
+TCL.4L1.B2,LHC,false,LHCCollimator_OP.cfc-sr1-tccs1,Mathieu Donze,cfc-sr1-tccs1,operational,true,true,false,true,TCL.4L1.B2 collimator. Installed during LS1 (2014)
+TCL.4R1.B1,LHC,false,LHCCollimator_OP.cfc-sr1-tccs1,Mathieu Donze,cfc-sr1-tccs1,operational,true,true,false,true,TCL.4R1.B1 collimator. Installed during LS1 (2014)
+TCL.5L1.B2,LHC,false,LHCCollimator_OP.cfc-sr1-tccs1,Mathieu Donze,cfc-sr1-tccs1,operational,true,true,false,true,TCL.5L1.B2 collimator
+TCL.5R1.B1,LHC,false,LHCCollimator_OP.cfc-sr1-tccs1,Mathieu Donze,cfc-sr1-tccs1,operational,true,true,false,true,TCL.5R1.B1 collimator
+TCTPH.4L1.B1,LHC,false,LHCCollimator_OP.cfc-sr1-tccs1,Mathieu Donze,cfc-sr1-tccs1,operational,true,true,false,true,Collimator TCTPH.4L1.B1
+TCTPH.4R1.B2,LHC,false,LHCCollimator_OP.cfc-sr1-tccs1,Mathieu Donze,cfc-sr1-tccs1,operational,true,true,false,true,Collimator TCTPH.4R1.B2
+TCTPV.4L1.B1,LHC,false,LHCCollimator_OP.cfc-sr1-tccs1,Mathieu Donze,cfc-sr1-tccs1,operational,true,true,false,true,Collimator TCTPV.4L1.B1
+TCTPV.4R1.B2,LHC,false,LHCCollimator_OP.cfc-sr1-tccs1,Mathieu Donze,cfc-sr1-tccs1,operational,true,true,false,true,Collimator TCTPV.4R1.B2
+TCL.6L1.B2,LHC,false,LHCCollimator_OP.cfc-sr1-tccs1,Mathieu Donze,cfc-sr1-tccs1,operational,true,true,false,true,TCL.6L1.B2 collimator
+TCL.6R1.B1,LHC,false,LHCCollimator_OP.cfc-sr1-tccs1,Mathieu Donze,cfc-sr1-tccs1,operational,true,true,false,true,TCL.6R1.B1 collimator
+TCSP.A4L6.B2,LHC,false,LHCCollimator_OP.cfc-sr6-tccs6,Mathieu Donze,cfc-sr6-tccs6,operational,true,true,false,true,Collimator TCSP.A4L6.B2
+TCSP.A4R6.B1,LHC,false,LHCCollimator_OP.cfc-sr6-tccs6,Mathieu Donze,cfc-sr6-tccs6,operational,true,true,false,true,Collimator TCSP.A4R6.B1
+TCDD.4L2,LHC,false,LHCCollimator_OP.cfc-sr2-tccs2,Mathieu Donze,cfc-sr2-tccs2,operational,true,true,false,true,TCDD.4L2 double beam collimator
+TCLIA.4R2,LHC,false,LHCCollimator_OP.cfc-sr2-tccs2,Mathieu Donze,cfc-sr2-tccs2,operational,true,true,false,true,TCLIA.4R2 collimator
+TCLIB.6R2.B1,LHC,false,LHCCollimator_OP.cfc-sr2-tccs2,Mathieu Donze,cfc-sr2-tccs2,operational,true,true,false,true,Collimator TCLIB.6R2.B1
+TCTPH.4L2.B1,LHC,false,LHCCollimator_OP.cfc-sr2-tccs2,Mathieu Donze,cfc-sr2-tccs2,operational,true,true,false,true,Collimator TCTH.4L2.B1
+TCTPH.4R2.B2,LHC,false,LHCCollimator_OP.cfc-sr2-tccs2,Mathieu Donze,cfc-sr2-tccs2,operational,true,true,false,true,Collimator TCTH.4R2.B2
+TCTPV.4L2.B1,LHC,false,LHCCollimator_OP.cfc-sr2-tccs2,Mathieu Donze,cfc-sr2-tccs2,operational,true,true,false,true,
+TCTPV.4R2.B2,LHC,false,LHCCollimator_OP.cfc-sr2-tccs2,Mathieu Donze,cfc-sr2-tccs2,operational,true,true,false,true,TCTVB.4R2 collimator
+TCLIA.4L8,LHC,false,LHCCollimator_OP.cfc-sr8-tccs8,Mathieu Donze,cfc-sr8-tccs8,operational,true,true,false,true,TCLIA.4L8 collimator
+TCDIV.87804,LHC,false,LHCCollimator_OP.cfc-sr8-tccs8,Mathieu Donze,cfc-sr8-tccs8,operational,true,true,false,true,Collimator TCDIV_87804
+TCLIB.6L8.B2,LHC,false,LHCCollimator_OP.cfc-sr8-tccs8,Mathieu Donze,cfc-sr8-tccs8,operational,true,true,false,true,Collimator TCLIB.6L8.B2
+TCTPH.4L8.B1,LHC,false,LHCCollimator_OP.cfc-sr8-tccs8,Mathieu Donze,cfc-sr8-tccs8,operational,true,true,false,true,Collimator TCTH.4L8.B1
+TCTPH.4R8.B2,LHC,false,LHCCollimator_OP.cfc-sr8-tccs8,Mathieu Donze,cfc-sr8-tccs8,operational,true,true,false,true,Collimator TCTH.4R8.B2
+TCTPV.4R8.B2,LHC,false,LHCCollimator_OP.cfc-sr8-tccs8,Mathieu Donze,cfc-sr8-tccs8,operational,true,true,false,true,
+TCTPV.4L8.B1,LHC,false,LHCCollimator_OP.cfc-sr8-tccs8,Mathieu Donze,cfc-sr8-tccs8,operational,true,true,false,true,TCTPV.4L8.B1 collimator
+TCDIH.87606,LHC,false,LHCCollimator_OP.cfc-sr8-tccs8,Mathieu Donze,cfc-sr8-tccs8,operational,true,true,false,true,Collimator TCDIH_87441
+TCDIV.87644,LHC,false,LHCCollimator_OP.cfc-sr8-tccs8,Mathieu Donze,cfc-sr8-tccs8,operational,true,true,false,true,Collimator TCDIV_87645
+TCL.4L5.B2,LHC,false,LHCCollimator_OP.cfc-se5-tccs5,Mathieu Donze,cfc-se5-tccs5,operational,true,true,false,true,TCLP.4L5.B2 collimator
+TCL.4R5.B1,LHC,false,LHCCollimator_OP.cfc-se5-tccs5,Mathieu Donze,cfc-se5-tccs5,operational,true,true,false,true,TCL.4R5.B1 collimator
+TCL.5L5.B2,LHC,false,LHCCollimator_OP.cfc-se5-tccs5,Mathieu Donze,cfc-se5-tccs5,operational,true,true,false,true,
+TCL.5R5.B1,LHC,false,LHCCollimator_OP.cfc-se5-tccs5,Mathieu Donze,cfc-se5-tccs5,operational,true,true,false,true,
+TCL.6L5.B2,LHC,false,LHCCollimator_OP.cfc-se5-tccs5,Mathieu Donze,cfc-se5-tccs5,operational,true,true,false,true,TCL.6L5.B2 collimator
+TCL.6R5.B1,LHC,false,LHCCollimator_OP.cfc-se5-tccs5,Mathieu Donze,cfc-se5-tccs5,operational,true,true,false,true,TCL.6R5.B1 collimator
+TCTPH.4L5.B1,LHC,false,LHCCollimator_OP.cfc-se5-tccs5,Mathieu Donze,cfc-se5-tccs5,operational,true,true,false,true,
+TCTPH.4R5.B2,LHC,false,LHCCollimator_OP.cfc-se5-tccs5,Mathieu Donze,cfc-se5-tccs5,operational,true,true,false,true,
+TCTPV.4L5.B1,LHC,false,LHCCollimator_OP.cfc-se5-tccs5,Mathieu Donze,cfc-se5-tccs5,operational,true,true,false,true,
+TCTPV.4R5.B2,LHC,false,LHCCollimator_OP.cfc-se5-tccs5,Mathieu Donze,cfc-se5-tccs5,operational,true,true,false,true,
+TCLD.A11R2.B1,LHC,false,LHCCollimator_OP.cfc-sr2-tccs2,Mathieu Donze,cfc-sr2-tccs2,operational,true,true,false,true,New LS2
+TCLD.A11L2.B2,LHC,false,LHCCollimator_OP.cfc-sr2-tccs2,Mathieu Donze,cfc-sr2-tccs2,operational,true,true,false,true,New LS2
+TCSPM.B4R7.B2,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCSPM.B4R7.B2
+TCSPM.B4L7.B1,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCSPM.B4L7.B1
+TCSPM.6R7.B1,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCSPM.6R7.B1
+TCSPM.E5L7.B2,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCSPM.E5L7.B2
+TCSPM.E5R7.B1,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCSPM.E5R7.B1
+TCSPM.6L7.B2,LHC,false,LHCCollimator_OP.cfc-sr7-tccs7b1,Mathieu Donze,cfc-sr7-tccs7b1,operational,true,true,false,true,Collimator TCSPM.6L7.B2
+TDISA.A4R8.B2,LHC,false,LHCCollimator_OP.cfc-sr8-tccs8,Mathieu Donze,cfc-sr8-tccs8,operational,true,true,false,true,TDIS.4R8 new LS2
+TDISB.A4R8.B2,LHC,false,LHCCollimator_OP.cfc-sr8-tccs8,Mathieu Donze,cfc-sr8-tccs8,operational,true,true,false,true,TDIS.4R8 new LS2
+TDISC.A4R8.B2,LHC,false,LHCCollimator_OP.cfc-sr8-tccs8,Mathieu Donze,cfc-sr8-tccs8,operational,true,true,false,true,TDIS.4R8 new LS2
+TDISA.A4L2.B1,LHC,false,LHCCollimator_OP.cfc-sr2-tccs2,Mathieu Donze,cfc-sr2-tccs2,operational,true,true,false,true,TDIS.4L2 -1 (new LS2)
+TDISB.A4L2.B1,LHC,false,LHCCollimator_OP.cfc-sr2-tccs2,Mathieu Donze,cfc-sr2-tccs2,operational,true,true,false,true,TDIS.4L2 (new LS2)
+TDISC.A4L2.B1,LHC,false,LHCCollimator_OP.cfc-sr2-tccs2,Mathieu Donze,cfc-sr2-tccs2,operational,true,true,false,true,TDIS.4L2 (new LS2)

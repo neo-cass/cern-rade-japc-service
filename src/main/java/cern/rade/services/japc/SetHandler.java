@@ -17,6 +17,8 @@ import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.RbaToken;
 import cern.rbac.util.holder.MiddleTierRbaTokenHolder;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -30,6 +32,7 @@ public class SetHandler {
     private Selector selector;
     private RBACClient rbacClient;
     private HttpSender sender;
+    private Logger logger = LoggerFactory.getLogger(SetHandler.class);
 
     public SetHandler(HttpServletResponse response, Request request){
         this.request = request;
@@ -39,7 +42,7 @@ public class SetHandler {
         this.sender= new HttpSender(response);
         this.metaData = request.getMetaData();
         this.data = request.getData();
-        this.parameter = JAPCActions.buildParameter(metaData.getProperty(), metaData.getDevice(), null);
+        this.parameter = Util.buildParameter(metaData.getProperty(), metaData.getDevice(), null);
         this.selector = SelectorFactory.newSelector(metaData.getSelector());
         if(request.getAuthenticationType()!=AuthenticationType.NONE){initRBAC();}
     }
@@ -93,6 +96,7 @@ public class SetHandler {
             init();
         } catch (ParameterException | IOException e) {
             sender.send("ERROR: " + Arrays.toString(e.getStackTrace()));
+            logger.error("Error handling set operation for ID: ", e);
             RBACManager.removeRBACClient(rbacClient.getRbac_id());
             return;
         }

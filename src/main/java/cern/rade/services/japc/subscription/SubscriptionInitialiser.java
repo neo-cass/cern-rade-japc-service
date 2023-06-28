@@ -9,6 +9,9 @@ import cern.rade.services.japc.rbac.RBACClient;
 import cern.rade.services.japc.rbac.RBACClientFactory;
 import cern.rbac.client.authentication.AuthenticationException;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.util.Arrays;
 
@@ -17,6 +20,7 @@ public class SubscriptionInitialiser {
     private HttpSender sender;
     private HttpServletResponse response;
     private SubscriptionHandler handler;
+    private Logger logger = LoggerFactory.getLogger(SubscriptionInitialiser.class);
 
     public SubscriptionInitialiser(Request request, HttpServletResponse response){
         this.request=request;
@@ -47,8 +51,12 @@ public class SubscriptionInitialiser {
     public void execute() {
         try {
             init();
-        } catch (IOException | ParameterException e) {
-            sender.send(Arrays.toString(e.getStackTrace()));
+        } catch (IOException e1 ) {
+            logger.error("Error initialising response sender", e1);
+            return;
+        }
+        catch (ParameterException e2){
+            logger.error("Error creating parameter, check CCDB", e2);
             return;
         }
         send();

@@ -2,6 +2,8 @@ package cern.rade.services.japc;
 
 import cern.rade.services.common.communication.MetaData;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -12,6 +14,7 @@ public class HttpSender {
     private HttpServletResponse response;
     private OutputStreamWriter writer;
     private OutputStream out;
+    private Logger logger = LoggerFactory.getLogger(HttpSender.class);
     public HttpSender(HttpServletResponse response) throws IOException {
         this.response = response;
         this.out=response.getOutputStream();
@@ -25,8 +28,7 @@ public class HttpSender {
             writer.close();
             return true;
         } catch (IOException e) {
-            //TODO: LOG AS ERROR
-            e.printStackTrace();
+            logger.error("Exception sending data with OutputStreamWriter.", e);
             return false;
         }
     }
@@ -44,8 +46,7 @@ public class HttpSender {
             out.close();
             return true;
         } catch (IOException e) {
-            //TODO: LOG AS ERROR
-            e.printStackTrace();
+            logger.error("Exception sending data with OutputStream.", e);
             return false;
         }
     }

@@ -2,19 +2,9 @@ package cern.rade.services.japc;
 
 import cern.japc.core.*;
 import cern.japc.core.factory.ParameterFactory;
-import cern.japc.core.factory.SelectorFactory;
-import cern.japc.value.ParameterValue;
-import cern.rade.services.codec.japcjava.JAPCDecoder;
-import cern.rade.services.codec.japcjava.JAPCEncoder;
-
-import cern.rade.services.common.communication.MetaData;
-import cern.rade.services.common.communication.Request;
-import cern.rade.services.common.containers.java.DataContainer;
-import cern.rade.services.common.containers.java.PropertyContainer;
 
 
-
-public final class JAPCActions {
+public final class Util {
 
     public static Parameter buildParameter(String property, String device, String field) throws ParameterException {
         String url;
@@ -27,6 +17,10 @@ public final class JAPCActions {
 
         return parameter;
     }
-
+    public static String createErrorMessage(Exception e, String message){
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("ERROR: ").append(message).append("MESSAGE: ").append(e.getMessage()).append("AT: ").append(e.getStackTrace()[0].toString());
+        return stringBuilder.toString();
+    }
 
 }

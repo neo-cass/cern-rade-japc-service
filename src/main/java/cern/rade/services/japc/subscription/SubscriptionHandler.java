@@ -15,12 +15,12 @@ import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.common.containers.java.PropertyContainer;
 import cern.rade.services.japc.rbac.RBACClient;
 import cern.rade.services.japc.rbac.RBACClientFactory;
-import cern.rade.services.japc.rbac.RBACManager;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.util.holder.MiddleTierRbaTokenHolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -31,12 +31,14 @@ public class SubscriptionHandler implements ParameterValueListener{
     private String propertyName;
     private Request request;
     private MetaData metaData;
-    private DataContainer<?> property;
     private RBACClient rbacClient;
     private SubscriptionHandle sh;
     private DataContainer data;
     private short[] type_descriptor;
+    private boolean exceptionOccurred = false;
+    private ParameterException exception;
     private LinkedBlockingQueue<AcquiredParameterValue> valueQueue;
+    private Logger logger = LoggerFactory.getLogger(SubscriptionHandler.class);
     public SubscriptionHandler(Request request) {
         this.metaData=request.getMetaData();
         this.valueQueue = new LinkedBlockingQueue<>();
@@ -44,7 +46,7 @@ public class SubscriptionHandler implements ParameterValueListener{
         this.request = request;
         this.device = metaData.getDevice();
         this.selector = metaData.getSelector();
-        this.property=request.getData();
+        this.data=request.getData();
         this.propertyName=metaData.getProperty();
     }
 
@@ -61,7 +63,7 @@ public class SubscriptionHandler implements ParameterValueListener{
             this.rbacClient = (new RBACClientFactory(request)).createClient();
         }
         catch (AuthenticationException e){
-
+            logger.error("Error initialising RBAC", e);
         }
     }
 
@@ -95,10 +97,14 @@ public class SubscriptionHandler implements ParameterValueListener{
     public Pair<short[], byte[]> getLVData(int timeout) throws IOException, InterruptedException {
         AcquiredParameterValue apv = getLatest(timeout);
         data = request.getData();
+
+        if (apv==null){return null;}
+
         if(data==null){
             data = JAPCDecoder.decode(apv);
             type_descriptor = LVTypeEncoder.encodeTypeDescriptor(data);
         }
+
         else{JAPCDecoder.decode((PropertyContainer) data, apv);}
 
         byte[] dataBytes = LVDataEncoder.encode(data);
@@ -108,18 +114,32 @@ public class SubscriptionHandler implements ParameterValueListener{
 
     public String getPYData(int timeout) throws InterruptedException {
         AcquiredParameterValue apv = getLatest(timeout);
+        if (apv==null){return null;}
         return apv.getValue().castAsMap().getString();
     }
 
     @Override
     public void exceptionOccured(String parameterName, String description, ParameterException exception) {
-        System.out.println("Exception occurred in subscription to parameter: " + parameterName + "\n Exception details: " + description);
+        logger.error("Exception occurred in subscription with description {}", description, exception);
+        exceptionOccurred = true;
+        this.exception = exception;
+        sh.stopMonitoring();
     }
-
     public int getRbac_id(){
         return rbacClient.getRbac_id();
     }
     public Request getRequest() {
         return request;
+    }
+    public boolean isMonitoring(){
+        return sh.isMonitoring();
+    }
+
+    public boolean hasExceptionOccurred() {
+        return exceptionOccurred;
+    }
+
+    public ParameterException getException(){
+        return exception;
     }
 }

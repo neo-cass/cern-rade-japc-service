@@ -1,5 +1,7 @@
 package cern.rade.services.japc.subscription;
 
+import jakarta.websocket.CloseReason;
+
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class SubscriptionManager {
@@ -28,7 +30,7 @@ public final class SubscriptionManager {
         clients.clear();
     }
     public static void clearSubWebsockets(){
-        sockets.forEach((id, socket) -> socket.close());
+        sockets.forEach((id, socket) -> socket.close(new CloseReason(CloseReason.CloseCodes.SERVICE_RESTART, "Cleanup from subscription manager")));
         sockets.clear();
     }
 }
