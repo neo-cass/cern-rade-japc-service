@@ -1,19 +1,17 @@
-FROM 17.0.7-alpine3.17
+FROM gradle:7.5.1-jdk17-alpine AS build
 WORKDIR /buildDir
 EXPOSE 8080
 COPY . .
-
 RUN apk update && apk add wget
 RUN wget -O root.cert "https://cafiles.cern.ch/cafiles/certificates/CERN%20Root%20Certification%20Authority%202.crt"
 RUN wget -O auth.cert "https://cafiles.cern.ch/cafiles/certificates/CERN%20Certification%20Authority(2).crt"
 
 USER root
-RUN chmod +x ./gradlew
 RUN keytool -cacerts -keypass changeit -alias root.cert -storepass changeit -noprompt -importcert -file root.cert
 RUN keytool -cacerts -keypass changeit -alias auth.cert -storepass changeit -noprompt -importcert -file auth.cert
 RUN gradle --no-daemon clean war
 
-CMD ["./gradlew", "bootRun"]
+CMD ["gradle", "bootRun"]
 
 #FROM tomcat:11.0.0-jdk17
 #RUN apt-get update -y && apt-get install -y netcat
