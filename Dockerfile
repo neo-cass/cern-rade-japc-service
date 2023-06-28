@@ -9,7 +9,6 @@ RUN wget -O auth.cert "https://cafiles.cern.ch/cafiles/certificates/CERN%20Certi
 USER root
 RUN keytool -cacerts -keypass changeit -alias root.cert -storepass changeit -noprompt -importcert -file root.cert
 RUN keytool -cacerts -keypass changeit -alias auth.cert -storepass changeit -noprompt -importcert -file auth.cert
-RUN gradle --no-daemon clean war
 
 CMD ["gradle", "bootRun"]
 
