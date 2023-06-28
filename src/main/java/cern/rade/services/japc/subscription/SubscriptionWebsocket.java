@@ -16,6 +16,8 @@ import org.springframework.web.socket.server.standard.SpringConfigurator;
 
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 @Component
@@ -30,6 +32,7 @@ public class SubscriptionWebsocket {
     private Writer sendWriter;
     private Request request;
     private boolean clientClosed=false;
+    private Future<Void> future;
     private Logger logger = LoggerFactory.getLogger(SubscriptionWebsocket.class);
     @OnOpen
     public void onOpen(Session session, @PathParam("id") int id) {
@@ -60,6 +63,7 @@ public class SubscriptionWebsocket {
     }
 
     private void sendData() {
+        future = async.sendText("HANDSHAKE");
         switch(request.getRequestLanguage()){
             case LABVIEW -> sendLVData();
             case PYTHON -> sendPYData();
@@ -79,26 +83,32 @@ public class SubscriptionWebsocket {
     }
 
     private void sendPYData() {
+        boolean end = false;
+        do{
+            String data;
+            try {
 
-        try{
-            while(true){
-                String data=client.getPYData(30);
-
-                if (data == null){
-
-                    remoteEndpoint.sendPing(ByteBuffer.wrap("".getBytes()));
-                }
-                else{
-                    remoteEndpoint.sendText(data);
-                }
-
+                data = client.getPYData(30);
+            } catch (InterruptedException e) {
+                logger.error("Thread interrupted when retrieving latest value", e);
+                return;
             }
-        } catch (IOException e1) {
-            logger.debug("Client disconnected");
-        } catch (InterruptedException e2){
-            logger.debug("Thread interrupted, stopping subscription");
-        }
 
+            try {
+                future.get();
+            } catch (InterruptedException e) {
+                logger.error("Thread interrupted when sending value", e);
+            } catch (ExecutionException e) {
+                logger.error("Thread threw exception when sending latest value", e);
+                future.cancel(true);
+                end=true;
+            } catch(CancellationException e){
+                logger.error("Operation cancelled", e);
+            }
+
+            future = async.sendText(data);
+
+        }while(!end);
     }
 
     private void sendText(String value)  {
@@ -109,16 +119,12 @@ public class SubscriptionWebsocket {
         }
     }
 
-    private void sendTextAsync(String value)  {
-        Future<Void> f = async.sendText(value);
-    }
-
-
     @OnMessage
     public void onMessage(String message) {}
 
     @OnClose
     public void onClose()  {
+        future.cancel(true);
         close(new CloseReason(CloseReason.CloseCodes.NORMAL_CLOSURE, "Deliberate disconnect"));
     }
 
