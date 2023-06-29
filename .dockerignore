@@ -2,9 +2,7 @@ Dockerfile
 build
 webapp-build/*.war
 .idea
-*.log
+logs
 .gradle
-gradle
-gradlew*
 
 
