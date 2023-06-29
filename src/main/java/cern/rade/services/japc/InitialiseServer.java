@@ -14,6 +14,7 @@ import org.springframework.web.socket.server.standard.ServerEndpointExporter;
 public class InitialiseServer {
     private static Logger logger = LoggerFactory.getLogger(InitialiseServer.class);
     public static void main(String[] args) {
+        logger.info("dir {}", System.getProperty("user.dir"));
         SpringApplication.run(InitialiseServer.class, args);
         Thread.setDefaultUncaughtExceptionHandler((t, e) -> logger.error("Uncaught exception in thread {}.", t, e));
     }

@@ -3,21 +3,23 @@ WORKDIR /buildDir
 EXPOSE 8080
 
 USER root
-RUN apk update && apk add wget && mkdir certs
+RUN mkdir ../runDir && apk update && apk add wget && mkdir certs
 RUN wget -O certs/root.cert "https://cafiles.cern.ch/cafiles/certificates/CERN%20Root%20Certification%20Authority%202.crt"
 RUN wget -O certs/auth.cert "https://cafiles.cern.ch/cafiles/certificates/CERN%20Certification%20Authority(2).crt"
 
 RUN keytool -cacerts -keypass changeit -alias root.cert -storepass changeit -noprompt -importcert -file certs/root.cert
 RUN keytool -cacerts -keypass changeit -alias auth.cert -storepass changeit -noprompt -importcert -file certs/auth.cert
 
+COPY . .
+RUN gradle bootWar && cp application-build/japc-1.0.0.war ../runDir
+
 RUN addgroup -S japc -g 501
 RUN adduser -S -h /home/japc -u 501 -s /bin/bash -G japc japc
-RUN chown -R japc:japc ../buildDir
-RUN chmod -R 777 ../buildDir
+RUN chown -R japc:japc ../runDir
+RUN chmod -R 777 ../runDir
+WORKDIR ../runDir
 USER japc
-
-COPY . .
-CMD ["gradle", "bootRun"]
+CMD ["java", "-jar", "japc-1.0.0.war"]
 
 #FROM tomcat:11.0.0-jdk17
 #RUN apt-get update -y && apt-get install -y netcat

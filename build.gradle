@@ -68,6 +68,12 @@ war{
     getDestinationDirectory().set(file('webapp-build'))
 }
 
+bootWar{
+    //getWebAppDirectory().set(file('src/main/webapp'))
+    from file('$buildDir/libs/$bootWar')
+    getDestinationDirectory().set(file('application-build'))
+}
+
 // requirement for building this project
 java {
     toolchain {
