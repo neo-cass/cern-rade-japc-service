@@ -19,6 +19,7 @@ RUN gradle -Pversion=prod bootWar && cp japc-prod.war /japc
 WORKDIR /japc
 RUN rm -rf build
 EXPOSE 8443
+RUN chown -R japc:japc /japc
 CMD ["java", "-jar", "japc-prod.war"]
 
 #FROM tomcat:11.0.0-jdk17
