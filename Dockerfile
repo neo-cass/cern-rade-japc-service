@@ -27,7 +27,7 @@ RUN keytool -import -alias root.crt -keystore ${KEYSTORE} -file root.crt -storep
 
 RUN gradle -Pversion=prod bootWar && cp japc-prod.war /japc
 WORKDIR /japc
-RUN rm -rf build && mkdir /japc/logs
+RUN rm -rf build && mkdir /japc/logs && chown -R japc:japc /japc/logs
 EXPOSE 8443
 CMD ["java", "-jar", "japc-prod.war"]
 
