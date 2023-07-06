@@ -5,29 +5,19 @@ RUN addgroup -S japc -g 501
 RUN adduser -S -h /japc -u 501 -s /bin/bash -G japc japc
 RUN apk update && apk add wget && apk add openssl
 
-USER japc
-WORKDIR /japc/build
-ENV KEYSTORE=src/main/resources/keystore.p12
-COPY --chown=japc:japc . .
-
-#RUN wget -O root.crt "https://cafiles.cern.ch/cafiles/certificates/CERN%20Root%20Certification%20Authority%202.crt"
-#RUN wget -O auth.crt "https://cafiles.cern.ch/cafiles/certificates/CERN%20Certification%20Authority(2).crt"
-
 RUN wget -O root.crt "https://ca.cern.ch/cafiles/certificates/CERN%20Certification%20Authority.crt"
 RUN wget -O auth.crt "https://ca.cern.ch/cafiles/certificates/CERN%20Certification%20Authority(1).crt"
 
-USER root
 RUN keytool -cacerts -keypass changeit -alias root.crt -storepass changeit -noprompt -importcert -file root.crt
 RUN keytool -cacerts -keypass changeit -alias auth.crt -storepass changeit -noprompt -importcert -file auth.crt
+RUN rm -rf *.crt
 
 USER japc
-RUN keytool -genkeypair -alias keystore.p12 -keyalg RSA -keysize 4096 -storetype PKCS12 -keystore ${KEYSTORE} -validity 3650 -storepass changeit -dname O=CERN -dname OU=CERN -dname CN=cern.ch
-RUN keytool -import -alias auth.crt -keystore ${KEYSTORE} -file auth.crt -storepass changeit
-RUN keytool -import -alias root.crt -keystore ${KEYSTORE} -file root.crt -storepass changeit
-
+WORKDIR /japc/build
+COPY --chown=japc:japc . .
 RUN gradle -Pversion=prod bootWar && cp japc-prod.war /japc
 WORKDIR /japc
-RUN rm -rf build && mkdir /japc/logs && chown -R japc:japc /japc/logs
+RUN rm -rf build
 EXPOSE 8443
 CMD ["java", "-jar", "japc-prod.war"]
 
@@ -44,3 +34,10 @@ CMD ["java", "-jar", "japc-prod.war"]
 #
 #COPY --from=build $webappDir/japc-1.0.0.war webapps
 #COPY --from=build $webappDir/server.xml conf
+
+#USER japc
+#RUN keytool -genkeypair -alias keystore.p12 -keyalg RSA -keysize 4096 -storetype PKCS12 -keystore ${KEYSTORE} -validity 3650 -storepass changeit -dname O=CERN -dname OU=CERN -dname CN=cern.ch
+#RUN keytool -import -alias auth.crt -keystore ${KEYSTORE} -file auth.crt -storepass changeit
+#RUN keytool -import -alias root.crt -keystore ${KEYSTORE} -file root.crt -storepass changeit
+#RUN wget -O root.crt "https://cafiles.cern.ch/cafiles/certificates/CERN%20Root%20Certification%20Authority%202.crt"
+#RUN wget -O auth.crt "https://cafiles.cern.ch/cafiles/certificates/CERN%20Certification%20Authority(2).crt"
