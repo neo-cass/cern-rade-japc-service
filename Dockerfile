@@ -1,25 +1,35 @@
 FROM gradle:7.5.1-jdk17-alpine AS build
-WORKDIR /buildDir
-EXPOSE 8080
-
 USER root
-RUN mkdir ../runDir && apk update && apk add wget && mkdir certs
-RUN wget -O certs/root.cert "https://cafiles.cern.ch/cafiles/certificates/CERN%20Root%20Certification%20Authority%202.crt"
-RUN wget -O certs/auth.cert "https://cafiles.cern.ch/cafiles/certificates/CERN%20Certification%20Authority(2).crt"
-
-RUN keytool -cacerts -keypass changeit -alias root.cert -storepass changeit -noprompt -importcert -file certs/root.cert
-RUN keytool -cacerts -keypass changeit -alias auth.cert -storepass changeit -noprompt -importcert -file certs/auth.cert
-
-COPY . .
-RUN gradle bootWar && cp application-build/japc-1.0.0.war ../runDir
 
 RUN addgroup -S japc -g 501
-RUN adduser -S -h /home/japc -u 501 -s /bin/bash -G japc japc
-RUN chown -R japc:japc ../runDir
-RUN chmod -R 777 ../runDir
-WORKDIR ../runDir
+RUN adduser -S -h /japc -u 501 -s /bin/bash -G japc japc
+RUN apk update && apk add wget && apk add openssl
+
 USER japc
-CMD ["java", "-jar", "japc-1.0.0.war"]
+WORKDIR /japc/build
+ENV KEYSTORE=src/main/resources/keystore.p12
+COPY --chown=japc:japc . .
+
+#RUN wget -O root.crt "https://cafiles.cern.ch/cafiles/certificates/CERN%20Root%20Certification%20Authority%202.crt"
+#RUN wget -O auth.crt "https://cafiles.cern.ch/cafiles/certificates/CERN%20Certification%20Authority(2).crt"
+
+RUN wget -O root.crt "https://ca.cern.ch/cafiles/certificates/CERN%20Certification%20Authority.crt"
+RUN wget -O auth.crt "https://ca.cern.ch/cafiles/certificates/CERN%20Certification%20Authority(1).crt"
+
+USER root
+RUN keytool -cacerts -keypass changeit -alias root.crt -storepass changeit -noprompt -importcert -file root.crt
+RUN keytool -cacerts -keypass changeit -alias auth.crt -storepass changeit -noprompt -importcert -file auth.crt
+
+USER japc
+RUN keytool -genkeypair -alias keystore.p12 -keyalg RSA -keysize 4096 -storetype PKCS12 -keystore ${KEYSTORE} -validity 3650 -storepass changeit -dname O=CERN -dname OU=CERN -dname CN=cern.ch
+RUN keytool -import -alias auth.crt -keystore ${KEYSTORE} -file auth.crt -storepass changeit
+RUN keytool -import -alias root.crt -keystore ${KEYSTORE} -file root.crt -storepass changeit
+
+RUN gradle -Pversion=prod bootWar && cp japc-prod.war /japc
+WORKDIR /japc
+RUN rm -rf build
+EXPOSE 8443
+CMD ["java", "-jar", "japc-prod.war"]
 
 #FROM tomcat:11.0.0-jdk17
 #RUN apt-get update -y && apt-get install -y netcat

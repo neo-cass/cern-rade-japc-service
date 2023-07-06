@@ -1,7 +1,8 @@
 build
-*.log
+logs
 .gradle
-webapp-build/*.war
+webapp-build
+application-build
 .idea
 *idea
 test-scripts/venv

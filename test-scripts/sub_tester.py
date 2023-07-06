@@ -2,7 +2,8 @@ import requests
 from websocket import create_connection
 
 secure = False
-server = "localhost:8080"
+# server = "springboot-test-rade-services.app.cern.ch"
+server="localhost:8080"
 metadata = {"username": "ncass", "password": "", "req_action": "SUBSCRIBE",
             "req_lang": "PYTHON", "selector": "", "device": "rade-japc-test01",
             "property": "doubles", "auth_type": "NONE", "rbac_id": 0}
@@ -22,10 +23,16 @@ url = ws_protocol + server + '/subs/' + sessionid
 ws = create_connection(url=url)
 
 try:
-    while True:
-        print(ws.recv())
-        #ws.pong()
-
+    choice = None
+    val = None
+    while choice != 'stop':
+        choice = input()
+        val = ws.recv()
+        print(val)
+        print(choice)
+    ws.send("CLOSE")
+    if ws.recv() == "DONE":
+        ws.close()
 
 except Exception:
     ws.close()

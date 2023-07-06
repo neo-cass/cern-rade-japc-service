@@ -87,7 +87,6 @@ public class SubscriptionWebsocket {
         do{
             String data;
             try {
-
                 data = client.getPYData(30);
             } catch (InterruptedException e) {
                 logger.error("Thread interrupted when retrieving latest value", e);
@@ -98,17 +97,20 @@ public class SubscriptionWebsocket {
                 future.get();
             } catch (InterruptedException e) {
                 logger.error("Thread interrupted when sending value", e);
+                return;
             } catch (ExecutionException e) {
                 logger.error("Thread threw exception when sending latest value", e);
-                future.cancel(true);
-                end=true;
+                return;
             } catch(CancellationException e){
                 logger.error("Operation cancelled", e);
+                return;
             }
 
-            future = async.sendText(data);
+            if (data == null){async.sendText("TIMEOUT");}
 
-        }while(!end);
+            else{future = async.sendText(data);}
+
+        }while(true);
     }
 
     private void sendText(String value)  {
@@ -120,7 +122,13 @@ public class SubscriptionWebsocket {
     }
 
     @OnMessage
-    public void onMessage(String message) {}
+    public void onMessage(String message) throws ExecutionException, InterruptedException {
+        if (message.equals("CLOSE")){
+            future.get();
+            async.sendText("DONE").get();
+            close(new CloseReason(CloseReason.CloseCodes.NORMAL_CLOSURE, "Deliberate disconnect"));
+        }
+    }
 
     @OnClose
     public void onClose()  {
@@ -131,6 +139,7 @@ public class SubscriptionWebsocket {
     @OnError
     public void onError(Session session, Throwable throwable)  {
         logger.error("Uncaught exception @onError method executed.", throwable);
+        close(new CloseReason(CloseReason.CloseCodes.CLOSED_ABNORMALLY, "Uncaught exception server side"));
     }
 
     public void close(CloseReason reason){

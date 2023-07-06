@@ -53,7 +53,7 @@ dependencies {
     implementation ("com.google.code.gson:gson:2.10.1")
     implementation("ch.qos.logback:logback-classic:1.4.7")
 
-    //implementation ('org.springframework.boot:spring-boot-starter-security:3.0.0')
+    implementation ('org.springframework.boot:spring-boot-starter-security:3.0.0')
     implementation ('org.springframework.boot:spring-boot-starter-web:3.0.0')
     implementation ('org.springframework.boot:spring-boot-starter-logging:3.0.0')
     implementation ('org.springframework.boot:spring-boot-starter-websocket:3.0.0')
@@ -62,16 +62,14 @@ dependencies {
 
 }
 
-war{
-    //getWebAppDirectory().set(file('src/main/webapp'))
-    from file('$buildDir/libs/$war')
-    getDestinationDirectory().set(file('webapp-build'))
-}
-
+//war{
+//    from file('$buildDir/libs/$war')
+//    getDestinationDirectory().set(file('.'))
+//}
+//
 bootWar{
-    //getWebAppDirectory().set(file('src/main/webapp'))
     from file('$buildDir/libs/$bootWar')
-    getDestinationDirectory().set(file('application-build'))
+    getDestinationDirectory().set(file('.'))
 }
 
 // requirement for building this project

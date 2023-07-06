@@ -1,14 +1,22 @@
 package cern.rade.services.japc;
 
+import org.apache.catalina.Context;
+import org.apache.catalina.connector.Connector;
+import org.apache.tomcat.util.descriptor.web.SecurityCollection;
+import org.apache.tomcat.util.descriptor.web.SecurityConstraint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
 import org.springframework.boot.web.servlet.ServletComponentScan;
+import org.springframework.boot.web.servlet.server.ServletWebServerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.socket.server.standard.ServerEndpointExporter;
-
+@Configuration
 @SpringBootApplication
 @ServletComponentScan
 public class InitialiseServer {
@@ -24,7 +32,12 @@ public class InitialiseServer {
         return new ServerEndpointExporter();
     }
 
+//    @Bean
+//    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+//        return http.requiresChannel(channel -> channel.anyRequest().requiresSecure()).build();
+//    }
 }
+
 
    // public static void main(String[] args) throws Exception {
 //            Tomcat tomcat = new Tomcat();

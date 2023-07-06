@@ -1,6 +1,7 @@
 Dockerfile
 build
-webapp-build/*.war
+webapp-build
+application-build
 .idea
 logs
 .gradle
