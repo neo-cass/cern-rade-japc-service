@@ -1,4 +1,4 @@
-FROM gradle:7.5.1-jdk17-alpine AS build
+FROM gradle:7.5.1-jdk17-alpine
 USER root
 
 RUN addgroup -S japc -g 501
