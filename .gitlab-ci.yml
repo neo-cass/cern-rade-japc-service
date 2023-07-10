@@ -21,8 +21,10 @@ buildWar:
     - keytool -cacerts -keypass changeit -alias root.crt -storepass changeit -noprompt -importcert -file root.crt
     - keytool -cacerts -keypass changeit -alias auth.crt -storepass changeit -noprompt -importcert -file auth.crt
     - gradle -Pversion=$CI_COMMIT_REF_SLUG bootWar
+    - ls -la
   cache:
     key: "$CI_COMMIT_REF_SLUG"
     policy: push
+    destination:
     paths:
-      - japc-1.0.0.war
+      - japc-$CI_COMMIT_REF_SLUG.war
