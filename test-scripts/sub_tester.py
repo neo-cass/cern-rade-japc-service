@@ -3,7 +3,7 @@ from websocket import create_connection
 
 secure = False
 # server = "springboot-test-rade-services.app.cern.ch"
-server="localhost:8080"
+server="localhost:8443"
 metadata = {"username": "ncass", "password": "", "req_action": "SUBSCRIBE",
             "req_lang": "PYTHON", "selector": "", "device": "rade-japc-test01",
             "property": "doubles", "auth_type": "NONE", "rbac_id": 0}
