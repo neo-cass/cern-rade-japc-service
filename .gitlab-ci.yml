@@ -25,6 +25,5 @@ buildWar:
   cache:
     key: "$CI_COMMIT_REF_SLUG"
     policy: push
-    destination:
     paths:
       - japc-$CI_COMMIT_REF_SLUG.war
