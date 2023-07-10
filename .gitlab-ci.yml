@@ -14,7 +14,13 @@ buildWar:
     - GRADLE_USER_HOME="$(pwd)/.gradle"
     - export GRADLE_USER_HOME
   stage: build
-  script: gradle -Pversion=$CI_COMMIT_REF_SLUG bootWar
+  script:
+    - apk update && apk add wget && apk add openssl
+    - wget -O root.crt "https://ca.cern.ch/cafiles/certificates/CERN%20Certification%20Authority.crt"
+    - wget -O auth.crt "https://ca.cern.ch/cafiles/certificates/CERN%20Certification%20Authority(1).crt"
+    - keytool -cacerts -keypass changeit -alias root.crt -storepass changeit -noprompt -importcert -file root.crt
+    - keytool -cacerts -keypass changeit -alias auth.crt -storepass changeit -noprompt -importcert -file auth.crt
+    - gradle -Pversion=$CI_COMMIT_REF_SLUG bootWar
   cache:
     key: "$CI_COMMIT_REF_SLUG"
     policy: push
