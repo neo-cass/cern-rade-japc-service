@@ -13,7 +13,8 @@ buildWar:
   variables:
     WAR_NAME: "japc-$CI_COMMIT_REF_SLUG.war"
   artifacts:
-    - $WAR_NAME
+    paths:
+      - $WAR_NAME
   before_script:
     - GRADLE_USER_HOME="$(pwd)/.gradle"
     - export GRADLE_USER_HOME
