@@ -10,6 +10,10 @@ buildImage:
 buildWar:
   image:
     name: gradle:alpine
+  variables:
+    WAR_NAME: "japc-$CI_COMMIT_REF_SLUG.war"
+  artifacts:
+    - $WAR_NAME
   before_script:
     - GRADLE_USER_HOME="$(pwd)/.gradle"
     - export GRADLE_USER_HOME
@@ -22,8 +26,3 @@ buildWar:
     - keytool -cacerts -keypass changeit -alias auth.crt -storepass changeit -noprompt -importcert -file auth.crt
     - gradle -Pversion=$CI_COMMIT_REF_SLUG bootWar
     - ls -la
-  cache:
-    key: "$CI_COMMIT_REF_SLUG"
-    policy: push
-    paths:
-      - japc-$CI_COMMIT_REF_SLUG.war
