@@ -7,3 +7,4 @@ application-build
 *idea
 test-scripts/venv
 test-scripts/.idea
+*.war
