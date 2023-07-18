@@ -4,7 +4,8 @@ ENV WAR_NAME=${WAR_NAME}
 USER root
 
 RUN addgroup -S japc -g 501
-RUN adduser -S -h /japc -u 501 -s /bin/bash -G japc japc
+RUN adduser -D -S -h /japc -u 501 -s /bin/bash -G japc japc
+RUN apk add doas && echo 'permit nopass :japc as root' > /etc/doas.d/doas.conf
 #RUN apk update && apk add wget && apk add openssl
 #
 #RUN wget -O root.crt "https://ca.cern.ch/cafiles/certificates/CERN%20Certification%20Authority.crt"
