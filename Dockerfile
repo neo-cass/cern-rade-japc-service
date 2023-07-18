@@ -22,7 +22,7 @@ RUN ls -la
 #USER root
 #RUN chown -R japc:japc /japc
 #RUN chmod -R 777 /japc
-CMD "su japc; java -jar ./${WAR_NAME}"
+CMD "ls -la; echo ${PATH}; su japc; java -jar ./${WAR_NAME}"
 
 #FROM tomcat:11.0.0-jdk17
 #RUN apt-get update -y && apt-get install -y netcat
