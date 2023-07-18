@@ -3,30 +3,23 @@ USER root
 
 RUN addgroup -S japc -g 501
 RUN adduser -S -h /japc -u 501 -s /bin/bash -G japc japc
-RUN apk update && apk add wget && apk add openssl
-
-RUN wget -O root.crt "https://ca.cern.ch/cafiles/certificates/CERN%20Certification%20Authority.crt"
-RUN wget -O auth.crt "https://ca.cern.ch/cafiles/certificates/CERN%20Certification%20Authority(1).crt"
-
-RUN keytool -cacerts -keypass changeit -alias root.crt -storepass changeit -noprompt -importcert -file root.crt
-RUN keytool -cacerts -keypass changeit -alias auth.crt -storepass changeit -noprompt -importcert -file auth.crt
-RUN rm -rf *.crt
+#RUN apk update && apk add wget && apk add openssl
+#
+#RUN wget -O root.crt "https://ca.cern.ch/cafiles/certificates/CERN%20Certification%20Authority.crt"
+#RUN wget -O auth.crt "https://ca.cern.ch/cafiles/certificates/CERN%20Certification%20Authority(1).crt"
+#
+#RUN keytool -cacerts -keypass changeit -alias root.crt -storepass changeit -noprompt -importcert -file root.crt
+#RUN keytool -cacerts -keypass changeit -alias auth.crt -storepass changeit -noprompt -importcert -file auth.crt
+#RUN rm -rf *.crt
 
 USER japc
-
-WORKDIR /japc/build
-ENV WAR_NAME = "japc-$CI_COMMIT_REF_SLUG.war"
-COPY --chown=japc:japc . .
-RUN ls -la
-RUN gradle -PwarName=$WAR_NAME bootWar && cp $WAR_NAME /japc
 WORKDIR /japc
-RUN rm -rf build
+COPY --chown=japc:japc ./$WAR_NAME .
 EXPOSE 8443
-USER root
-RUN chown -R japc:japc /japc
-RUN chmod -R 777 /japc
-USER japc
-CMD "java -jar ${WAR_NAME}"
+#USER root
+#RUN chown -R japc:japc /japc
+#RUN chmod -R 777 /japc
+CMD "su japc && java -jar ${WAR_NAME}"
 
 #FROM tomcat:11.0.0-jdk17
 #RUN apt-get update -y && apt-get install -y netcat
