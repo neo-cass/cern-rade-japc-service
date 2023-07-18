@@ -1,6 +1,11 @@
 variables:
   WAR_NAME: "japc-$CI_COMMIT_REF_SLUG.war"
 
+stages:
+  - buildWar
+  - buildImage
+  - deploy
+
 build_war:
   image:
     name: gradle:alpine
@@ -11,7 +16,7 @@ build_war:
   before_script:
     - GRADLE_USER_HOME="$(pwd)/.gradle"
     - export GRADLE_USER_HOME
-  stage: build
+  stage: buildWar
   script:
     - apk update && apk add wget
     - wget -O root.crt "https://ca.cern.ch/cafiles/certificates/CERN%20Certification%20Authority.crt"
@@ -24,7 +29,7 @@ build_image:
   image:
     name: gitlab-registry.cern.ch/ci-tools/docker-image-builder:latest
     entrypoint: [""]
-  stage: deploy
+  stage: buildImage
   script:
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --build-arg WAR_NAME=$WAR_NAME
