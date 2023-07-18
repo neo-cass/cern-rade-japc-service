@@ -1,16 +1,7 @@
 variables:
   WAR_NAME: "japc-$CI_COMMIT_REF_SLUG.war"
 
-buildImage:
-  image:
-    name: gitlab-registry.cern.ch/ci-tools/docker-image-builder:latest
-    entrypoint: [""]
-  stage: deploy
-  script:
-    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --build-arg WAR_NAME=$WAR_NAME
-
-buildWar:
+build_war:
   image:
     name: gradle:alpine
   artifacts:
@@ -28,4 +19,27 @@ buildWar:
     - keytool -cacerts -keypass changeit -alias root.crt -storepass changeit -noprompt -importcert -file root.crt
     - keytool -cacerts -keypass changeit -alias auth.crt -storepass changeit -noprompt -importcert -file auth.crt
     - gradle -PwarName=$WAR_NAME bootWar
-    - ls -la
+
+build_image:
+  image:
+    name: gitlab-registry.cern.ch/ci-tools/docker-image-builder:latest
+    entrypoint: [""]
+  stage: deploy
+  script:
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --build-arg WAR_NAME=$WAR_NAME
+
+deploy_to_paas:
+  stage: deploy
+  image: gitlab-registry.cern.ch/paas-tools/openshift-client:latest
+  variables:
+    SERVER: https://api.paas.okd.cern.ch
+    PROJECT: rade-services   # name of your Openshift project
+    APP_NAME: japc-dev  # name of the ImageStream/DeploymentConfig objects created by oc new-app
+  script:
+    - oc login $SERVER --token=$PAAS_SERVICE_TOKEN
+    - oc project $PROJECT
+    - oc import-image $APP_NAME --all
+    - sleep 10 && oc rollout status deployment/$APP_NAME
+  # if you are using Openshift's DeploymentConfig (instead of regular Deployments), use this command:
+  # - sleep 10 && oc rollout status deploymentconfig/$APP_NAME
