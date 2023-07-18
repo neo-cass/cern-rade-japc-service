@@ -1,4 +1,4 @@
-FROM gradle:7.5.1-jdk17-alpine
+FROM eclipse-temurin:17-alpine
 ARG WAR_NAME="japc-1.0.0.war"
 ENV WAR_NAME=${WAR_NAME}
 USER root
