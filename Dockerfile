@@ -1,4 +1,6 @@
 FROM gradle:7.5.1-jdk17-alpine
+ARG WAR_NAME
+ENV WAR_NAME=${WAR_NAME}
 USER root
 
 RUN addgroup -S japc -g 501
@@ -14,7 +16,7 @@ RUN adduser -S -h /japc -u 501 -s /bin/bash -G japc japc
 
 USER japc
 WORKDIR /japc
-COPY --chown=japc:japc ./$WAR_NAME .
+COPY --chown=japc:japc ./${WAR_NAME} .
 EXPOSE 8443
 RUN ls -la
 #USER root
