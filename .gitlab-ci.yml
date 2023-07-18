@@ -1,3 +1,6 @@
+variables:
+  WAR_NAME: "japc-$CI_COMMIT_REF_SLUG"
+
 buildImage:
   image:
     name: gitlab-registry.cern.ch/ci-tools/docker-image-builder:latest
@@ -10,20 +13,19 @@ buildImage:
 buildWar:
   image:
     name: gradle:alpine
-  variables:
-    WAR_NAME: "japc-$CI_COMMIT_REF_SLUG.war"
   artifacts:
-    name: $WAR_NAME
+    name: "$WAR_NAME.war"
     paths:
-      - $WAR_NAME
+      - "$WAR_NAME.war"
   before_script:
     - GRADLE_USER_HOME="$(pwd)/.gradle"
     - export GRADLE_USER_HOME
   stage: build
   script:
-    - apk update && apk add wget && apk add openssl
+    - apk update && apk add wget
     - wget -O root.crt "https://ca.cern.ch/cafiles/certificates/CERN%20Certification%20Authority.crt"
     - wget -O auth.crt "https://ca.cern.ch/cafiles/certificates/CERN%20Certification%20Authority(1).crt"
     - keytool -cacerts -keypass changeit -alias root.crt -storepass changeit -noprompt -importcert -file root.crt
     - keytool -cacerts -keypass changeit -alias auth.crt -storepass changeit -noprompt -importcert -file auth.crt
     - gradle -ParchiveFileName=$WAR_NAME bootWar
+    - ls -la
