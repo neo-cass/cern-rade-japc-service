@@ -13,9 +13,12 @@ RUN keytool -cacerts -keypass changeit -alias auth.crt -storepass changeit -nopr
 RUN rm -rf *.crt
 
 USER japc
+
 WORKDIR /japc/build
+ENV WAR_NAME = "japc-$CI_COMMIT_REF_SLUG.war"
 COPY --chown=japc:japc . .
-RUN gradle -Pversion=prod bootWar && cp japc-prod.war /japc
+RUN ls -la
+RUN gradle -PwarName=$WAR_NAME bootWar && cp $WAR_NAME /japc
 WORKDIR /japc
 RUN rm -rf build
 EXPOSE 8443
@@ -23,7 +26,7 @@ USER root
 RUN chown -R japc:japc /japc
 RUN chmod -R 777 /japc
 USER japc
-CMD ["java", "-jar", "japc-prod.war"]
+CMD "java -jar ${WAR_NAME}"
 
 #FROM tomcat:11.0.0-jdk17
 #RUN apt-get update -y && apt-get install -y netcat
