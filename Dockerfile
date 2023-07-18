@@ -16,6 +16,7 @@ USER japc
 WORKDIR /japc
 COPY --chown=japc:japc ./$WAR_NAME .
 EXPOSE 8443
+RUN ls -la
 #USER root
 #RUN chown -R japc:japc /japc
 #RUN chmod -R 777 /japc
