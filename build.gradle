@@ -67,9 +67,12 @@ dependencies {
 //    getDestinationDirectory().set(file('.'))
 //}
 //
+
 bootWar{
+    archiveFileName = project.property('warName')
     from file('$buildDir/libs/$bootWar')
     getDestinationDirectory().set(file('.'))
+
 }
 
 // requirement for building this project

@@ -6,5 +6,7 @@ application-build
 .idea
 *idea
 test-scripts/venv
+*logs*
 test-scripts/.idea
 *.war
+
