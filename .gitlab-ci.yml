@@ -8,7 +8,7 @@ stages:
 
 build_war:
   image:
-    name: gradle:alpine
+    name: eclipse-temurin:17-alpine
   artifacts:
     name: "$WAR_NAME"
     paths:
@@ -16,6 +16,7 @@ build_war:
   before_script:
     - GRADLE_USER_HOME="$(pwd)/.gradle"
     - export GRADLE_USER_HOME
+    - chmod +x ./gradlew
   stage: buildWar
   script:
     - apk update && apk add wget
@@ -23,7 +24,7 @@ build_war:
     - wget -O auth.crt "https://ca.cern.ch/cafiles/certificates/CERN%20Certification%20Authority(1).crt"
     - keytool -cacerts -keypass changeit -alias root.crt -storepass changeit -noprompt -importcert -file root.crt
     - keytool -cacerts -keypass changeit -alias auth.crt -storepass changeit -noprompt -importcert -file auth.crt
-    - gradle -PwarName=$WAR_NAME bootWar
+    - ./gradlew -PwarName=$WAR_NAME bootWar
 
 build_image:
   image:
