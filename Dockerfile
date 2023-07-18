@@ -1,5 +1,5 @@
 FROM gradle:7.5.1-jdk17-alpine
-ARG WAR_NAME
+ARG WAR_NAME="japc-1.0.0.war"
 ENV WAR_NAME=${WAR_NAME}
 USER root
 
@@ -22,8 +22,9 @@ EXPOSE 8443
 RUN ls -la
 #USER root
 #RUN chown -R japc:japc /japc
-#RUN chmod -R 777 /japc
-CMD "ls -la; echo ${PATH}; su japc; java -jar ./${WAR_NAME}"
+
+ENTRYPOINT ["/bin/sh", "-c"]
+CMD ["whoami; touch a.zip; ls -la;  java -jar ${WAR_NAME}"]
 
 #FROM tomcat:11.0.0-jdk17
 #RUN apt-get update -y && apt-get install -y netcat
