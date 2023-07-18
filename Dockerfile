@@ -24,7 +24,7 @@ RUN ls -la
 #RUN chown -R japc:japc /japc
 
 ENTRYPOINT ["/bin/sh", "-c"]
-CMD ["whoami; touch a.zip; ls -la;  java -jar ${WAR_NAME}"]
+CMD ["whoami; cat /etc/passwd; touch a.zip; ls -la;  java -jar ${WAR_NAME}"]
 
 #FROM tomcat:11.0.0-jdk17
 #RUN apt-get update -y && apt-get install -y netcat
