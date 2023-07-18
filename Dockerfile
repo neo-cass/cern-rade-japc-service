@@ -1,11 +1,11 @@
 FROM eclipse-temurin:17-alpine
 ARG WAR_NAME="japc-1.0.0.war"
 ENV WAR_NAME=${WAR_NAME}
-USER root
+#USER root
+#RUN addgroup -S japc -g 501
+#RUN adduser -D -S -h /japc -u 501 -s /bin/bash -G japc japc
+#RUN apk add doas && echo 'permit nopass :japc as root' > /etc/doas.d/doas.conf
 
-RUN addgroup -S japc -g 501
-RUN adduser -D -S -h /japc -u 501 -s /bin/bash -G japc japc
-RUN apk add doas && echo 'permit nopass :japc as root' > /etc/doas.d/doas.conf
 #RUN apk update && apk add wget && apk add openssl
 #
 #RUN wget -O root.crt "https://ca.cern.ch/cafiles/certificates/CERN%20Certification%20Authority.crt"
@@ -14,17 +14,14 @@ RUN apk add doas && echo 'permit nopass :japc as root' > /etc/doas.d/doas.conf
 #RUN keytool -cacerts -keypass changeit -alias root.crt -storepass changeit -noprompt -importcert -file root.crt
 #RUN keytool -cacerts -keypass changeit -alias auth.crt -storepass changeit -noprompt -importcert -file auth.crt
 #RUN rm -rf *.crt
-
-USER japc
 WORKDIR /japc
-COPY --chown=japc:japc ./${WAR_NAME} .
+COPY  ./${WAR_NAME} .
 EXPOSE 8443
-RUN ls -la
 #USER root
 #RUN chown -R japc:japc /japc
-
+RUN chgrp -R 0 /japc && chmod -R g=u /japc
 ENTRYPOINT ["/bin/sh", "-c"]
-CMD ["whoami; cat /etc/passwd; touch a.zip; ls -la;  java -jar ${WAR_NAME}"]
+CMD ["java -jar ${WAR_NAME}"]
 
 #FROM tomcat:11.0.0-jdk17
 #RUN apt-get update -y && apt-get install -y netcat
