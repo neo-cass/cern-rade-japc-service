@@ -38,6 +38,7 @@ public class SetHandler {
         this.request = request;
         this.response = response;
     }
+
     private void init() throws ParameterException, IOException {
         this.sender= new HttpSender(response);
         this.metaData = request.getMetaData();

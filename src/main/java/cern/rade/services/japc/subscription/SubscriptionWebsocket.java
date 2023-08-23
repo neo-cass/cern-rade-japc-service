@@ -123,7 +123,7 @@ public class SubscriptionWebsocket {
 
     @OnMessage
     public void onMessage(String message) throws ExecutionException, InterruptedException {
-        if (message.equals("CLOSE")){
+        if (message.equals("STOP_SUBSCRIPTION")){
             future.get();
             async.sendText("DONE").get();
             close(new CloseReason(CloseReason.CloseCodes.NORMAL_CLOSURE, "Deliberate disconnect"));

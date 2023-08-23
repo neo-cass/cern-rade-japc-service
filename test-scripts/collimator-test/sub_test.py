@@ -8,7 +8,7 @@ import os
 
 def subscribe(device):
     secure = True
-    server = "ssl-test-rade-services.app.cern.ch"
+    server = "japc-dev-rade-services.app.cern.ch"
     metadata = {"username": "ncass", "password": "", "req_action": "SUBSCRIBE",
                 "req_lang": "PYTHON", "selector": "", "device": device,
                 "property": "CollimatorStatus", "auth_type": "RBAC_EXPLICIT", "rbac_id": 0}

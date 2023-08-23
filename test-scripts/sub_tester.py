@@ -1,12 +1,12 @@
 import requests
 from websocket import create_connection
 
-secure = False
+secure = True
 # server = "springboot-test-rade-services.app.cern.ch"
-server="localhost:8443"
+server = "japc-dev-rade-services.app.cern.ch"
 metadata = {"username": "ncass", "password": "", "req_action": "SUBSCRIBE",
-            "req_lang": "PYTHON", "selector": "", "device": "rade-japc-test01",
-            "property": "doubles", "auth_type": "NONE", "rbac_id": 0}
+            "req_lang": "PYTHON", "selector": "", "device": "rade-service-test-01",
+            "property": "MyScalars", "auth_type": "RBAC_EXPLICIT", "rbac_id": 0}
 headers = {"MetaData": str(metadata)}
 if secure:
     post_protocol = 'https://'

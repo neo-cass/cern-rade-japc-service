@@ -1,8 +1,8 @@
 plugins {
-    id ('java')
-    id ('war')
+    id ("java")
+    id ("war")
     id ("cern.devops.cbng.dependency") version "4.0.82"
-    id ('org.springframework.boot') version '3.1.1'
+    id ("org.springframework.boot") version "3.1.1"
     //id ('io.spring.dependency-management') version '1.1.0'
 }
 
@@ -10,7 +10,7 @@ repositories {
     mavenLocal()
     // our package index to resolve dependencies
     maven {
-        url "https://artifactory.cern.ch/release"
+        url = "https://artifactory.cern.ch/release"
     }
     mavenCentral()
 }
@@ -54,11 +54,13 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.4.7")
 
     //implementation ('org.springframework.boot:spring-boot-starter-security:3.0.0')
-    implementation ('org.springframework.boot:spring-boot-starter-web:3.0.0')
-    implementation ('org.springframework.boot:spring-boot-starter-logging:3.0.0')
-    implementation ('org.springframework.boot:spring-boot-starter-websocket:3.0.0')
-    implementation ('org.springframework.boot:spring-boot-starter-web-services:3.0.0')
-    providedRuntime ('org.springframework.boot:spring-boot-starter-tomcat:3.0.0')
+    implementation("net.logstash.logback:logstash-logback-encoder:7.3")
+
+    implementation ("org.springframework.boot:spring-boot-starter-web:3.0.0")
+    implementation ("org.springframework.boot:spring-boot-starter-logging:3.0.0")
+    implementation ("org.springframework.boot:spring-boot-starter-websocket:3.0.0")
+    implementation ("org.springframework.boot:spring-boot-starter-web-services:3.0.0")
+    providedRuntime ("org.springframework.boot:spring-boot-starter-tomcat:3.0.0")
 
 }
 
@@ -69,7 +71,7 @@ dependencies {
 //
 
 bootWar{
-    archiveFileName = project.property('warName')
+    //archiveFileName = project.property('warName')
     from file('$buildDir/libs/$bootWar')
     getDestinationDirectory().set(file('.'))
 
