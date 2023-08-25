@@ -7,6 +7,9 @@ import cern.rbac.client.authentication.AuthenticationClient;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.MasterToken;
 import cern.rbac.common.RbaToken;
+import cern.rbac.common.TokenFormatException;
+
+import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -23,6 +26,11 @@ public class RBACManager {
     public static RbaToken getRbaToken(MasterToken masterToken) throws AuthenticationException  {
         return authClient.loginMaster(masterToken);
     }
+    public static MasterToken getMasterToken(byte[] token) throws AuthenticationException, TokenFormatException {
+        RbaToken locationToken = RbaToken.parseAndValidate(ByteBuffer.wrap(token));
+        return new MasterToken(locationToken);
+    }
+
     public static void addClient(RBACClient rbacClient){
         rbacClients.put(rbacClient.hashCode(), rbacClient);
     }

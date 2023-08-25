@@ -8,7 +8,6 @@ import cern.japc.core.factory.SelectorFactory;
 import cern.rade.services.codec.japcjava.JAPCDecoder;
 import cern.rade.services.codec.javatolv.LVDataEncoder;
 import cern.rade.services.codec.javatolv.LVTypeEncoder;
-import cern.rade.services.common.communication.AuthenticationType;
 import cern.rade.services.common.communication.MetaData;
 import cern.rade.services.common.communication.Request;
 import cern.rade.services.common.containers.java.DataContainer;
@@ -16,6 +15,7 @@ import cern.rade.services.common.containers.java.PropertyContainer;
 import cern.rade.services.japc.rbac.RBACClient;
 import cern.rade.services.japc.rbac.RBACClientFactory;
 import cern.rbac.client.authentication.AuthenticationException;
+import cern.rbac.common.TokenFormatException;
 import cern.rbac.util.holder.MiddleTierRbaTokenHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,33 +47,28 @@ public class SubscriptionHandler implements ParameterValueListener{
         this.device = metaData.getDevice();
         this.selector = metaData.getSelector();
         this.data=request.getData();
-        this.propertyName=metaData.getProperty();
     }
 
-    public void init() throws ParameterException {
-        if(request.getAuthenticationType()!= AuthenticationType.NONE){initRBAC();}
-        String name = Parameters.buildParameterName(device, propertyName);
+    public void init() throws ParameterException, TokenFormatException, AuthenticationException {
+        if(request.getAuthenticationType()!=null){initRBAC();}
+        String name;
+        if(data != null){
+            name = Parameters.buildParameterName(device, data.getName());
+        }
+        else{
+            name = metaData.getReq_url();
+        }
         Parameter parameter = ParameterFactory.newInstance().newParameter(name);
         Selector selectorObj = SelectorFactory.newSelector(selector);
         this.sh = parameter.createSubscription(selectorObj, this);
     }
 
-    private void initRBAC() {
-        try{
-            this.rbacClient = (new RBACClientFactory(request)).createClient();
-        }
-        catch (AuthenticationException e){
-            logger.error("Error initialising RBAC", e);
-        }
+    private void initRBAC() throws TokenFormatException, AuthenticationException {
+        this.rbacClient = (new RBACClientFactory(request)).createClient();
     }
 
     public void startSubscription() throws ParameterException {
-        switch (request.getAuthenticationType()){
-            case RBAC_EXPLICIT, RBAC_CACHED -> MiddleTierRbaTokenHolder.set(rbacClient.getApplicationToken());
-            case RBAC_LOCATION -> {
-                //TODO: implement by location
-            }
-        }
+        MiddleTierRbaTokenHolder.set(rbacClient.getApplicationToken());
         sh.startMonitoring();
     }
 
@@ -125,6 +120,7 @@ public class SubscriptionHandler implements ParameterValueListener{
         this.exception = exception;
         sh.stopMonitoring();
     }
+
     public int getRbac_id(){
         return rbacClient.getRbac_id();
     }

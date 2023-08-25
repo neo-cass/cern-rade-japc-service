@@ -16,6 +16,10 @@ import static cern.rade.services.common.BytesUtil.shortArrToByteArr;
 public final class RequestDecoder {
     public static Request decodeMessage(HttpServletRequest request) throws IOException {
         String jsonMsg = request.getHeader("MetaData");
+        if(jsonMsg==null){
+            throw new IOException("Missing header \"MetaData\"");
+        }
+
         MetaData metaData = new MetaData(JsonParser.parseString(jsonMsg).getAsJsonObject());
 
         switch(metaData.getRequest_language()){
@@ -26,7 +30,6 @@ public final class RequestDecoder {
     }
 
     private static boolean checkLVMessage(MetaData metaData){
-
 
         if(metaData.getRequest_language() == null || metaData.getRequest_action() == null || metaData.getSelector() == null){
             return false;
@@ -87,5 +90,4 @@ public final class RequestDecoder {
     private static Request decodePYRequest(HttpServletRequest request, MetaData metaData)  {
         return new Request(metaData, null);
     }
-
 }

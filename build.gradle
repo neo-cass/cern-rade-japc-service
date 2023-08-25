@@ -3,7 +3,6 @@ plugins {
     id ("war")
     id ("cern.devops.cbng.dependency") version "4.0.82"
     id ("org.springframework.boot") version "3.1.1"
-    //id ('io.spring.dependency-management') version '1.1.0'
 }
 
 repositories {
@@ -17,7 +16,7 @@ repositories {
 
 configurations.configureEach {
     resolutionStrategy {
-        cacheChangingModulesFor 0, 'seconds'
+        cacheChangingModulesFor 0, "seconds"
     }
 }
 
@@ -72,9 +71,8 @@ dependencies {
 
 bootWar{
     //archiveFileName = project.property('warName')
-    from file('$buildDir/libs/$bootWar')
-    getDestinationDirectory().set(file('.'))
-
+    from file("$buildDir/libs/$bootWar")
+    getDestinationDirectory().set(file("."))
 }
 
 // requirement for building this project

@@ -2,19 +2,25 @@ package cern.rade.services.japc;
 
 import cern.japc.core.*;
 import cern.japc.core.factory.ParameterFactory;
+import cern.rade.services.common.communication.MetaData;
+import cern.rade.services.common.communication.Request;
+import cern.rade.services.common.containers.java.DataContainer;
 
 
 public final class Util {
 
-    public static Parameter buildParameter(String property, String device, String field) throws ParameterException {
-        String url;
-        if(field==null){url = Parameters.buildParameterName(device, property);}
-        else{url = Parameters.buildParameterName(device, property, field);}
+    public static Parameter buildParameter(Request request) throws ParameterException {
+        MetaData metaData = request.getMetaData();
+        DataContainer data = request.getData();
+        String name;
+        if(data != null){
+            name = Parameters.buildParameterName(metaData.getDevice(), data.getName());
+        }
+        else{
+            name = metaData.getReq_url();
+        }
 
-        Parameter parameter = null;
-
-        parameter = ParameterFactory.newInstance().newParameter(url);
-
+        Parameter parameter = ParameterFactory.newInstance().newParameter(name);
         return parameter;
     }
     public static String createErrorMessage(Exception e, String message){

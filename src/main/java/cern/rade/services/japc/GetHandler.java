@@ -17,6 +17,7 @@ import cern.rade.services.japc.rbac.RBACClient;
 import cern.rade.services.japc.rbac.RBACClientFactory;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.RbaToken;
+import cern.rbac.common.TokenFormatException;
 import cern.rbac.util.holder.MiddleTierRbaTokenHolder;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -42,29 +43,25 @@ public class GetHandler {
         this.request = request;
         this.response = response;
     }
-    private void init() throws ParameterException, IOException {
+    private void init() throws ParameterException, AuthenticationException, TokenFormatException, IOException {
         this.sender = new HttpSender(response);
         this.metaData = request.getMetaData();
         this.data = request.getData();
-        this.parameter = Util.buildParameter(metaData.getProperty(), metaData.getDevice(), null);
+        this.parameter = Util.buildParameter(request);
         this.selector = SelectorFactory.newSelector(metaData.getSelector());
-        if(request.getAuthenticationType()!=AuthenticationType.NONE){initRBAC();}
+        if(request.getAuthenticationType()!=null){initRBAC();}
     }
 
-    private void initRBAC() {
-        try{
-            this.rbacClient = new RBACClientFactory(request).createClient();
-        }
-        catch (AuthenticationException e){
-            sender.send("ERROR:" + Arrays.toString(e.getStackTrace()));
-            logger.error("Exception initialising RBAC", e);
-        }
+    private void initRBAC() throws AuthenticationException, TokenFormatException{
+        this.rbacClient = new RBACClientFactory(request).createClient();
     }
 
-    public void get() throws ParameterException {
-        switch(request.getAuthenticationType()){
-            case NONE -> japcGET();
-            case RBAC_CACHED, RBAC_EXPLICIT, RBAC_LOCATION -> japcGET_SECURE();
+    public void get() throws ParameterException, AuthenticationException {
+        if (request.getAuthenticationType()==null){
+            japcGET();
+        }
+        else{
+            japcGET_SECURE();
         }
     }
 
@@ -74,7 +71,7 @@ public class GetHandler {
         else{JAPCDecoder.decode((PropertyContainer) data, apv);}
     }
 
-    private void japcGET_SECURE() throws ParameterException {
+    private void japcGET_SECURE() throws ParameterException, AuthenticationException {
         RbaToken token = rbacClient.getApplicationToken();
         MiddleTierRbaTokenHolder.set(token);
         japcGET();
@@ -96,7 +93,7 @@ public class GetHandler {
             responseMetaData.setType_descriptor(type_desc);
         }
 
-        if(request.getAuthenticationType() != AuthenticationType.NONE){
+        if(request.getAuthenticationType() != null){
             responseMetaData.setRbac_id(rbacClient.getRbac_id());
         }
         sender.send(LVDataEncoder.encode(data), responseMetaData);
@@ -112,18 +109,26 @@ public class GetHandler {
         } catch (ParameterException e) {
             sender.send("ERROR:" + e.getStackTrace()[0]);
             logger.error("Exception initialising parameter, check CCDB", e);
-
             return;
         } catch (IOException e) {
             sender.send("ERROR:" + Arrays.toString(e.getStackTrace()));
             logger.error("Exception initialising ", e);
+        }
+        catch (AuthenticationException e){
+            sender.send("ERROR:" + Arrays.toString(e.getStackTrace()));
+            logger.error("Exception initialising RBAC client.", e);
+            return;
         }
 
         try {
             get();
         } catch (ParameterException e) {
             sender.send("ERROR:" + Arrays.toString(e.getStackTrace()));
-            logger.error("Exception initialising RBAC", e);
+            logger.error("Exception executing GET", e);
+            return;
+        } catch (AuthenticationException e){
+            sender.send("ERROR:" + Arrays.toString(e.getStackTrace()));
+            logger.error("Exception obtaining RBAC application token.", e);
             return;
         }
 

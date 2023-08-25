@@ -15,6 +15,7 @@ import cern.rade.services.japc.rbac.RBACClientFactory;
 import cern.rade.services.japc.rbac.RBACManager;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.RbaToken;
+import cern.rbac.common.TokenFormatException;
 import cern.rbac.util.holder.MiddleTierRbaTokenHolder;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -39,29 +40,28 @@ public class SetHandler {
         this.response = response;
     }
 
-    private void init() throws ParameterException, IOException {
+    private void init() throws ParameterException, IOException, AuthenticationException, TokenFormatException {
         this.sender= new HttpSender(response);
         this.metaData = request.getMetaData();
         this.data = request.getData();
-        this.parameter = Util.buildParameter(metaData.getProperty(), metaData.getDevice(), null);
+        this.parameter = Util.buildParameter(request);
         this.selector = SelectorFactory.newSelector(metaData.getSelector());
-        if(request.getAuthenticationType()!=AuthenticationType.NONE){initRBAC();}
+        if(request.getAuthenticationType()!=null){initRBAC();}
     }
 
-    private void initRBAC() {
-        try{
-            this.rbacClient = new RBACClientFactory(request).createClient();
-        }
-        catch (AuthenticationException e){
-            sender.send(Arrays.toString(e.getStackTrace()));
-        }
+    private void initRBAC() throws AuthenticationException, TokenFormatException {
+
+        this.rbacClient = new RBACClientFactory(request).createClient();
+
     }
 
 
     private void set() throws ParameterException {
-        switch(request.getAuthenticationType()){
-            case NONE -> japcSET();
-            case RBAC_CACHED, RBAC_EXPLICIT, RBAC_LOCATION -> japcSET_SECURE();
+        if(request.getAuthenticationType() == null){
+            japcSET();
+        }
+        else{
+            japcSET_SECURE();
         }
     }
 
@@ -79,10 +79,10 @@ public class SetHandler {
 
 
     private boolean respond() {
+        if(request.getAuthenticationType()!=null){
+            return sender.send("OK");
+        }
         switch(request.getAuthenticationType()){
-            case NONE -> {
-                return sender.send("OK");
-            }
             case RBAC_CACHED, RBAC_EXPLICIT, RBAC_LOCATION -> {
                 MetaData responseMetaData = new MetaData();
                 responseMetaData.setRbac_id(rbacClient.getRbac_id());

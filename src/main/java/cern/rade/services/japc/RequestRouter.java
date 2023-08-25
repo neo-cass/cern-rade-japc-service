@@ -17,7 +17,7 @@ public class RequestRouter extends HttpServlet {
     Logger logger = LoggerFactory.getLogger(RequestRouter.class);
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         Request japcRequest = RequestDecoder.decodeMessage(request);
-        logger.info("Received message from: {} with request: {}", getClientHostName(request), japcRequest);
+        logger.info("Received message from: {} with request: {}", request.getRemoteHost(), japcRequest);
         requestCaller(japcRequest, response);
     }
 
@@ -43,10 +43,5 @@ public class RequestRouter extends HttpServlet {
 
     public void handleJAPCSub(SubscriptionInitialiser handler) {
         handler.execute();
-    }
-
-    public String getClientHostName(HttpServletRequest request){
-
-        return request.getRequestURL().toString().replace(request.getRequestURI(), "");
     }
 }

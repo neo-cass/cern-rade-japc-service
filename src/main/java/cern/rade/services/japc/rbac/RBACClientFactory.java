@@ -4,6 +4,7 @@ import cern.rade.services.common.communication.AuthenticationType;
 import cern.rade.services.common.communication.MetaData;
 import cern.rade.services.common.communication.Request;
 import cern.rbac.client.authentication.AuthenticationException;
+import cern.rbac.common.TokenFormatException;
 
 public class RBACClientFactory {
     private Request request;
@@ -15,7 +16,7 @@ public class RBACClientFactory {
         this.authenticationType=request.getAuthenticationType();
     }
 
-    public RBACClient createClient() throws AuthenticationException{
+    public RBACClient createClient() throws AuthenticationException, TokenFormatException {
         switch(request.getAuthenticationType()){
             case RBAC_CACHED -> {
                 return initRBACCached();
@@ -24,21 +25,17 @@ public class RBACClientFactory {
                 return initRBACExplicit();
             }
             case RBAC_LOCATION -> {
-                //TODO
+                return initRBACLocation();
+            }
+            default -> {
+                return null;//TODO
             }
         }
-        return null;
     }
 
     private RBACClient initRBACExplicit() throws AuthenticationException{
-        RBACClient rbacClient;
-        try{
-            rbacClient = new RBACClient(metaData.getUsername(), metaData.getPassword());
-            RBACManager.addClient(rbacClient);
-        }
-        catch (AuthenticationException e){
-            rbacClient = null;
-        }
+        RBACClient rbacClient = new RBACClient(metaData.getUsername(), metaData.getPassword());
+        RBACManager.addClient(rbacClient);
         return rbacClient;
     }
 
@@ -48,6 +45,12 @@ public class RBACClientFactory {
         if (rbacClient==null){
             throw new AuthenticationException("No RBAC token associated with this ID");
         }
+        return rbacClient;
+    }
+
+    private RBACClient initRBACLocation() throws AuthenticationException, TokenFormatException {
+        RBACClient rbacClient = new RBACClient(metaData.getRbac_token());
+        RBACManager.addClient(rbacClient);
         return rbacClient;
     }
 }

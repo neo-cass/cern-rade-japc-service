@@ -17,7 +17,6 @@ public class SubscriptionThread implements Runnable, ParameterValueListener {
 
     }
 
-
     @Override
     public void run() {
 

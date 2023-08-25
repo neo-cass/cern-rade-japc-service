@@ -5,8 +5,6 @@ ENV WAR_NAME=${WAR_NAME}
 WORKDIR /japc
 COPY  ./${WAR_NAME} .
 EXPOSE 8443
-#USER root
-#RUN chown -R japc:japc /japc
 RUN chgrp -R 0 /japc && chmod -R g=u /japc
 ENTRYPOINT ["/bin/sh", "-c"]
 CMD ["java -jar ${WAR_NAME}"]

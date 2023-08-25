@@ -8,6 +8,7 @@ import cern.rade.services.japc.HttpSender;
 import cern.rade.services.japc.rbac.RBACClient;
 import cern.rade.services.japc.rbac.RBACClientFactory;
 import cern.rbac.client.authentication.AuthenticationException;
+import cern.rbac.common.TokenFormatException;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +28,7 @@ public class SubscriptionInitialiser {
         this.response=response;
     }
 
-    private void init() throws IOException, ParameterException {
+    private void init() throws IOException, ParameterException, AuthenticationException {
         this.sender = new HttpSender(response);
         this.handler = new SubscriptionHandler(request);
         handler.init();
@@ -38,25 +39,29 @@ public class SubscriptionInitialiser {
 
     private void send(){
         int sub_id = handler.getSub_id();
-        switch(request.getAuthenticationType()){
-            case NONE -> sender.send(String.valueOf(sub_id));
-            case RBAC_LOCATION, RBAC_CACHED, RBAC_EXPLICIT -> {
-                MetaData metaData = new MetaData();
-                metaData.setRbac_id(handler.getRbac_id());
-                sender.send(String.valueOf(sub_id), metaData);
-            }
+        if(request.getAuthenticationType()==null){
+            sender.send(String.valueOf(sub_id));
+        }
+        else{
+            MetaData metaData = new MetaData();
+            metaData.setRbac_id(handler.getRbac_id());
+            sender.send(String.valueOf(sub_id), metaData);
         }
     }
 
     public void execute() {
         try {
             init();
-        } catch (IOException e1 ) {
-            logger.error("Error initialising response sender", e1);
+        }
+        catch (AuthenticationException | TokenFormatException e){
+            logger.error("Error initialising RBAC.", e);
+            return;
+        } catch (IOException e) {
+            logger.error("Error initialising response sender.", e);
             return;
         }
-        catch (ParameterException e2){
-            logger.error("Error creating parameter, check CCDB", e2);
+        catch (ParameterException e){
+            logger.error("Error creating parameter, check CCDB.", e);
             return;
         }
         send();
