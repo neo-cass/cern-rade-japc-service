@@ -26,36 +26,31 @@ import java.util.Arrays;
 
 public class SetHandler {
     private HttpServletResponse response;
-    private Request request;
+    private Client client;
     private DataContainer data;
-    private MetaData metaData;
+    private MetaData responseMetaData;
     private Parameter parameter;
     private Selector selector;
     private RBACClient rbacClient;
     private HttpSender sender;
     private Logger logger = LoggerFactory.getLogger(SetHandler.class);
 
-    public SetHandler(HttpServletResponse response, Request request){
-        this.request = request;
+    public SetHandler(HttpServletResponse response, Client client){
+        this.client = client;
         this.response = response;
+        this.responseMetaData  = new MetaData();
     }
 
-    private void init() throws ParameterException, IOException, AuthenticationException, TokenFormatException {
+    private void init() throws IOException {
         this.sender= new HttpSender(response);
-        this.metaData = request.getMetaData();
-        this.data = request.getData();
-        this.parameter = Util.buildParameter(request);
-        this.selector = SelectorFactory.newSelector(metaData.getSelector());
-        if(request.getAuthenticationType()!=null){initRBAC();}
+        this.data = client.getDataContainer();
+        this.parameter = client.getParameter();
+        this.selector = client.getSelector();
+        this.rbacClient=client.getRbacClient();
     }
-
-    private void initRBAC() throws AuthenticationException, TokenFormatException {
-        this.rbacClient = new RBACClientFactory(request).createClient();
-    }
-
 
     private void set() throws ParameterException {
-        if(request.getAuthenticationType() == null){
+        if(rbacClient == null){
             japcSET();
         }
         else{
@@ -68,48 +63,49 @@ public class SetHandler {
         parameter.setValue(selector, pv);
     }
 
-    private void japcSET_SECURE() throws ParameterException {
+    private void japcSET_SECURE() throws ParameterException, AuthenticationException {
         RbaToken token = rbacClient.getApplicationToken();
         MiddleTierRbaTokenHolder.set(token);
         japcSET();
         MiddleTierRbaTokenHolder.clear();
     }
 
-
     private boolean respond() {
-        if(request.getAuthenticationType()!=null){
-            return sender.send("OK");
+        if(client.getAuthenticationType()==AuthenticationType.NONE){
+            return sender.send("SUCCESS");
         }
-        switch(request.getAuthenticationType()){
-            case RBAC_CACHED, RBAC_EXPLICIT, RBAC_LOCATION -> {
-                MetaData responseMetaData = new MetaData();
-                responseMetaData.setRbac_id(rbacClient.getRbac_id());
-                return sender.send("OK", responseMetaData);
-            }
+        else{
+            responseMetaData.setRbac_id(rbacClient.getRbac_id());
+            return sender.send("SUCCESS", responseMetaData);
         }
-        //TODO: why does java force return at the end of this if every case is covered
-        return false;
     }
     public void execute(){
         try {
             init();
-        } catch (ParameterException | IOException e) {
-            sender.send("ERROR: " + Arrays.toString(e.getStackTrace()));
-            logger.error("Error handling set operation for ID: ", e);
-            RBACManager.removeRBACClient(rbacClient.getRbac_id());
+        } catch (IOException e) {
+            logger.error("Error handling set operation.", e);
             return;
         }
 
         try {
             set();
         } catch (ParameterException e) {
-            sender.send("ERROR: " + Arrays.toString(e.getStackTrace()));
+            responseMetaData.setError(e.getMessage());
+            sender.send("FAILURE", responseMetaData);
+            logger.error("Failure to do set operation", e);
+            return;
+        } catch (AuthenticationException e){
+            responseMetaData.setError(e.getMessage());
+            sender.send("FAILURE", responseMetaData);
             RBACManager.removeRBACClient(rbacClient.getRbac_id());
+            logger.error("Failed to authenticate with RBAC");
             return;
         }
 
-        //respond and if send fails remove the rbac client
-        if (!respond()){RBACManager.removeRBACClient(rbacClient.getRbac_id());}
+        //respond and if send fails (and the user is not using already cached rbac) remove the rbac client
+        if (!respond() && client.getAuthenticationType() != AuthenticationType.RBAC_CACHED){
+            RBACManager.removeRBACClient(rbacClient.getRbac_id());
+        }
     }
 
 }

@@ -16,8 +16,9 @@ import cern.rade.services.japc.rbac.RBACClientFactory;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.TokenFormatException;
 import com.google.gson.JsonParser;
-import jakarta.servlet.ServletInputStream;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -25,31 +26,52 @@ import java.nio.ByteBuffer;
 import static cern.rade.services.common.BytesUtil.shortArrToByteArr;
 
 
-public final class RequestDecoder {
+public final class RequestHandler {
+    static Logger logger = LoggerFactory.getLogger(RequestHandler.class);
     public static Client decodeRequest(HttpServletRequest request) throws IOException {
+        Client client = new Client();
+        client.setRawData(request.getInputStream().readAllBytes());
         String jsonMsg = request.getHeader("MetaData");
         if(jsonMsg==null){
-            throw new IOException("Missing header \"MetaData\"");
+            client.invalidate("Missing MetaData header in HTTP POST request.");
+            logger.info("Received message from: {} but they provided no MetaData header, rejecting.", request.getRemoteHost());
+            return client;
         }
 
         MetaData metaData = new MetaData(JsonParser.parseString(jsonMsg).getAsJsonObject());
+        logger.info("Received request from: {} with MetaData: {}.", request.getRemoteHost(), metaData);
+
+        if(metaData.getRequest_language() == null){
+            client.invalidate("req_lang not provided.");
+            return client;
+        }
 
         switch(metaData.getRequest_language()){
-            case LABVIEW -> {return decodeLVRequest(request, metaData);}
-            case PYTHON -> {return decodePYRequest(request, metaData);}
-            default -> throw new RuntimeException();
+            case LABVIEW -> {validateLVMessage(client, metaData);}
+            case PYTHON -> {validatePYMessage(client, metaData);}
         }
+        return client;
     }
 
     private static void validateMessage(Client client, MetaData metaData){
         //check required fields
-        if(metaData.getRequest_language() == null || metaData.getRequest_action() == null || metaData.getSelector() == null){
-            client.invalidate("req_lang, req_action or selector not provided.");
+        if(metaData.getRequest_action() == null){
+            client.invalidate("selector not provided.");
+        }
+        else if(metaData.getSelector() == null) {
+            client.invalidate("req_action not provided.");
         }
 
-        Selector selector = SelectorFactory.newSelector(metaData.getSelector());
-        client.setSelector(selector);
+        client.setAction(metaData.getRequest_action());
+        client.setSelector(SelectorFactory.newSelector(metaData.getSelector()));
+        client.setAuthenticationType(metaData.getAuth_type());
 
+        if(metaData.getAuth_type()!=AuthenticationType.NONE){
+            validateRBACAuthentication(client, metaData);
+        }
+    }
+
+    private static void validateRBACAuthentication(Client client, MetaData metaData){
         switch(metaData.getAuth_type()){
             case RBAC_EXPLICIT -> {
                 if (metaData.getPassword() == null || metaData.getUsername() == null){
@@ -66,16 +88,12 @@ public final class RequestDecoder {
                     client.invalidate("rbac_token not provided.");
                 }
             }
-            case NONE -> {
-            }
         }
 
-        if(metaData.getAuth_type()!=AuthenticationType.NONE){
-            try {
-                client.setRbacClient(new RBACClientFactory(metaData).createClient());
-            } catch (TokenFormatException | AuthenticationException e) {
-                client.invalidate(Util.createErrorMessage(e, "RBAC authentication failed."));
-            }
+        try {
+            client.setRbacClient(new RBACClientFactory(metaData).createClient());
+        } catch (TokenFormatException | AuthenticationException e) {
+            client.invalidate(Util.createErrorMessage(e, "RBAC authentication failed."));
         }
     }
 
@@ -85,7 +103,6 @@ public final class RequestDecoder {
         //no url can be generated with this info
         if(metaData.getReq_url() == null && (metaData.getType_descriptor() == null || metaData.getDevice() == null)){
             client.invalidate("URL or {type_descriptor, device} missing.");
-            return;
         }
 
         //ambiguous which url they want us to generate, too much meta data provided
@@ -98,7 +115,7 @@ public final class RequestDecoder {
             validateURL(client, metaData);
         }
         else{
-            validateURLAndDecodeLV(client, metaData);
+            validateLVURL(client, metaData);
         }
     }
 
@@ -120,11 +137,12 @@ public final class RequestDecoder {
         }
     }
 
-    private static void validateURLAndDecodeLV(Client client, MetaData metaData){
+    private static void validateLVURL(Client client, MetaData metaData){
         byte[] type_descriptor = shortArrToByteArr(metaData.getType_descriptor());
         //TODO what if decoding fails? add exceptions to type decoder
         LVTypeDescriptor lvTypeDescriptor = LVTypeDecoder.decode(ByteBuffer.wrap(type_descriptor));
-        client.setDataContainer(LVDataContainerFactory.createPropertyContainer((LVClusterDescriptor) lvTypeDescriptor));
+        client.setLvTypeDescriptor(lvTypeDescriptor);
+        client.setDataContainer(LVDataContainerFactory.createDataContainer(lvTypeDescriptor));
         String parameterName = Parameters.buildParameterName(metaData.getDevice(), lvTypeDescriptor.getName());
         try {
             Parameter parameter = ParameterFactory.newInstance().newParameter(parameterName);
@@ -133,23 +151,5 @@ public final class RequestDecoder {
         catch (ParameterException e) {
             client.invalidate(Util.createErrorMessage(e, "CCDB lookup failed, check device name and check that your cluster is formatted correctly."));
         }
-    }
-
-    private static Request decodeLVRequest(HttpServletRequest request, MetaData metaData) throws IOException {
-        ServletInputStream reader = request.getInputStream();
-        DataContainer decodedData = null;
-        byte[] data = reader.readAllBytes();
-        short[] type_descriptor = metaData.getType_descriptor();
-        decodedData = decodeLVData(data, type_descriptor);
-        System.out.println(decodedData);
-        return new Request(metaData, decodedData);
-    }
-
-    private static DataContainer decodeLVData(byte[] data, short[] type_descriptor){
-        return LVDataContainerFactory.createDataContainer(LVTypeDecoder.decode(ByteBuffer.wrap(shortArrToByteArr(type_descriptor))));
-    }
-
-    private static Request decodePYRequest(HttpServletRequest request, MetaData metaData) {
-        return new Request(metaData, null);
     }
 }

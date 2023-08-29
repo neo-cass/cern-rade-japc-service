@@ -2,7 +2,11 @@ package cern.rade.services.japc;
 
 import cern.japc.core.Parameter;
 import cern.japc.core.Selector;
+import cern.rade.services.common.communication.AuthenticationType;
+import cern.rade.services.common.communication.RequestAction;
+import cern.rade.services.common.communication.RequestLanguage;
 import cern.rade.services.common.containers.java.DataContainer;
+import cern.rade.services.common.containers.labview.LVTypeDescriptor;
 import cern.rade.services.japc.rbac.RBACClient;
 
 public class Client {
@@ -12,7 +16,11 @@ public class Client {
     private RBACClient rbacClient;
     private boolean valid;
     private String invalidationReason;
-
+    private byte[] rawData;
+    private LVTypeDescriptor lvTypeDescriptor;
+    private RequestAction action;
+    private AuthenticationType authenticationType;
+    private RequestLanguage requestLanguage;
     public Client(){
         this.valid=true;
     }
@@ -57,10 +65,48 @@ public class Client {
         return invalidationReason;
     }
 
+    public byte[] getRawData() {
+        return rawData;
+    }
+
+    public void setRawData(byte[] rawData) {
+        this.rawData = rawData;
+    }
+
     public void invalidate(String reason){
         this.valid = false;
         this.invalidationReason = reason;
     }
 
+    public RequestAction getAction() {
+        return action;
+    }
 
+    public void setAction(RequestAction action) {
+        this.action = action;
+    }
+
+    public void setLvTypeDescriptor(LVTypeDescriptor lvTypeDescriptor) {
+        this.lvTypeDescriptor = lvTypeDescriptor;
+    }
+
+    public LVTypeDescriptor getLvTypeDescriptor() {
+        return lvTypeDescriptor;
+    }
+
+    public AuthenticationType getAuthenticationType() {
+        return authenticationType;
+    }
+
+    public void setAuthenticationType(AuthenticationType authenticationType) {
+        this.authenticationType = authenticationType;
+    }
+
+    public RequestLanguage getRequestLanguage() {
+        return requestLanguage;
+    }
+
+    public void setRequestLanguage(RequestLanguage requestLanguage) {
+        this.requestLanguage = requestLanguage;
+    }
 }
