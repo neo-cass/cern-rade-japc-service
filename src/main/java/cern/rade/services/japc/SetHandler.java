@@ -50,9 +50,7 @@ public class SetHandler {
     }
 
     private void initRBAC() throws AuthenticationException, TokenFormatException {
-
         this.rbacClient = new RBACClientFactory(request).createClient();
-
     }
 
 

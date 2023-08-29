@@ -45,8 +45,8 @@ dependencies {
     //implementation ("jakarta.websocket:jakarta.websocket-api:2.0.0-M1")
     //implementation ("jakarta.ws.rs:jakarta.ws.rs-api:3.1.0")
 
-    implementation ("cern.rade.services:codec:1.0.3") {changing = true}
-    implementation ("cern.rade.services:common:1.0.3") {changing = true}
+    implementation ("cern.rade.services:codec:codec-renovation-new") {changing = true}
+    implementation ("cern.rade.services:common:common-renovation-new") {changing = true}
 
     implementation ("org.apache.commons:commons-lang3:3.12.0")
     implementation ("com.google.code.gson:gson:2.10.1")
@@ -60,7 +60,6 @@ dependencies {
     implementation ("org.springframework.boot:spring-boot-starter-websocket:3.0.0")
     implementation ("org.springframework.boot:spring-boot-starter-web-services:3.0.0")
     providedRuntime ("org.springframework.boot:spring-boot-starter-tomcat:3.0.0")
-
 }
 
 //war{
@@ -70,7 +69,7 @@ dependencies {
 //
 
 bootWar{
-    archiveFileName = project.property('warName')
+    //archiveFileName = project.property('warName')
     from file("$buildDir/libs/$bootWar")
     getDestinationDirectory().set(file("."))
 }

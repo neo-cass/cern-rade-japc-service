@@ -64,6 +64,13 @@ public class SubscriptionInitialiser {
             logger.error("Error creating parameter, check CCDB.", e);
             return;
         }
+
+        try {
+            handler.init();
+        } catch (ParameterException |TokenFormatException e) {
+            logger.error("Error creating parameter, check CCDB.", e);;
+        }
+
         send();
     }
 }

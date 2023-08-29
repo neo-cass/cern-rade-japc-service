@@ -74,6 +74,7 @@ public class SubscriptionWebsocket {
         while(true){
             try {
                 remoteEndpoint.sendBinary(ByteBuffer.wrap(client.getLVData(30).getSecond()));
+                remoteEndpoint.
             } catch (IOException e) {
                 throw new RuntimeException(e);
             } catch (InterruptedException e) {

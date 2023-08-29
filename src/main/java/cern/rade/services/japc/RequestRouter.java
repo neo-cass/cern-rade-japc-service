@@ -1,4 +1,6 @@
 package cern.rade.services.japc;
+import cern.rade.services.codec.lvtojava.LVDataContainerFactory;
+import cern.rade.services.codec.lvtojava.LVTypeDecoder;
 import cern.rade.services.japc.RequestDecoder;
 import cern.rade.services.common.communication.Request;
 import cern.rade.services.japc.subscription.SubscriptionInitialiser;

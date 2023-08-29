@@ -43,7 +43,9 @@ public class GetHandler {
         this.request = request;
         this.response = response;
     }
+
     private void init() throws ParameterException, AuthenticationException, TokenFormatException, IOException {
+        //TODO data filter?
         this.sender = new HttpSender(response);
         this.metaData = request.getMetaData();
         this.data = request.getData();

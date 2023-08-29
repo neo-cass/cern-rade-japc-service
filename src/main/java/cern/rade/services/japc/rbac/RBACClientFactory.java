@@ -7,17 +7,16 @@ import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.TokenFormatException;
 
 public class RBACClientFactory {
-    private Request request;
+
     private MetaData metaData;
     private AuthenticationType authenticationType;
-    public RBACClientFactory(Request request){
-        this.request=request;
-        this.metaData=request.getMetaData();
-        this.authenticationType=request.getAuthenticationType();
+    public RBACClientFactory(MetaData metaData){
+        this.metaData=metaData;
+        this.authenticationType=metaData.getAuth_type();
     }
 
     public RBACClient createClient() throws AuthenticationException, TokenFormatException {
-        switch(request.getAuthenticationType()){
+        switch(authenticationType){
             case RBAC_CACHED -> {
                 return initRBACCached();
             }

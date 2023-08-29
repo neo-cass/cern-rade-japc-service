@@ -26,22 +26,22 @@
     </appender>
 
 
-    <appender name="LogstashAppender"
-              class="net.logstash.logback.appender.LogstashUdpSocketAppender">
-        <remoteHost>localhost</remoteHost>
-        <port>30050</port>
+<!--    <appender name="LogstashAppender"-->
+<!--              class="net.logstash.logback.appender.LogstashUdpSocketAppender">-->
+<!--        <remoteHost>localhost</remoteHost>-->
+<!--        <port>30050</port>-->
 
-<!--        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">-->
-<!--            <Pattern>${PATTERN}</Pattern>-->
-<!--        </encoder>-->
-        <encoder class="net.logstash.logback.encoder.LogstashEncoder" />
-    </appender>
+<!--&lt;!&ndash;        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">&ndash;&gt;-->
+<!--&lt;!&ndash;            <Pattern>${PATTERN}</Pattern>&ndash;&gt;-->
+<!--&lt;!&ndash;        </encoder>&ndash;&gt;-->
+<!--        <encoder class="net.logstash.logback.encoder.LogstashEncoder" />-->
+<!--    </appender>-->
 
 
     <root level="info" >
         <appender-ref ref="RootTraceFileAppender" />
         <appender-ref ref="Console" />
-        <appender-ref ref="LogstashAppender" />
+<!--        <appender-ref ref="LogstashAppender" />-->
     </root>
 
 
