@@ -3,14 +3,11 @@ package cern.rade.services.japc;
 import cern.japc.core.Parameter;
 import cern.japc.core.ParameterException;
 import cern.japc.core.Parameters;
-import cern.japc.core.Selector;
 import cern.japc.core.factory.ParameterFactory;
 import cern.japc.core.factory.SelectorFactory;
 import cern.rade.services.codec.lvtojava.LVDataContainerFactory;
 import cern.rade.services.codec.lvtojava.LVTypeDecoder;
 import cern.rade.services.common.communication.*;
-import cern.rade.services.common.containers.java.DataContainer;
-import cern.rade.services.common.containers.labview.LVClusterDescriptor;
 import cern.rade.services.common.containers.labview.LVTypeDescriptor;
 import cern.rade.services.japc.rbac.RBACClientFactory;
 import cern.rbac.client.authentication.AuthenticationException;
@@ -45,6 +42,8 @@ public final class RequestHandler {
             client.invalidate("req_lang not provided.");
             return client;
         }
+
+        client.setRequestLanguage(metaData.getRequest_language());
 
         switch(metaData.getRequest_language()){
             case LABVIEW -> {validateLVMessage(client, metaData);}
@@ -93,25 +92,26 @@ public final class RequestHandler {
         try {
             client.setRbacClient(new RBACClientFactory(metaData).createClient());
         } catch (TokenFormatException | AuthenticationException e) {
-            client.invalidate(Util.createErrorMessage(e, "RBAC authentication failed."));
+            client.invalidate(ErrorUtil.createErrorMessage(e, "RBAC authentication failed."));
         }
     }
 
     private static void validateLVMessage(Client client, MetaData metaData){
         validateMessage(client, metaData);
-
+        client.setType_descriptor(metaData.getType_descriptor());
         //no url can be generated with this info
-        if(metaData.getReq_url() == null && (metaData.getType_descriptor() == null || metaData.getDevice() == null)){
+        if(metaData.getReq_url() == null && (client.getType_descriptor() == null || metaData.getDevice() == null)){
             client.invalidate("URL or {type_descriptor, device} missing.");
+            return;
         }
 
         //ambiguous which url they want us to generate, too much meta data provided
-        if(metaData.getReq_url() != null && (metaData.getType_descriptor() != null || metaData.getDevice() != null)){
+        if(metaData.getReq_url() != null && (client.getType_descriptor() != null || metaData.getDevice() != null)){
             client.invalidate("URL and {type_Descriptor, device} provided; ambiguous, remove one.");
             return;
         }
 
-        if(metaData.getType_descriptor()==null){
+        if(client.getType_descriptor()==null){
             validateURL(client, metaData);
         }
         else{
@@ -133,12 +133,12 @@ public final class RequestHandler {
             client.setParameter(parameter);
 
         } catch (ParameterException e) {
-            client.invalidate(Util.createErrorMessage(e, "CCDB lookup failed, check URL."));
+            client.invalidate(ErrorUtil.createErrorMessage(e, "CCDB lookup failed, check URL."));
         }
     }
 
     private static void validateLVURL(Client client, MetaData metaData){
-        byte[] type_descriptor = shortArrToByteArr(metaData.getType_descriptor());
+        byte[] type_descriptor = shortArrToByteArr(client.getType_descriptor());
         //TODO what if decoding fails? add exceptions to type decoder
         LVTypeDescriptor lvTypeDescriptor = LVTypeDecoder.decode(ByteBuffer.wrap(type_descriptor));
         client.setLvTypeDescriptor(lvTypeDescriptor);
@@ -149,7 +149,7 @@ public final class RequestHandler {
             client.setParameter(parameter);
         }
         catch (ParameterException e) {
-            client.invalidate(Util.createErrorMessage(e, "CCDB lookup failed, check device name and check that your cluster is formatted correctly."));
+            client.invalidate(ErrorUtil.createErrorMessage(e, "CCDB lookup failed, check device name and check that your cluster is formatted correctly."));
         }
     }
 }

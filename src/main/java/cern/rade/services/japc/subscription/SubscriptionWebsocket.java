@@ -1,132 +1,86 @@
 package cern.rade.services.japc.subscription;
-import cern.japc.core.*;
-import cern.rade.services.codec.japcjava.JAPCDecoder;
-import cern.rade.services.codec.javatolv.LVTypeEncoder;
-import cern.rade.services.common.communication.Request;
-import cern.rade.services.common.containers.java.PropertyContainer;
-import cern.rade.services.japc.Util;
+import cern.rade.services.japc.Client;
+import cern.rade.services.japc.ErrorUtil;
 import jakarta.websocket.*;
 import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
-import org.springframework.web.socket.server.standard.SpringConfigurator;
 
 import java.io.*;
 import java.nio.ByteBuffer;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Component
 @ServerEndpoint(value = "/subs/{id}")
 public class SubscriptionWebsocket {
     private int id;
-    private RemoteEndpoint.Basic remoteEndpoint;
-    private RemoteEndpoint.Async async;
-    private SubscriptionHandler client;
+    private RemoteEndpoint.Basic remote;
+    private RemoteEndpoint.Async asyncRemote;
+    private SubscriptionHandler handler;
     private Session session;
-    private OutputStreamWriter out;
-    private Writer sendWriter;
-    private Request request;
-    private boolean clientClosed=false;
+    private Client client;
+    private ByteBuffer sendBuffer;
     private Future<Void> future;
-    private Logger logger = LoggerFactory.getLogger(SubscriptionWebsocket.class);
+    private AtomicReference<Long> lastPongReceived = new AtomicReference<>(System.currentTimeMillis());
+    private static final Logger logger = LoggerFactory.getLogger(SubscriptionWebsocket.class);
     @OnOpen
-    public void onOpen(Session session, @PathParam("id") int id) {
+    public void onOpen(Session session, @PathParam("id") int id)  {
         session.setMaxIdleTimeout(0);
         Thread.currentThread().setName("Subscription-Thread-ID-" + id);
         this.id=id;
-        this.client = SubscriptionManager.getSubClient(id);
+        this.handler = SubscriptionManager.getSubClient(id);
         SubscriptionManager.addSubSock(id, this);
         this.session=session;
-        this.request=client.getRequest();
-        this.remoteEndpoint=session.getBasicRemote();
-        this.async=session.getAsyncRemote();
+        this.client = handler.getClient();
+        this.remote=session.getBasicRemote();
+        this.asyncRemote=session.getAsyncRemote();
         init(session);
     }
 
     private void init(Session session) {
-        try {
-            client.startSubscription();
+        if(handler.isMonitoring()){
+            while(true){sendData();}
         }
-        catch (ParameterException e) {
-            String message = "Exception starting subscription.";
-            logger.error(message, e);
-            sendText(Util.createErrorMessage(e, message));
-            close(new CloseReason(CloseReason.CloseCodes.CLOSED_ABNORMALLY, "Starting subscription failed"));
-        }
-
-        sendData();
     }
 
-    private void sendData() {
-        future = async.sendText("HANDSHAKE");
-        switch(request.getRequestLanguage()){
+    public void sendData() {
+        switch(client.getRequestLanguage()){
             case LABVIEW -> sendLVData();
             case PYTHON -> sendPYData();
         }
     }
 
     private void sendLVData()  {
-        while(true){
-            try {
-                remoteEndpoint.sendBinary(ByteBuffer.wrap(client.getLVData(30).getSecond()));
-                remoteEndpoint.
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+        try {
+            sendBuffer = ByteBuffer.wrap(handler.getLVData(30));
+            future = asyncRemote.sendBinary(sendBuffer);
+            future.get();
+        } catch (IOException | InterruptedException | ExecutionException e) {
+            onError(session, e);
         }
     }
 
     private void sendPYData() {
-        boolean end = false;
-        do{
-            String data;
-            try {
-                data = client.getPYData(30);
-            } catch (InterruptedException e) {
-                logger.error("Thread interrupted when retrieving latest value", e);
-                return;
-            }
 
-            try {
-                future.get();
-            } catch (InterruptedException e) {
-                logger.error("Thread interrupted when sending value", e);
-                return;
-            } catch (ExecutionException e) {
-                logger.error("Thread threw exception when sending latest value", e);
-                return;
-            } catch(CancellationException e){
-                logger.error("Operation cancelled", e);
-                return;
-            }
-
-            if (data == null){async.sendText("TIMEOUT");}
-
-            else{future = async.sendText(data);}
-
-        }while(true);
     }
 
     private void sendText(String value)  {
         try {
-            remoteEndpoint.sendText(value);
+            remote.sendText(value);
         } catch (IOException e) {
             logger.error("Exception sending text", e);
         }
     }
 
     @OnMessage
-    public void onMessage(String message) throws ExecutionException, InterruptedException {
+    public void onMessage(Session session, String message) throws ExecutionException, InterruptedException {
         if (message.equals("STOP_SUBSCRIPTION")){
             future.get();
-            async.sendText("DONE").get();
+            asyncRemote.sendText("DONE").get();
             close(new CloseReason(CloseReason.CloseCodes.NORMAL_CLOSURE, "Deliberate disconnect"));
         }
     }
@@ -139,29 +93,27 @@ public class SubscriptionWebsocket {
 
     @OnError
     public void onError(Session session, Throwable throwable)  {
-        logger.error("Uncaught exception @onError method executed.", throwable);
+        String message = "Exception occurred in websocket.";
+        logger.error(message, throwable);
+        future.cancel(true);
+        sendText("ERROR");
+        sendText(ErrorUtil.createErrorMessage((Exception) throwable, message));
         close(new CloseReason(CloseReason.CloseCodes.CLOSED_ABNORMALLY, "Uncaught exception server side"));
+    }
+
+    @OnMessage
+    public void onPongMessage(Session session, PongMessage message){
+        lastPongReceived.set(System.currentTimeMillis());
     }
 
     public void close(CloseReason reason){
         SubscriptionManager.removeSubSock(id);
         SubscriptionManager.removeSubClient(id);
         logger.debug("Removing subscription socket and client object for client");
-
         try {
             session.close(reason);
         } catch (IOException e) {
             logger.error("Error while ending session", e);
         }
     }
-
-    public Thread getThreadByName(String threadName) {
-        for (Thread t : Thread.getAllStackTraces().keySet()) {
-            if (t.getName().equals(threadName)) return t;
-        }
-        return null;
-    }
-
-
-
 }

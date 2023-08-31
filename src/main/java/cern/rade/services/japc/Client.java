@@ -17,6 +17,7 @@ public class Client {
     private boolean valid;
     private String invalidationReason;
     private byte[] rawData;
+    private short[] type_descriptor;
     private LVTypeDescriptor lvTypeDescriptor;
     private RequestAction action;
     private AuthenticationType authenticationType;
@@ -108,5 +109,13 @@ public class Client {
 
     public void setRequestLanguage(RequestLanguage requestLanguage) {
         this.requestLanguage = requestLanguage;
+    }
+
+    public void setType_descriptor(short[] type_descriptor) {
+        this.type_descriptor = type_descriptor;
+    }
+
+    public short[] getType_descriptor() {
+        return type_descriptor;
     }
 }

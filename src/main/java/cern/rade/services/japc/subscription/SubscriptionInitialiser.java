@@ -1,12 +1,13 @@
 package cern.rade.services.japc.subscription;
 
 import cern.japc.core.ParameterException;
+import cern.japc.core.ParameterRuntimeException;
 import cern.rade.services.common.communication.AuthenticationType;
 import cern.rade.services.common.communication.MetaData;
 import cern.rade.services.common.communication.Request;
+import cern.rade.services.japc.Client;
 import cern.rade.services.japc.HttpSender;
-import cern.rade.services.japc.rbac.RBACClient;
-import cern.rade.services.japc.rbac.RBACClientFactory;
+import cern.rade.services.japc.ErrorUtil;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.TokenFormatException;
 import jakarta.servlet.http.HttpServletResponse;
@@ -14,39 +15,40 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Arrays;
 
 public class SubscriptionInitialiser {
-    private Request request;
+    private Client client;
     private HttpSender sender;
     private HttpServletResponse response;
     private SubscriptionHandler handler;
+    private MetaData responseMetaData;
     private Logger logger = LoggerFactory.getLogger(SubscriptionInitialiser.class);
 
-    public SubscriptionInitialiser(Request request, HttpServletResponse response){
-        this.request=request;
+    public SubscriptionInitialiser(HttpServletResponse response,Client client){
+        this.client=client;
         this.response=response;
+        this.responseMetaData = new MetaData();
     }
 
     private void init() throws IOException, ParameterException, AuthenticationException {
         this.sender = new HttpSender(response);
-        this.handler = new SubscriptionHandler(request);
+        this.handler = new SubscriptionHandler(client);
         handler.init();
         SubscriptionManager.addSubClient(handler.getSub_id(), handler);
     }
 
 
 
-    private void send(){
+    private boolean respond(){
         int sub_id = handler.getSub_id();
-        if(request.getAuthenticationType()==null){
-            sender.send(String.valueOf(sub_id));
+        responseMetaData.setSub_id(sub_id);
+        if(client.getAuthenticationType()!=AuthenticationType.NONE){
+            responseMetaData.setRbac_id(client.getRbacClient().getRbac_id());
         }
-        else{
-            MetaData metaData = new MetaData();
-            metaData.setRbac_id(handler.getRbac_id());
-            sender.send(String.valueOf(sub_id), metaData);
+        if(client.getType_descriptor()==null){
+            responseMetaData.setType_descriptor(handler.getType_descriptor());
         }
+        return sender.send("SUCCESS", responseMetaData);
     }
 
     public void execute() {
@@ -54,7 +56,7 @@ public class SubscriptionInitialiser {
             init();
         }
         catch (AuthenticationException | TokenFormatException e){
-            logger.error("Error initialising RBAC.", e);
+            ErrorUtil.sendErrorResponse(sender, logger, responseMetaData, "Error initialising RBAC.", e);
             return;
         } catch (IOException e) {
             logger.error("Error initialising response sender.", e);
@@ -67,10 +69,16 @@ public class SubscriptionInitialiser {
 
         try {
             handler.init();
-        } catch (ParameterException |TokenFormatException e) {
-            logger.error("Error creating parameter, check CCDB.", e);;
+        } catch (ParameterException e) {
+            ErrorUtil.sendErrorResponse(sender, logger, responseMetaData, "Error starting subscription", e);
+            return;
+        } catch(AuthenticationException e){
+            ErrorUtil.sendErrorResponse(sender, logger, responseMetaData, "Error authenticating with RBAC.", e);
+            return;
+        } catch (ParameterRuntimeException e){
+            ErrorUtil.sendErrorResponse(sender, logger, responseMetaData, "Unrecoverable problem encountered when starting subscription", e);
+            return;
         }
-
-        send();
+        respond();
     }
 }

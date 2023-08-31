@@ -1,4 +1,5 @@
 package cern.rade.services.japc;
+import cern.rade.services.common.communication.MetaData;
 import cern.rade.services.common.communication.Request;
 import cern.rade.services.japc.subscription.SubscriptionInitialiser;
 import jakarta.servlet.annotation.WebServlet;
@@ -16,6 +17,10 @@ public class RequestRouter extends HttpServlet {
     Logger logger = LoggerFactory.getLogger(RequestRouter.class);
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         Client client = RequestHandler.decodeRequest(request);
+        if(!client.isValid()){
+            rejectClient(client, response);
+            return;
+        }
         requestCaller(client, response);
     }
 
@@ -41,5 +46,12 @@ public class RequestRouter extends HttpServlet {
 
     public void handleJAPCSub(SubscriptionInitialiser handler) {
         handler.execute();
+    }
+
+    public void rejectClient(Client client, HttpServletResponse response) throws IOException {
+        HttpSender sender = new HttpSender(response);
+        MetaData metaData = new MetaData();
+        metaData.setError(client.getInvalidationReason());
+        sender.send("FAILURE", metaData);
     }
 }

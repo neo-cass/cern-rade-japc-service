@@ -3,26 +3,23 @@ package cern.rade.services.japc;
 import cern.japc.core.Parameter;
 import cern.japc.core.ParameterException;
 import cern.japc.core.Selector;
-import cern.japc.core.factory.SelectorFactory;
 import cern.japc.value.ParameterValue;
 import cern.rade.services.codec.japcjava.JAPCEncoder;
+import cern.rade.services.codec.lvtojava.LVDataDecoder;
 import cern.rade.services.common.communication.AuthenticationType;
 import cern.rade.services.common.communication.MetaData;
-import cern.rade.services.common.communication.Request;
 import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.japc.rbac.RBACClient;
-import cern.rade.services.japc.rbac.RBACClientFactory;
 import cern.rade.services.japc.rbac.RBACManager;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.RbaToken;
-import cern.rbac.common.TokenFormatException;
 import cern.rbac.util.holder.MiddleTierRbaTokenHolder;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.nio.ByteBuffer;
 
 public class SetHandler {
     private HttpServletResponse response;
@@ -43,14 +40,15 @@ public class SetHandler {
 
     private void init() throws IOException {
         this.sender= new HttpSender(response);
-        this.data = client.getDataContainer();
+        this.data = LVDataDecoder.decode(ByteBuffer.wrap(client.getRawData()),
+                client.getDataContainer(), client.getLvTypeDescriptor());
         this.parameter = client.getParameter();
         this.selector = client.getSelector();
         this.rbacClient=client.getRbacClient();
     }
 
     private void set() throws ParameterException {
-        if(rbacClient == null){
+        if(client.getAuthenticationType()==AuthenticationType.NONE){
             japcSET();
         }
         else{
@@ -90,18 +88,13 @@ public class SetHandler {
         try {
             set();
         } catch (ParameterException e) {
-            responseMetaData.setError(e.getMessage());
-            sender.send("FAILURE", responseMetaData);
-            logger.error("Failure to do set operation", e);
+            ErrorUtil.sendErrorResponse(sender, logger, responseMetaData, "Exception executing SET", e);
             return;
         } catch (AuthenticationException e){
-            responseMetaData.setError(e.getMessage());
-            sender.send("FAILURE", responseMetaData);
+            ErrorUtil.sendErrorResponse(sender, logger, responseMetaData, "Failed to authenticate with RBAC", e);
             RBACManager.removeRBACClient(rbacClient.getRbac_id());
-            logger.error("Failed to authenticate with RBAC");
             return;
         }
-
         //respond and if send fails (and the user is not using already cached rbac) remove the rbac client
         if (!respond() && client.getAuthenticationType() != AuthenticationType.RBAC_CACHED){
             RBACManager.removeRBACClient(rbacClient.getRbac_id());
