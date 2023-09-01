@@ -5,6 +5,7 @@ import cern.japc.core.ParameterException;
 import cern.japc.core.Parameters;
 import cern.japc.core.factory.ParameterFactory;
 import cern.japc.core.factory.SelectorFactory;
+import cern.rade.services.codec.CodecException;
 import cern.rade.services.codec.lvtojava.LVDataContainerFactory;
 import cern.rade.services.codec.lvtojava.LVTypeDecoder;
 import cern.rade.services.common.communication.*;
@@ -140,9 +141,21 @@ public final class RequestHandler {
     private static void validateLVURL(Client client, MetaData metaData){
         byte[] type_descriptor = shortArrToByteArr(client.getType_descriptor());
         //TODO what if decoding fails? add exceptions to type decoder
-        LVTypeDescriptor lvTypeDescriptor = LVTypeDecoder.decode(ByteBuffer.wrap(type_descriptor));
+
+        LVTypeDescriptor lvTypeDescriptor;
+        try {
+            lvTypeDescriptor = LVTypeDecoder.decode(ByteBuffer.wrap(type_descriptor));
+        } catch (CodecException e) {
+            client.invalidate(ErrorUtil.createErrorMessage(e,"Failed to decode provided LabVIEW type descriptor."));
+            return;
+        }
         client.setLvTypeDescriptor(lvTypeDescriptor);
-        client.setDataContainer(LVDataContainerFactory.createDataContainer(lvTypeDescriptor));
+        try {
+            client.setDataContainer(LVDataContainerFactory.createDataContainer(lvTypeDescriptor));
+        } catch (CodecException e) {
+            client.invalidate(ErrorUtil.createErrorMessage(e,"Failed to create data container from provided LabVIEW type descriptor."));
+            return;
+        }
         String parameterName = Parameters.buildParameterName(metaData.getDevice(), lvTypeDescriptor.getName());
         try {
             Parameter parameter = ParameterFactory.newInstance().newParameter(parameterName);
@@ -150,6 +163,7 @@ public final class RequestHandler {
         }
         catch (ParameterException e) {
             client.invalidate(ErrorUtil.createErrorMessage(e, "CCDB lookup failed, check device name and check that your cluster is formatted correctly."));
+            return;
         }
     }
 }

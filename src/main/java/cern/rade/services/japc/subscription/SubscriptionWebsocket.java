@@ -1,4 +1,5 @@
 package cern.rade.services.japc.subscription;
+import cern.rade.services.codec.CodecException;
 import cern.rade.services.japc.Client;
 import cern.rade.services.japc.ErrorUtil;
 import jakarta.websocket.*;
@@ -59,7 +60,7 @@ public class SubscriptionWebsocket {
             sendBuffer = ByteBuffer.wrap(handler.getLVData(30));
             future = asyncRemote.sendBinary(sendBuffer);
             future.get();
-        } catch (IOException | InterruptedException | ExecutionException e) {
+        } catch (CodecException | InterruptedException | ExecutionException e) {
             onError(session, e);
         }
     }
@@ -96,9 +97,10 @@ public class SubscriptionWebsocket {
         String message = "Exception occurred in websocket.";
         logger.error(message, throwable);
         future.cancel(true);
+        //TODO error can be sent in the close message
         sendText("ERROR");
         sendText(ErrorUtil.createErrorMessage((Exception) throwable, message));
-        close(new CloseReason(CloseReason.CloseCodes.CLOSED_ABNORMALLY, "Uncaught exception server side"));
+        close(new CloseReason(CloseReason.CloseCodes.CLOSED_ABNORMALLY, throwable.getMessage()));
     }
 
     @OnMessage

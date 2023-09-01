@@ -4,7 +4,7 @@ import cern.japc.core.AcquiredParameterValue;
 import cern.japc.core.Parameter;
 import cern.japc.core.ParameterException;
 import cern.japc.core.Selector;
-import cern.rade.services.codec.DataMismatchException;
+import cern.rade.services.codec.CodecException;
 import cern.rade.services.codec.japcjava.JAPCDecoder;
 import cern.rade.services.codec.javatolv.LVDataEncoder;
 import cern.rade.services.codec.javatolv.LVTypeEncoder;
@@ -50,7 +50,7 @@ public class GetHandler {
 
     }
 
-    public void get() throws ParameterException, AuthenticationException, IOException {
+    public void get() throws ParameterException, AuthenticationException, CodecException {
         if (client.getAuthenticationType()==AuthenticationType.NONE){
             japcGET();
         }
@@ -59,7 +59,7 @@ public class GetHandler {
         }
     }
 
-    private void japcGET() throws ParameterException, IOException {
+    private void japcGET() throws ParameterException, CodecException {
         apv = parameter.getValue(selector);
         if(data==null){
             data = JAPCDecoder.decode(apv);
@@ -67,23 +67,18 @@ public class GetHandler {
             responseMetaData.setType_descriptor(type_descriptor);
         }
         else{
-            //TODO
-            try {
-                JAPCDecoder.decode((PropertyContainer) data, apv);
-            } catch (DataMismatchException e) {
-                throw new RuntimeException(e);
-            }
+            JAPCDecoder.decode((PropertyContainer) data, apv);
         }
     }
 
-    private void japcGET_SECURE() throws ParameterException, AuthenticationException, IOException {
+    private void japcGET_SECURE() throws ParameterException, AuthenticationException, CodecException {
         RbaToken token = rbacClient.getApplicationToken();
         MiddleTierRbaTokenHolder.set(token);
         japcGET();
         MiddleTierRbaTokenHolder.clear();
     }
 
-    private boolean respond() throws IOException {
+    private boolean respond() throws CodecException {
         switch(client.getRequestLanguage()){
             case LABVIEW -> {
                 return respondLV();
@@ -95,7 +90,7 @@ public class GetHandler {
         return false;
     }
 
-    private boolean respondLV() throws IOException {
+    private boolean respondLV() throws CodecException {
         responseMetaData.setAcq_stamp(apv.getHeader().getAcqStamp());
         if(client.getAuthenticationType() != AuthenticationType.NONE){
             responseMetaData.setRbac_id(rbacClient.getRbac_id());
@@ -103,7 +98,7 @@ public class GetHandler {
         return sender.send(LVDataEncoder.encode(data), responseMetaData);
     }
 
-    private boolean respondPY() throws IOException {
+    private boolean respondPY()  {
         //TODO py client
         return sender.send(data.toString());
     }
@@ -126,15 +121,16 @@ public class GetHandler {
         } catch (AuthenticationException e){
             ErrorUtil.sendErrorResponse(sender, logger, responseMetaData, "RBAC Token expired", e);
             return;
-        } catch (IOException e) {
-            logger.error("Error initialising sender or encoding type descriptor.", e);
+        }catch (CodecException e) {
+            ErrorUtil.sendErrorResponse(sender, logger, responseMetaData, "Error encoding data", e);
+            return;
         }
         try {
             //TODO would be better if encoding done in separate step
             if (!respond() && client.getAuthenticationType() != AuthenticationType.RBAC_CACHED){
                 RBACManager.removeRBACClient(rbacClient.getRbac_id());
             }
-        } catch (IOException e) {
+        } catch (CodecException e) {
             ErrorUtil.sendErrorResponse(sender, logger, responseMetaData, "Exception encoding data.", e);
         }
     }

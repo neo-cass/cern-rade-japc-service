@@ -2,6 +2,7 @@ package cern.rade.services.japc.subscription;
 
 import cern.japc.core.*;
 
+import cern.rade.services.codec.CodecException;
 import cern.rade.services.codec.japcjava.JAPCDecoder;
 import cern.rade.services.codec.javatolv.LVDataEncoder;
 import cern.rade.services.codec.javatolv.LVTypeEncoder;
@@ -29,6 +30,7 @@ public class SubscriptionHandler implements ParameterValueListener{
     private SubscriptionHandle sh;
     private DataContainer data;
     private short[] type_descriptor;
+    //TODO set max value, check we wont have memopry issues
     private LinkedBlockingQueue<AcquiredParameterValue> valueQueue;
     private static final Logger logger = LoggerFactory.getLogger(SubscriptionHandler.class);
     public SubscriptionHandler(Client client) {
@@ -92,7 +94,7 @@ public class SubscriptionHandler implements ParameterValueListener{
         return valueQueue.poll(timeout, TimeUnit.SECONDS);
     }
 
-    public byte[] getLVData(int timeout) throws IOException, InterruptedException {
+    public byte[] getLVData(int timeout) throws InterruptedException, CodecException {
         AcquiredParameterValue apv = getLatest(timeout);
         if (apv==null){return null;}
         if(data==null){

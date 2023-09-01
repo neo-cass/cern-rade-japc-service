@@ -4,6 +4,7 @@ import cern.japc.core.Parameter;
 import cern.japc.core.ParameterException;
 import cern.japc.core.Selector;
 import cern.japc.value.ParameterValue;
+import cern.rade.services.codec.CodecException;
 import cern.rade.services.codec.japcjava.JAPCEncoder;
 import cern.rade.services.codec.lvtojava.LVDataDecoder;
 import cern.rade.services.common.communication.AuthenticationType;
@@ -38,16 +39,17 @@ public class SetHandler {
         this.responseMetaData  = new MetaData();
     }
 
-    private void init() throws IOException {
+    private void init() throws IOException, CodecException {
         this.sender= new HttpSender(response);
-        this.data = LVDataDecoder.decode(ByteBuffer.wrap(client.getRawData()),
-                client.getDataContainer(), client.getLvTypeDescriptor());
+        this.data = client.getDataContainer();
+        LVDataDecoder.decode(ByteBuffer.wrap(client.getRawData()),
+                data, client.getLvTypeDescriptor());
         this.parameter = client.getParameter();
         this.selector = client.getSelector();
         this.rbacClient=client.getRbacClient();
     }
 
-    private void set() throws ParameterException {
+    private void set() throws ParameterException, CodecException {
         if(client.getAuthenticationType()==AuthenticationType.NONE){
             japcSET();
         }
@@ -56,12 +58,12 @@ public class SetHandler {
         }
     }
 
-    private void japcSET() throws ParameterException {
+    private void japcSET() throws ParameterException, CodecException {
         ParameterValue pv = JAPCEncoder.encode(data);
         parameter.setValue(selector, pv);
     }
 
-    private void japcSET_SECURE() throws ParameterException, AuthenticationException {
+    private void japcSET_SECURE() throws ParameterException, AuthenticationException, CodecException {
         RbaToken token = rbacClient.getApplicationToken();
         MiddleTierRbaTokenHolder.set(token);
         japcSET();
@@ -83,6 +85,8 @@ public class SetHandler {
         } catch (IOException e) {
             logger.error("Error handling set operation.", e);
             return;
+        } catch (CodecException e){
+            ErrorUtil.sendErrorResponse(sender, logger, responseMetaData, "Failed to decode data provided for the SET operation.", e);
         }
 
         try {
@@ -94,6 +98,9 @@ public class SetHandler {
             ErrorUtil.sendErrorResponse(sender, logger, responseMetaData, "Failed to authenticate with RBAC", e);
             RBACManager.removeRBACClient(rbacClient.getRbac_id());
             return;
+        }catch (CodecException e){
+            ErrorUtil.sendErrorResponse(sender, logger, responseMetaData, "Failed to encode data to do the SET operation.", e);
+
         }
         //respond and if send fails (and the user is not using already cached rbac) remove the rbac client
         if (!respond() && client.getAuthenticationType() != AuthenticationType.RBAC_CACHED){
