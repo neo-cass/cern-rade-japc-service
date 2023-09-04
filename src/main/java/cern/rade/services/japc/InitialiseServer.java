@@ -1,5 +1,6 @@
 package cern.rade.services.japc;
 
+import cern.rade.services.japc.subscription.SubscriptionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
@@ -18,6 +19,7 @@ public class InitialiseServer {
     public static void main(String[] args) {
         logger.info("dir {}", System.getProperty("user.dir"));
         SpringApplication.run(InitialiseServer.class, args);
+        SubscriptionManager.init();
         Thread.setDefaultUncaughtExceptionHandler((t, e) -> logger.error("Uncaught exception in thread {}.", t, e));
     }
 

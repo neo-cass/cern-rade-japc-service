@@ -27,7 +27,7 @@ public class RBACClientFactory {
                 return initRBACLocation();
             }
             default -> {
-                return null;//TODO
+                throw new AuthenticationException("auth_type is NONE.");//TODO
             }
         }
     }

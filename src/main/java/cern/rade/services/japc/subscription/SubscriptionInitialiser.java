@@ -4,7 +4,6 @@ import cern.japc.core.ParameterException;
 import cern.japc.core.ParameterRuntimeException;
 import cern.rade.services.common.communication.AuthenticationType;
 import cern.rade.services.common.communication.MetaData;
-import cern.rade.services.common.communication.Request;
 import cern.rade.services.japc.Client;
 import cern.rade.services.japc.HttpSender;
 import cern.rade.services.japc.ErrorUtil;
@@ -34,7 +33,7 @@ public class SubscriptionInitialiser {
         this.sender = new HttpSender(response);
         this.handler = new SubscriptionHandler(client);
         handler.init();
-        SubscriptionManager.addSubClient(handler.getSub_id(), handler);
+        SubscriptionManager.addSubHandler(handler.getSub_id(), handler);
     }
 
 

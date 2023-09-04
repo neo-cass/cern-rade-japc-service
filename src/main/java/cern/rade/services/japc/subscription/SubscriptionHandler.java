@@ -13,11 +13,9 @@ import cern.rade.services.japc.Client;
 import cern.rade.services.japc.rbac.RBACClient;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.util.holder.MiddleTierRbaTokenHolder;
-import jakarta.websocket.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -34,7 +32,7 @@ public class SubscriptionHandler implements ParameterValueListener{
     private LinkedBlockingQueue<AcquiredParameterValue> valueQueue;
     private static final Logger logger = LoggerFactory.getLogger(SubscriptionHandler.class);
     public SubscriptionHandler(Client client) {
-        this.valueQueue = new LinkedBlockingQueue<>();
+        this.valueQueue = new LinkedBlockingQueue<>(3);
         this.sub_id = this.hashCode();
         this.client = client;
         this.type_descriptor=client.getType_descriptor();
@@ -88,10 +86,14 @@ public class SubscriptionHandler implements ParameterValueListener{
     }
     @Override
     public void valueReceived(String parameterName, AcquiredParameterValue value) {
-        valueQueue.add(value);
+        try {
+            valueQueue.put(value);
+        } catch (InterruptedException e) {
+            logger.error("Handler thread interrupted, missed value",e);
+        }
     }
     public AcquiredParameterValue getLatest(int timeout) throws InterruptedException {
-        return valueQueue.poll(timeout, TimeUnit.SECONDS);
+        return valueQueue.poll(timeout, TimeUnit.MILLISECONDS);
     }
 
     public byte[] getLVData(int timeout) throws InterruptedException, CodecException {
@@ -113,7 +115,7 @@ public class SubscriptionHandler implements ParameterValueListener{
 
     @Override
     public void exceptionOccured(String parameterName, String description, ParameterException exception) {
-        logger.error("Exception occurred in subscription with description {}", description, exception);
+        logger.error("Exception occurred in subscription handler with description {}", description, exception);
         sh.stopMonitoring();
     }
 
