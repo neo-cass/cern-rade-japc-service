@@ -1,0 +1,16 @@
+server:
+  port: 8443
+  ssl:
+    enabled: false
+
+logging:
+  level:
+    com.netflix.config.sources.URLConfigurationSource: ERROR
+    org.springframework.boot.autoconfigure: ERROR
+  config: "classpath:logback.xml"
+
+radeservicesjapc:
+  pingToClientFrequency: 10000
+  waitTimeForNewValueFromSub: 1000
+  socketIdleTimeout: 10000
+  subQueueSize: 100

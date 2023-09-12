@@ -1,0 +1,39 @@
+define: &LOGS "logs"
+define: &PATTERN "%white(%date{ISO8601}) %highlight(%-5level) [Thread: %yellow(%thread)] [Class: %green(%class{0})]: %message%n%red(%exception)"
+  <appender name="RootTraceFileAppender"
+  class="ch.qos.logback.core.rolling.RollingFileAppender">
+  <file>${LOGS}/trace.log</file>
+  <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+  <Pattern>${PATTERN}</Pattern>
+  </encoder>
+  
+  <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+  <fileNamePattern>${LOGS}/archived/trace-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+  <maxFileSize>10MB</maxFileSize>
+  <maxHistory>30</maxHistory>
+  <totalSizeCap>1GB</totalSizeCap>
+  </rollingPolicy>
+  </appender>
+configuration:
+  appender:
+    name: "Console"
+    class: "ch.qos.logback.core.ConsoleAppender"
+    pattern: *PATTERN
+
+  appender:
+    name: "RootTraceFileAppender"
+    class: "ch.qos.logback.core.rolling.RollingFileAppender"
+    file: *LOGS + "/trace.log"
+    encoder:
+      class: "ch.qos.logback.classic.encoder.PatternLayoutEncoder"
+      pattern: *PATTERN
+    rollingPolicy:
+      class: "ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy"
+      fileNamePattern: *LOGS + "/archived/trace-%d{yyyy-MM-dd}.%i.log"
+      maxFileSize: 10MB
+      maxHistory: 30
+      totalSizeCap: 1GB
+  root:
+    level: INFO
+    appender-ref: "Console"
+    appender-ref: "RootTraceFileAppender"

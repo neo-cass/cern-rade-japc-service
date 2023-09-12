@@ -15,6 +15,7 @@ import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.util.holder.MiddleTierRbaTokenHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -28,11 +29,12 @@ public class SubscriptionHandler implements ParameterValueListener{
     private SubscriptionHandle sh;
     private DataContainer data;
     private short[] type_descriptor;
-    //TODO set max value, check we wont have memopry issues
+    @Value("${radeservicesjapc.subQueueSize}")
+    private int subQueueSize;
     private LinkedBlockingQueue<AcquiredParameterValue> valueQueue;
     private static final Logger logger = LoggerFactory.getLogger(SubscriptionHandler.class);
     public SubscriptionHandler(Client client) {
-        this.valueQueue = new LinkedBlockingQueue<>(3);
+        this.valueQueue = new LinkedBlockingQueue<>(subQueueSize);
         this.sub_id = this.hashCode();
         this.client = client;
         this.type_descriptor=client.getType_descriptor();
@@ -86,17 +88,18 @@ public class SubscriptionHandler implements ParameterValueListener{
     }
     @Override
     public void valueReceived(String parameterName, AcquiredParameterValue value) {
+        //TODO: lossy queue
         try {
             valueQueue.put(value);
         } catch (InterruptedException e) {
-            logger.error("Handler thread interrupted, missed value",e);
+            logger.error("Handler thread interrupted, missed value", e);
         }
     }
-    public AcquiredParameterValue getLatest(int timeout) throws InterruptedException {
+    public AcquiredParameterValue getLatest(long timeout) throws InterruptedException {
         return valueQueue.poll(timeout, TimeUnit.MILLISECONDS);
     }
 
-    public byte[] getLVData(int timeout) throws InterruptedException, CodecException {
+    public byte[] getLVData(long timeout) throws InterruptedException, CodecException {
         AcquiredParameterValue apv = getLatest(timeout);
         if (apv==null){return null;}
         if(data==null){

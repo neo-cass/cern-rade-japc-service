@@ -6,84 +6,83 @@ import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.socket.server.standard.SpringConfigurator;
 
 import java.io.*;
 import java.nio.ByteBuffer;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
-
+// , configurator = SpringConfigurator.class
 @Component
-@ServerEndpoint(value = "/subs/{id}", configurator = SpringConfigurator.class)
+@ServerEndpoint(value = "/subs/{id}")
 public class SubscriptionWebsocket {
     private int id;
-    private RemoteEndpoint.Basic remote;
     private RemoteEndpoint.Async asyncRemote;
     private SubscriptionHandler handler;
     private Session session;
     private Client client;
     private final AtomicReference<Long> lastPongReceived = new AtomicReference<>(System.currentTimeMillis());
-    private final AtomicReference<Integer> retry = new AtomicReference<>(3);
-    private final AtomicReference<Boolean> pingOngoing = new AtomicReference<>(false);
     private  Future<Void> future;
     private static final Logger logger = LoggerFactory.getLogger(SubscriptionWebsocket.class);
+    private final ExecutorService sendService = Executors.newSingleThreadExecutor();
+    @Value("${radeservicesjapc.socketIdleTimeout}")
+    private Duration socketIdleTimeout;
+    @Value("${radeservicesjapc.waitTimeForNewValueFromSub}")
+    private Duration waitTimeForNewValueFromSub;
     public SubscriptionWebsocket(){}
     @OnOpen
     public void onOpen(Session session, @PathParam("id") int id)  {
-        session.setMaxIdleTimeout(10000);
+        session.setMaxIdleTimeout(socketIdleTimeout.get(ChronoUnit.MILLIS));
         Thread.currentThread().setName("Subscription-Thread-ID-" + id);
         this.id=id;
-        this.handler = SubscriptionManager.getSubHandler(id);
+        this.handler = SubscriptionManager.removeSubHandler(id);
         SubscriptionManager.addSubSock(id, this);
         this.session=session;
         this.client = handler.getClient();
-        this.remote=session.getBasicRemote();
         this.asyncRemote=session.getAsyncRemote();
         init();
     }
 
     private void init() {
-        if(handler.isMonitoring()){
-            sendData();
-        }
+        sendService.execute(this::sendData);
     }
 
     public void sendData() {
-        switch(client.getRequestLanguage()){
-            case LABVIEW -> sendLVData();
-            case PYTHON -> sendPYData();
+        while(session.isOpen() && !Thread.interrupted()) {
+            switch (client.getRequestLanguage()) {
+                case LABVIEW -> sendLVData();
+                case PYTHON -> sendPYData();
+            }
         }
+        future.cancel(true);
     }
 
     private void sendLVData()  {
         try {
-            ByteBuffer sendBuffer = ByteBuffer.wrap(handler.getLVData(1000));
+            byte[] data = handler.getLVData(waitTimeForNewValueFromSub.get(ChronoUnit.MILLIS));
+            if(data==null){
+                return;
+            }
+            ByteBuffer sendBuffer = ByteBuffer.wrap(data);
             future = asyncRemote.sendBinary(sendBuffer);
             future.get();
-        } catch (CodecException e) {
-
+        } catch(CodecException e) {
+            closeOnError("Received data did not match type descriptor provided.", e);
         } catch(CancellationException e){
-
+            closeOnError("Send operation cancelled in client: " + id, e);
         } catch(ExecutionException e){
-
+            closeOnError("Execution exception in send operation.", e);
+            logger.error("Cause of execution exception.", e.getCause());
         } catch (InterruptedException e){
-
+            closeOnError("Sender thread interrupted.", e);
         }
     }
 
     private void sendPYData() {
 
-    }
-
-    private void sendText(String value)  {
-        try {
-            remote.sendText(value);
-        } catch (IOException e) {
-            logger.error("Exception sending text", e);
-        }
     }
 
     @OnMessage
@@ -93,29 +92,17 @@ public class SubscriptionWebsocket {
 
     @OnClose
     public void onClose(CloseReason closeReason) {
-        future.cancel(true);
+        close(closeReason);
         logger.info("Closing subscription: " + id + " with reason " + closeReason.getReasonPhrase());
     }
 
-    public void ping(){
-        try {
-            asyncRemote.sendPing(ByteBuffer.wrap(new byte[0]));
-        } catch(CancellationException e){
-
-        } catch (IOException e) {
-
-        }
+    public void ping() throws IOException {
+        asyncRemote.sendPing(ByteBuffer.wrap(new byte[0]));
     }
 
     @OnError
     public void onError(Throwable throwable)  {
-        String message = "Exception occurred in websocket.";
-        logger.error("Exception in subscription client: " + id + message, throwable);
-        future.cancel(true);
-        //TODO error can be sent in the close message
-//        sendText("ERROR");
-//        sendText(ErrorUtil.createErrorMessage((Exception) throwable, message));
-        close(new CloseReason(CloseReason.CloseCodes.CLOSED_ABNORMALLY, throwable.getMessage()));
+        closeOnError("Exception in subscription client: " + id, (Exception) throwable);
     }
 
     @OnMessage
@@ -125,24 +112,22 @@ public class SubscriptionWebsocket {
 
     public void close(CloseReason reason){
         SubscriptionManager.removeSubSock(id);
+        sendService.shutdownNow();
         logger.debug("Removing subscription socket and client object for client");
         try {
-            session.close(reason);
+            if(session.isOpen()){
+                session.close(reason);
+            }
         } catch (IOException e) {
             logger.error("Error while ending session", e);
         }
     }
 
-    public boolean hasTimedOut(){
-        long diff = System.currentTimeMillis() - lastPongReceived.get();
-        return diff > 10000;
+    public void closeOnError(String message, Exception e){
+        logger.error(message,e);
+        close(new CloseReason(CloseReason.CloseCodes.CLOSED_ABNORMALLY, message));
     }
-
-    public void decrementRetry() {
-        retry.getAndUpdate((val) -> val-1);
-    }
-
-    public void resetRetry(){
-        retry.compareAndSet(0, 3);
+    public int getId() {
+        return id;
     }
 }

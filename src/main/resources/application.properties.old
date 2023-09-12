@@ -11,3 +11,4 @@ logging.level.org.springframework.boot.autoconfigure=ERROR
 ## The alias mapped to the certificate
 #server.ssl.key-alias=keystore.p12
 server.ssl.enabled=false
+#TODO: add custom properties to configure service (e.g. client timeout)

@@ -25,55 +25,33 @@
         </rollingPolicy>
     </appender>
 
+    <appender name="logstash" class="net.logstash.logback.appender.LogstashUdpSocketAppender">
+        <destination>udp://localhost:5000</destination> <!-- Change to your Logstash server address and port -->
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <fieldNames>
+                <timestamp>timestamp</timestamp>
+                <version>version</version>
+                <message>message</message>
+            </fieldNames>
+        </encoder>
+    </appender>
 
-<!--    <appender name="LogstashAppender"-->
-<!--              class="net.logstash.logback.appender.LogstashUdpSocketAppender">-->
-<!--        <remoteHost>localhost</remoteHost>-->
-<!--        <port>30050</port>-->
-
-<!--&lt;!&ndash;        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">&ndash;&gt;-->
-<!--&lt;!&ndash;            <Pattern>${PATTERN}</Pattern>&ndash;&gt;-->
-<!--&lt;!&ndash;        </encoder>&ndash;&gt;-->
-<!--        <encoder class="net.logstash.logback.encoder.LogstashEncoder" />-->
-<!--    </appender>-->
+    <appender name="LogstashAppender"
+              class="net.logstash.logback.appender.LogstashUdpSocketAppender">
+        <remoteHost>localhost</remoteHost>
+        <port>30050</port>
+<!--        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">-->
+<!--            <Pattern>${PATTERN}</Pattern>-->
+<!--        </encoder>-->
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder" />
+    </appender>
 
 
     <root level="info" >
         <appender-ref ref="RootTraceFileAppender" />
         <appender-ref ref="Console" />
-<!--        <appender-ref ref="LogstashAppender" />-->
+        <appender-ref ref="logstash" />
     </root>
 
 
 </configuration>
-
-        <!--    <appender name="JapcTraceFileAppender"-->
-        <!--              class="ch.qos.logback.core.rolling.RollingFileAppender">-->
-        <!--        <file>${LOGS}/japc.log</file>-->
-        <!--        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">-->
-        <!--            <Pattern>${PATTERN}</Pattern>-->
-        <!--        </encoder>-->
-
-        <!--        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">-->
-        <!--            <fileNamePattern>${LOGS}/archived/japc-%d{yyyy-MM-dd}.%i.log</fileNamePattern>-->
-        <!--            <maxFileSize>10MB</maxFileSize>-->
-        <!--            <maxHistory>30</maxHistory>-->
-        <!--            <totalSizeCap>1GB</totalSizeCap>-->
-        <!--        </rollingPolicy>-->
-        <!--    </appender>-->
-
-        <!--    <appender name="ErrorFileAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">-->
-        <!--        <file>${LOGS}/error.log</file>-->
-        <!--        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">-->
-        <!--            <Pattern>${PATTERN}</Pattern>-->
-        <!--        </encoder>-->
-
-
-
-        <!--        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">-->
-        <!--            <fileNamePattern>${LOGS}/archived/error-%d{yyyy-MM-dd}.%i.log</fileNamePattern>-->
-        <!--            <maxFileSize>10MB</maxFileSize>-->
-        <!--            <maxHistory>30</maxHistory>-->
-        <!--            <totalSizeCap>1GB</totalSizeCap>-->
-        <!--        </rollingPolicy>-->
-        <!--    </appender>-->
