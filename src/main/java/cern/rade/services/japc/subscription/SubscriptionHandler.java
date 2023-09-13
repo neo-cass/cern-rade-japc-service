@@ -10,6 +10,7 @@ import cern.rade.services.common.communication.AuthenticationType;
 import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.common.containers.java.PropertyContainer;
 import cern.rade.services.japc.Client;
+import cern.rade.services.japc.ContextProvider;
 import cern.rade.services.japc.rbac.RBACClient;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.util.holder.MiddleTierRbaTokenHolder;
@@ -29,11 +30,10 @@ public class SubscriptionHandler implements ParameterValueListener{
     private SubscriptionHandle sh;
     private DataContainer data;
     private short[] type_descriptor;
-    @Value("${radeservicesjapc.subQueueSize}")
-    private int subQueueSize;
     private LinkedBlockingQueue<AcquiredParameterValue> valueQueue;
-    private static final Logger logger = LoggerFactory.getLogger(SubscriptionHandler.class);
+    private final Logger logger = LoggerFactory.getLogger(SubscriptionHandler.class);
     public SubscriptionHandler(Client client) {
+        int subQueueSize = ContextProvider.getServiceProperties().getSubQueueSize();
         this.valueQueue = new LinkedBlockingQueue<>(subQueueSize);
         this.sub_id = this.hashCode();
         this.client = client;
@@ -96,7 +96,7 @@ public class SubscriptionHandler implements ParameterValueListener{
         }
     }
     public AcquiredParameterValue getLatest(long timeout) throws InterruptedException {
-        return valueQueue.poll(timeout, TimeUnit.MILLISECONDS);
+        return valueQueue.poll(timeout, TimeUnit.SECONDS);
     }
 
     public byte[] getLVData(long timeout) throws InterruptedException, CodecException {

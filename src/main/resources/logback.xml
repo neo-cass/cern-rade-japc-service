@@ -25,33 +25,18 @@
         </rollingPolicy>
     </appender>
 
-    <appender name="logstash" class="net.logstash.logback.appender.LogstashUdpSocketAppender">
-        <destination>udp://localhost:5000</destination> <!-- Change to your Logstash server address and port -->
-        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-            <fieldNames>
-                <timestamp>timestamp</timestamp>
-                <version>version</version>
-                <message>message</message>
-            </fieldNames>
-        </encoder>
+    <appender name="LogstashAppender" class="net.logstash.logback.appender.LogstashUdpSocketAppender" level="DEBUG">
+        <host>cs-ccr-rade4.cern.ch</host>
+        <port>30000</port>
+        <!-- Specify the layout for Logstash -->
+        <layout class="net.logstash.logback.layout.LogstashLayout">
+            <customFields>{"app_name":"rade-services-japc"}</customFields>
+        </layout>
     </appender>
-
-    <appender name="LogstashAppender"
-              class="net.logstash.logback.appender.LogstashUdpSocketAppender">
-        <remoteHost>localhost</remoteHost>
-        <port>30050</port>
-<!--        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">-->
-<!--            <Pattern>${PATTERN}</Pattern>-->
-<!--        </encoder>-->
-        <encoder class="net.logstash.logback.encoder.LogstashEncoder" />
-    </appender>
-
 
     <root level="info" >
         <appender-ref ref="RootTraceFileAppender" />
         <appender-ref ref="Console" />
-        <appender-ref ref="logstash" />
+        <appender-ref ref="LogstashAppender" />
     </root>
-
-
 </configuration>

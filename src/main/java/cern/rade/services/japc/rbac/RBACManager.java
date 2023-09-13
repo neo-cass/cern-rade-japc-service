@@ -14,35 +14,35 @@ import java.time.Duration;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class RBACManager {
-    private static Configuration config = ConfigurationBuilder.newInstance().setProperty("rbac.token.lifetime.mins", "1440").build();
-    private static ClientConfiguration clientConfig = ClientConfiguration.create(config);
-    private  static AuthenticationClient authClient =  AuthenticationClient.create(clientConfig);;
-    private static ConcurrentHashMap<Integer, RBACClient>rbacClients = new ConcurrentHashMap<>();
+    private Configuration config = ConfigurationBuilder.newInstance().setProperty("rbac.token.lifetime.mins", "1440").build();
+    private ClientConfiguration clientConfig = ClientConfiguration.create(config);
+    private AuthenticationClient authClient =  AuthenticationClient.create(clientConfig);;
+    private ConcurrentHashMap<Integer, RBACClient>rbacClients = new ConcurrentHashMap<>();
 
-    public static MasterToken getMasterToken(String username, String password) throws AuthenticationException {
+    public MasterToken getMasterToken(String username, String password) throws AuthenticationException {
         return authClient.loginMasterExplicit(username, password, Duration.ofDays(365L));
     }
 
-    public static RbaToken getRbaToken(MasterToken masterToken) throws AuthenticationException  {
+    public RbaToken getRbaToken(MasterToken masterToken) throws AuthenticationException  {
         return authClient.loginMaster(masterToken);
     }
-    public static MasterToken getMasterToken(byte[] token) throws AuthenticationException, TokenFormatException {
+    public MasterToken getMasterToken(byte[] token) throws AuthenticationException, TokenFormatException {
         RbaToken locationToken = RbaToken.parseAndValidate(ByteBuffer.wrap(token));
         return new MasterToken(locationToken);
     }
 
-    public static void addClient(RBACClient rbacClient){
+    public void addClient(RBACClient rbacClient){
         rbacClients.put(rbacClient.hashCode(), rbacClient);
     }
-    public static RBACClient getClient(int id){
+    public RBACClient getClient(int id){
         return rbacClients.get(id);
     }
 
-    public static void clearRBACClients(){
+    public void clearRBACClients(){
         rbacClients.clear();
     }
 
-    public static void removeRBACClient(int id){
+    public void removeRBACClient(int id){
         rbacClients.remove(id);
     }
 }

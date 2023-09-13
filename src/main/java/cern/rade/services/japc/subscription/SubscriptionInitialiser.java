@@ -4,6 +4,7 @@ import cern.japc.core.ParameterException;
 import cern.japc.core.ParameterRuntimeException;
 import cern.rade.services.common.communication.AuthenticationType;
 import cern.rade.services.common.communication.MetaData;
+import cern.rade.services.japc.ContextProvider;
 import cern.rade.services.japc.Client;
 import cern.rade.services.japc.HttpSender;
 import cern.rade.services.japc.ErrorUtil;
@@ -20,23 +21,21 @@ public class SubscriptionInitialiser {
     private HttpSender sender;
     private HttpServletResponse response;
     private SubscriptionHandler handler;
-    private MetaData responseMetaData;
-    private Logger logger = LoggerFactory.getLogger(SubscriptionInitialiser.class);
+    private final MetaData responseMetaData = new MetaData();
+    private final SubscriptionManager subManager = ContextProvider.getSubManager();
+    private final Logger logger = LoggerFactory.getLogger(SubscriptionInitialiser.class);
 
     public SubscriptionInitialiser(HttpServletResponse response,Client client){
         this.client=client;
         this.response=response;
-        this.responseMetaData = new MetaData();
     }
 
     private void init() throws IOException, ParameterException, AuthenticationException {
         this.sender = new HttpSender(response);
         this.handler = new SubscriptionHandler(client);
         handler.init();
-        SubscriptionManager.addSubHandler(handler.getSub_id(), handler);
+        subManager.addSubHandler(handler.getSub_id(), handler);
     }
-
-
 
     private boolean respond(){
         int sub_id = handler.getSub_id();

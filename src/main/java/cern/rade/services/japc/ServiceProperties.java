@@ -6,7 +6,6 @@ import org.springframework.context.annotation.Configuration;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import net.logstash.logback.appender.LogstashUdpSocketAppender;
 @Configuration
 @ConfigurationProperties(prefix = "radeservicesjapc")
 public class ServiceProperties {
@@ -18,17 +17,15 @@ public class ServiceProperties {
     private Duration socketIdleTimeout;
     private int subQueueSize;
 
-    public Duration getPingToClientFrequency() {
-        return pingToClientFrequency;
+    public long getPingToClientFrequency() {
+        return pingToClientFrequency.getSeconds();
     }
-
-    public Duration getWaitTimeForNewValueFromSub() {
-        return waitTimeForNewValueFromSub;
+    public long getWaitTimeForNewValueFromSub() {
+        return waitTimeForNewValueFromSub.getSeconds();
     }
-    public Duration getSocketIdleTimeout() {
-        return socketIdleTimeout;
+    public long getSocketIdleTimeout() {
+        return socketIdleTimeout.getSeconds();
     }
-
     public int getSubQueueSize() {
         return subQueueSize;
     }
@@ -36,7 +33,6 @@ public class ServiceProperties {
     public void setPingToClientFrequency(Duration pingToClientFrequency) {
         this.pingToClientFrequency = pingToClientFrequency;
     }
-
     public void setSocketIdleTimeout(Duration socketIdleTimeout) {
         this.socketIdleTimeout = socketIdleTimeout;
     }
@@ -48,4 +44,6 @@ public class ServiceProperties {
     public void setWaitTimeForNewValueFromSub(Duration waitTimeForNewValueFromSub) {
         this.waitTimeForNewValueFromSub = waitTimeForNewValueFromSub;
     }
+
+
 }

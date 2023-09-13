@@ -2,7 +2,7 @@ package cern.rade.services.japc.rbac;
 
 import cern.rade.services.common.communication.AuthenticationType;
 import cern.rade.services.common.communication.MetaData;
-import cern.rade.services.common.communication.Request;
+import cern.rade.services.japc.ContextProvider;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.TokenFormatException;
 
@@ -10,6 +10,7 @@ public class RBACClientFactory {
 
     private MetaData metaData;
     private AuthenticationType authenticationType;
+    private final RBACManager rbacManager = ContextProvider.getRbacManager();
     public RBACClientFactory(MetaData metaData){
         this.metaData=metaData;
         this.authenticationType=metaData.getAuth_type();
@@ -27,20 +28,20 @@ public class RBACClientFactory {
                 return initRBACLocation();
             }
             default -> {
-                throw new AuthenticationException("auth_type is NONE.");//TODO
+                throw new AuthenticationException("auth_type is NONE.");
             }
         }
     }
 
     private RBACClient initRBACExplicit() throws AuthenticationException{
         RBACClient rbacClient = new RBACClient(metaData.getUsername(), metaData.getPassword());
-        RBACManager.addClient(rbacClient);
+        rbacManager.addClient(rbacClient);
         return rbacClient;
     }
 
     private RBACClient initRBACCached() throws AuthenticationException{
         int rbac_id = metaData.getRbac_id();
-        RBACClient rbacClient = RBACManager.getClient(rbac_id);
+        RBACClient rbacClient = rbacManager.getClient(rbac_id);
         if (rbacClient==null){
             throw new AuthenticationException("No RBAC token associated with this ID");
         }
@@ -49,7 +50,7 @@ public class RBACClientFactory {
 
     private RBACClient initRBACLocation() throws AuthenticationException, TokenFormatException {
         RBACClient rbacClient = new RBACClient(metaData.getRbac_token());
-        RBACManager.addClient(rbacClient);
+        rbacManager.addClient(rbacClient);
         return rbacClient;
     }
 }

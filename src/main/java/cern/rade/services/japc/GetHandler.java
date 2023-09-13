@@ -33,7 +33,8 @@ public class GetHandler {
     private AcquiredParameterValue apv;
     private RBACClient rbacClient;
     private HttpSender sender;
-    private Logger logger = LoggerFactory.getLogger(GetHandler.class);
+    private final RBACManager rbacManager = ContextProvider.getRbacManager();
+    private final Logger logger = LoggerFactory.getLogger(GetHandler.class);
 
     public GetHandler(HttpServletResponse response, Client client){
         this.client = client;
@@ -128,7 +129,7 @@ public class GetHandler {
         try {
             //TODO would be better if encoding done in separate step
             if (!respond() && client.getAuthenticationType() != AuthenticationType.RBAC_CACHED){
-                RBACManager.removeRBACClient(rbacClient.getRbac_id());
+                rbacManager.removeRBACClient(rbacClient.getRbac_id());
             }
         } catch (CodecException e) {
             ErrorUtil.sendErrorResponse(sender, logger, responseMetaData, "Exception encoding data.", e);

@@ -1,25 +1,32 @@
 package cern.rade.services.japc;
 
 import cern.rade.services.japc.subscription.SubscriptionManager;
+import cern.rade.services.japc.subscription.SubscriptionWebsocket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import org.springframework.boot.web.servlet.ServletComponentScan;
 
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.server.standard.ServerEndpointExporter;
+
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+
 @Configuration
 @SpringBootApplication
 @ServletComponentScan
 public class InitialiseServer {
-    private static Logger logger = LoggerFactory.getLogger(InitialiseServer.class);
+    private static final Logger logger = LoggerFactory.getLogger(InitialiseServer.class);
     public static void main(String[] args) {
-        logger.info("dir {}", System.getProperty("user.dir"));
         SpringApplication.run(InitialiseServer.class, args);
-        SubscriptionManager.init();
         Thread.setDefaultUncaughtExceptionHandler((t, e) -> logger.error("Uncaught exception in thread {}.", t, e));
     }
 
@@ -28,10 +35,17 @@ public class InitialiseServer {
         return new ServerEndpointExporter();
     }
 
+    @Bean
+    public SubscriptionWebsocket subscriptionWebsocket(){
+        return new SubscriptionWebsocket();
+    }
+
 //    @Bean
 //    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 //        return http.requiresChannel(channel -> channel.anyRequest().requiresSecure()).build();
 //    }
+
+
 }
 
 

@@ -7,10 +7,16 @@ logging:
   level:
     com.netflix.config.sources.URLConfigurationSource: ERROR
     org.springframework.boot.autoconfigure: ERROR
+    org.springframework.boot.context.config.ConfigFileApplicationListener: DEBUG
   config: "classpath:logback.xml"
+
+spring:
+  application:
+    name: "rade-services-japc"
+
 
 radeservicesjapc:
   pingToClientFrequency: 10000
   waitTimeForNewValueFromSub: 1000
-  socketIdleTimeout: 10000
+  socketIdleTimeout: 20000
   subQueueSize: 100

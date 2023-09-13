@@ -1,22 +1,20 @@
 package cern.rade.services.japc.subscription;
 import cern.rade.services.codec.CodecException;
+import cern.rade.services.japc.ContextProvider;
 import cern.rade.services.japc.Client;
 import jakarta.websocket.*;
 import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.socket.server.standard.SpringConfigurator;
 
 import java.io.*;
 import java.nio.ByteBuffer;
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
-// , configurator = SpringConfigurator.class
-@Component
+//, configurator = SpringConfigurator.class
 @ServerEndpoint(value = "/subs/{id}")
 public class SubscriptionWebsocket {
     private int id;
@@ -24,22 +22,22 @@ public class SubscriptionWebsocket {
     private SubscriptionHandler handler;
     private Session session;
     private Client client;
+    private final SubscriptionManager subManager = ContextProvider.getSubManager();
     private final AtomicReference<Long> lastPongReceived = new AtomicReference<>(System.currentTimeMillis());
     private  Future<Void> future;
     private static final Logger logger = LoggerFactory.getLogger(SubscriptionWebsocket.class);
     private final ExecutorService sendService = Executors.newSingleThreadExecutor();
-    @Value("${radeservicesjapc.socketIdleTimeout}")
-    private Duration socketIdleTimeout;
-    @Value("${radeservicesjapc.waitTimeForNewValueFromSub}")
-    private Duration waitTimeForNewValueFromSub;
+    private final long socketIdleTimeout = ContextProvider.getServiceProperties().getSocketIdleTimeout();
+    private final long waitTimeForNewValueFromSub = ContextProvider.getServiceProperties().getWaitTimeForNewValueFromSub();
     public SubscriptionWebsocket(){}
     @OnOpen
     public void onOpen(Session session, @PathParam("id") int id)  {
-        session.setMaxIdleTimeout(socketIdleTimeout.get(ChronoUnit.MILLIS));
+        session.setMaxIdleTimeout(socketIdleTimeout);
+        logger.info("Idle time out: " + socketIdleTimeout);
         Thread.currentThread().setName("Subscription-Thread-ID-" + id);
         this.id=id;
-        this.handler = SubscriptionManager.removeSubHandler(id);
-        SubscriptionManager.addSubSock(id, this);
+        this.handler = subManager.removeSubHandler(id);
+        subManager.addSubSock(id, this);
         this.session=session;
         this.client = handler.getClient();
         this.asyncRemote=session.getAsyncRemote();
@@ -61,16 +59,26 @@ public class SubscriptionWebsocket {
     }
 
     private void sendLVData()  {
+        byte[] data;
+        ByteBuffer sendBuffer;
         try {
-            byte[] data = handler.getLVData(waitTimeForNewValueFromSub.get(ChronoUnit.MILLIS));
+            //logger.info("Wait time for new data: "+socketIdleTimeout);
+            data = handler.getLVData(waitTimeForNewValueFromSub);
             if(data==null){
                 return;
             }
-            ByteBuffer sendBuffer = ByteBuffer.wrap(data);
+            sendBuffer = ByteBuffer.wrap(data);
+        } catch (InterruptedException e) {
+            closeOnError("Handler interrupted while waiting for new value.", e);
+            return;
+        } catch (CodecException e) {
+            closeOnError("Received data did not match type descriptor provided.", e);
+            return;
+        }
+
+        try {
             future = asyncRemote.sendBinary(sendBuffer);
             future.get();
-        } catch(CodecException e) {
-            closeOnError("Received data did not match type descriptor provided.", e);
         } catch(CancellationException e){
             closeOnError("Send operation cancelled in client: " + id, e);
         } catch(ExecutionException e){
@@ -111,7 +119,7 @@ public class SubscriptionWebsocket {
     }
 
     public void close(CloseReason reason){
-        SubscriptionManager.removeSubSock(id);
+        subManager.removeSubSock(id);
         sendService.shutdownNow();
         logger.debug("Removing subscription socket and client object for client");
         try {
@@ -130,4 +138,5 @@ public class SubscriptionWebsocket {
     public int getId() {
         return id;
     }
+
 }

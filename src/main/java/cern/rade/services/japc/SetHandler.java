@@ -31,7 +31,8 @@ public class SetHandler {
     private Selector selector;
     private RBACClient rbacClient;
     private HttpSender sender;
-    private Logger logger = LoggerFactory.getLogger(SetHandler.class);
+    private final RBACManager rbacManager = ContextProvider.getRbacManager();
+    private final Logger logger = LoggerFactory.getLogger(SetHandler.class);
 
     public SetHandler(HttpServletResponse response, Client client){
         this.client = client;
@@ -96,7 +97,7 @@ public class SetHandler {
             return;
         } catch (AuthenticationException e){
             ErrorUtil.sendErrorResponse(sender, logger, responseMetaData, "Failed to authenticate with RBAC", e);
-            RBACManager.removeRBACClient(rbacClient.getRbac_id());
+            rbacManager.removeRBACClient(rbacClient.getRbac_id());
             return;
         }catch (CodecException e){
             ErrorUtil.sendErrorResponse(sender, logger, responseMetaData, "Failed to encode data to do the SET operation.", e);
@@ -104,7 +105,7 @@ public class SetHandler {
         }
         //respond and if send fails (and the user is not using already cached rbac) remove the rbac client
         if (!respond() && client.getAuthenticationType() != AuthenticationType.RBAC_CACHED){
-            RBACManager.removeRBACClient(rbacClient.getRbac_id());
+            rbacManager.removeRBACClient(rbacClient.getRbac_id());
         }
     }
 
