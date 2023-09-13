@@ -32,7 +32,7 @@ public class SubscriptionWebsocket {
     public SubscriptionWebsocket(){}
     @OnOpen
     public void onOpen(Session session, @PathParam("id") int id)  {
-        session.setMaxIdleTimeout(socketIdleTimeout);
+        session.setMaxIdleTimeout(socketIdleTimeout*1000);
         logger.info("Idle time out: " + socketIdleTimeout);
         Thread.currentThread().setName("Subscription-Thread-ID-" + id);
         this.id=id;

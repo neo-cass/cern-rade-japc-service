@@ -16,7 +16,7 @@ spring:
 
 
 radeservicesjapc:
-  pingToClientFrequency: 10000
+  pingToClientFrequency: 5000
   waitTimeForNewValueFromSub: 1000
-  socketIdleTimeout: 20000
+  socketIdleTimeout: 10000
   subQueueSize: 100
