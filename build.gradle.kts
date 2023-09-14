@@ -53,7 +53,7 @@ dependencies {
     providedRuntime("org.springframework.boot:spring-boot-starter-tomcat:3.1.2")
 }
 tasks.named<org.springframework.boot.gradle.tasks.bundling.BootWar>("bootWar") {
-    val warName = project.findProperty("name")
+    val warName = project.findProperty("warName")
     if(warName!=null){
         archiveFileName.set(warName as String)
     }
