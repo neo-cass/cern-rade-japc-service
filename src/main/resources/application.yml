@@ -10,7 +10,7 @@ logging:
     cern.cmw.directory.http.client.impl.feign.FeignDecoder: WARN
     cern.cmw.rda3.impl.transport.client.ClientDispatcher: WARN
     cern.cmw.rda3.impl.transport.zeromq.ZMQAdapter: WARN
-  config: "classpath:log4j2.yaml"
+  config: "classpath:log4j2.yml"
 
 spring:
   application:

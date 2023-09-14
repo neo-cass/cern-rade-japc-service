@@ -7,20 +7,20 @@ Configuration:
       target: SYSTEM_OUT
       PatternLayout:
         Pattern: *PATTERN
-    Socket:
-      name: LogstashAppender
-      host: localhost
-      port: 30000
-      protocol: udp
-      GelfLayout:
-        host: rade-services-japc
-        compressionType: OFF
-        includeNullDelimiter: true
-        messagePattern: *PATTERN
+#    Socket:
+#      name: LogstashAppender
+#      host: localhost
+#      port: 30000
+#      protocol: udp
+#      GelfLayout:
+#        host: rade-services-japc
+#        compressionType: OFF
+#        includeNullDelimiter: true
+#        messagePattern: *PATTERN
 
-  loggers:
+  Loggers:
     Root:
       level: info
       AppenderRef:
         - ref: ConsoleAppender
-        - ref: LogstashAppender
+        #- ref: LogstashAppender

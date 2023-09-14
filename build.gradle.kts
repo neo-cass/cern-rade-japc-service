@@ -3,6 +3,10 @@ plugins {
     id ("war")
     id ("cern.devops.cbng.dependency") version "4.0.82"
     id ("org.springframework.boot") version "3.1.2"
+
+    id("io.spring.dependency-management") version "1.+"
+    kotlin("jvm") version "1.6.10"
+    kotlin("plugin.spring") version "1.6.10"
 }
 
 repositories {
@@ -52,6 +56,7 @@ dependencies {
     }
     providedRuntime("org.springframework.boot:spring-boot-starter-tomcat:3.1.2")
 }
+
 tasks.named<org.springframework.boot.gradle.tasks.bundling.BootWar>("bootWar") {
     val warName = project.findProperty("warName")
     if(warName!=null){

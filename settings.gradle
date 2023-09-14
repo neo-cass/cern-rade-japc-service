@@ -1,9 +1,0 @@
-pluginManagement {
-    repositories {
-        // the CBNG plugin repo
-        maven {url "https://artifactory.cern.ch/release"}
-        maven {url "https://artifactory.cern.ch/gradle" }
-    }
-}
-
-rootProject.name = "japc"
