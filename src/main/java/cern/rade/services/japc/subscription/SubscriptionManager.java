@@ -40,9 +40,7 @@ public class SubscriptionManager {
 
     public void pingSocket(SubscriptionWebsocket socket){
         try {
-            logger.info("Pinging client with id: " + socket.getId());
             socket.ping();
-            logger.info("Pinging successful with id: " + socket.getId());
         } catch (IOException e) {
             logger.error("Error pinging client", e);
             closeUnresponsiveClient(socket.getId());

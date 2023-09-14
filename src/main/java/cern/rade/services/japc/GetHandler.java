@@ -16,6 +16,7 @@ import cern.rade.services.japc.rbac.RBACClient;
 import cern.rade.services.japc.rbac.RBACManager;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.RbaToken;
+
 import cern.rbac.util.holder.MiddleTierRbaTokenHolder;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -44,6 +45,7 @@ public class GetHandler {
         this.parameter = client.getParameter();
         this.selector = client.getSelector();
         this.rbacClient=client.getRbacClient();
+
     }
 
     private void init() throws IOException {

@@ -8,11 +8,12 @@ import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.MasterToken;
 import cern.rbac.common.RbaToken;
 import cern.rbac.common.TokenFormatException;
+import org.springframework.stereotype.Component;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.concurrent.ConcurrentHashMap;
-
+@Component
 public class RBACManager {
     private Configuration config = ConfigurationBuilder.newInstance().setProperty("rbac.token.lifetime.mins", "1440").build();
     private ClientConfiguration clientConfig = ClientConfiguration.create(config);

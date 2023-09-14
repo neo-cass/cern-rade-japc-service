@@ -28,6 +28,7 @@ public class InitialiseServer {
     public static void main(String[] args) {
         SpringApplication.run(InitialiseServer.class, args);
         Thread.setDefaultUncaughtExceptionHandler((t, e) -> logger.error("Uncaught exception in thread {}.", t, e));
+        logger.info("im running");
     }
 
     @Bean

@@ -1,0 +1,73 @@
+plugins {
+    id ("java")
+    id ("war")
+    id ("cern.devops.cbng.dependency") version "4.0.82"
+    id ("org.springframework.boot") version "3.1.2"
+}
+
+repositories {
+    mavenLocal()
+    // our package index to resolve dependencies
+    maven {
+        url = uri("https://artifactory.cern.ch/release")
+    }
+    mavenCentral()
+}
+
+configurations.configureEach {
+    resolutionStrategy.cacheChangingModulesFor(0, "seconds")
+}
+
+dependencies {
+    //TODO: get rid of PRO
+    implementation ("cern.japc:japc:PRO")
+    implementation ("cern.japc:japc-ext-cmwrda3:PRO")
+    implementation ("cern.japc:japc-value:PRO")
+    implementation ("cern.japc:japc-ext-remote:PRO")
+    implementation ("cern.accsoft.security:rbac-client:PRO")
+    implementation ("cern.accsoft.security:rbac-common:PRO")
+    implementation ("cern.accsoft.security:rbac-util:PRO")
+    implementation ("cern.cmw:cmw-data:PRO")
+
+    implementation ("cern.rade.services:codec:codec-renovation-new")
+    implementation ("cern.rade.services:common:common-renovation-new")
+
+    implementation ("org.apache.commons:commons-lang3:3.12.0")
+    implementation ("com.google.code.gson:gson:2.10.1")
+
+    //implementation("net.logstash.logback:logstash-logback-encoder:7.4")
+    implementation("org.springframework.boot:spring-boot-starter:3.1.2"){
+        exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
+    }
+    //implementation("org.springframework.boot:spring-boot-starter-logging:3.1.2")
+
+    //implementation ("biz.paluch.logging:logstash-gelf:1.15.0")
+    implementation("org.springframework.boot:spring-boot-starter-log4j2:3.1.2")
+    implementation ("org.springframework.boot:spring-boot-starter-websocket:3.1.2"){
+        exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
+    }
+    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor:3.1.2")
+    implementation ("org.springframework.boot:spring-boot-starter-web-services:3.1.2"){
+        exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
+    }
+    providedRuntime("org.springframework.boot:spring-boot-starter-tomcat:3.1.2")
+}
+tasks.named<org.springframework.boot.gradle.tasks.bundling.BootWar>("bootWar") {
+    val warName = project.findProperty("name")
+    if(warName!=null){
+        archiveFileName.set(warName as String)
+    }
+    //duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    destinationDirectory.set(file("."))
+}
+// requirement for building this project
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
+    withJavadocJar()
+    withSourcesJar()
+}
+
+// missing: manifest (see https://docs.gradle.org/7.4.2/userguide/building_java_projects.html#sec:jar_manifest)
+
