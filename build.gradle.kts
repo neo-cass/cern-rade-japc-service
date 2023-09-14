@@ -4,7 +4,8 @@ plugins {
     id ("cern.devops.cbng.dependency") version "4.0.82"
     id ("org.springframework.boot") version "3.1.2"
 
-    id("io.spring.dependency-management") version "1.+"
+
+    id("io.spring.dependency-management") version "1+"
     kotlin("jvm") version "1.6.10"
     kotlin("plugin.spring") version "1.6.10"
 }
@@ -40,9 +41,9 @@ dependencies {
     implementation ("com.google.code.gson:gson:2.10.1")
 
     //implementation("net.logstash.logback:logstash-logback-encoder:7.4")
-    implementation("org.springframework.boot:spring-boot-starter:3.1.2"){
-        exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
-    }
+//    implementation("org.springframework.boot:spring-boot-starter:3.1.2"){
+//        exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
+//    }
     //implementation("org.springframework.boot:spring-boot-starter-logging:3.1.2")
 
     //implementation ("biz.paluch.logging:logstash-gelf:1.15.0")

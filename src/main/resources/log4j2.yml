@@ -1,12 +1,12 @@
-define: &PATTERN "%white{%date{ISO8601}} %highlight{%-5level} [Thread: %yellow{%thread}] [Class: %green{%class{1}}]: %message%n%red{%exception{full}}"
-Configuration:
-  status: debug
-  appenders:
-    Console:
-      name: ConsoleAppender
-      target: SYSTEM_OUT
-      PatternLayout:
-        Pattern: *PATTERN
+#define: &PATTERN "%white{%date{ISO8601}} %highlight{%-5level} [Thread: %yellow{%thread}] [Class: %green{%class{1}}]: %message%n%red{%exception{full}}"
+#Configuration:
+##  status: debug
+#  appenders:
+#    Console:
+#      name: ConsoleAppender
+#      target: SYSTEM_OUT
+#      PatternLayout:
+#        Pattern: "%-5level %message class: %c{1}"
 #    Socket:
 #      name: LogstashAppender
 #      host: localhost
@@ -18,9 +18,38 @@ Configuration:
 #        includeNullDelimiter: true
 #        messagePattern: *PATTERN
 
+#  Loggers:
+#    Root:
+#      level: info
+#      AppenderRef:
+#        - ref: ConsoleAppender
+        #- ref: LogstashAppender
+Configuration:
+  status: warn
+  name: YAMLConfigTest
+  properties:
+    property:
+      name: filename
+      value: target/test-yaml.log
+  thresholdFilter:
+    level: debug
+  appenders:
+    Console:
+      name: STDOUT
+      target: SYSTEM_OUT
+      PatternLayout:
+        Pattern: "%m%n"
+    File:
+      name: File
+      fileName: ${filename}
+      PatternLayout:
+        Pattern: "%d %p %C{1.} [%t] %m%n"
+      Filters:
+        ThresholdFilter:
+          level: error
+
   Loggers:
     Root:
-      level: info
+      level: trace
       AppenderRef:
-        - ref: ConsoleAppender
-        #- ref: LogstashAppender
+        ref: STDOUT
