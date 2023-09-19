@@ -40,17 +40,29 @@ dependencies {
     implementation ("org.apache.commons:commons-lang3:3.12.0")
     implementation ("com.google.code.gson:gson:2.10.1")
 
-    implementation("net.logstash.logback:logstash-logback-encoder:7.4")
+    //implementation("net.logstash.logback:logstash-logback-encoder:7.4")
 //    implementation("org.springframework.boot:spring-boot-starter:3.1.2"){
 //        exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
 //    }
-    implementation("org.springframework.boot:spring-boot-starter-logging:3.1.2")
+    //implementation("org.springframework.boot:spring-boot-starter-logging:3.1.2")
 
     //implementation ("biz.paluch.logging:logstash-gelf:1.15.0")
-    //implementation("org.springframework.boot:spring-boot-starter-log4j2:3.1.2")
-    implementation ("org.springframework.boot:spring-boot-starter-websocket:3.1.2")
+
+
+    //necessary for log4j2 yaml config file to work
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.14.2")
+
+    implementation("org.springframework.boot:spring-boot-starter-log4j2:3.1.2")
+    implementation("org.apache.logging.log4j:log4j-spring-boot:2.20.0"){
+        exclude(group="commons-logging", module="commons-logging")
+    }
+    implementation ("org.springframework.boot:spring-boot-starter-websocket:3.1.2"){
+        exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
+    }
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor:3.1.2")
-    implementation ("org.springframework.boot:spring-boot-starter-web-services:3.1.2")
+    implementation ("org.springframework.boot:spring-boot-starter-web-services:3.1.2"){
+        exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
+    }
     providedRuntime("org.springframework.boot:spring-boot-starter-tomcat:3.1.2")
 }
 

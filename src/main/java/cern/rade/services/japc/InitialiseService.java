@@ -22,6 +22,7 @@ public class InitialiseService {
         Thread.setDefaultUncaughtExceptionHandler((t, e) -> logger.error("Uncaught exception in thread {}.", t, e));
         logger.info("Initialisation complete.");
     }
+
     @Bean
     public ServerEndpointExporter serverEndpointExporter() {
         return new ServerEndpointExporter();

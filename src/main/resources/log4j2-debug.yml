@@ -1,0 +1,35 @@
+Configuration:
+  status: debug
+  properties:
+    property:
+      name: pattern
+      value: "%white{%date{ISO8601}} %highlight{%-5level} [Thread: %yellow{%thread}] [Class: %green{%class{1}}]: %message%n%red{%exception{full}}"
+  Appenders:
+    Console:
+      target: SYSTEM_OUT
+      name: console
+      PatternLayout:
+        pattern: ${pattern}
+    File:
+      name: file
+      PatternLayout:
+        pattern: ${pattern}
+      fileName: logs/${spring:spring.application.name}.log
+    Socket:
+      name: logstash
+      host: localhost
+      port: 30000
+      protocol: udp
+      GelfLayout:
+        host: rade-services-japc
+        compressionType: "OFF"
+        includeNullDelimiter: false
+        messagePattern: ${pattern}
+
+  Loggers:
+    Root:
+      level: debug
+      AppenderRef:
+        - ref: console
+        - ref: file
+        - ref: logstash

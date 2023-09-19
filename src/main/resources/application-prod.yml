@@ -1,0 +1,14 @@
+logging:
+  level:
+    com.netflix.config.sources.URLConfigurationSource: ERROR
+    org.springframework.boot.autoconfigure: ERROR
+    cern.cmw.directory.http.client.impl.feign.FeignDecoder: WARN
+    cern.cmw.rda3.impl.transport.client.ClientDispatcher: WARN
+    cern.cmw.rda3.impl.transport.zeromq.ZMQAdapter: WARN
+  config: "classpath:log4j2-prod.yml"
+
+service-properties:
+  pingToClientFrequency: 5000
+  waitTimeForNewValueFromSub: 1000
+  socketIdleTimeout: 10000
+  subQueueSize: 100

@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Configuration;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 @Configuration
-@ConfigurationProperties(prefix = "radeservicesjapc")
+@ConfigurationProperties(prefix = "service-properties")
 public class ServiceProperties {
     @DurationUnit(ChronoUnit.MILLIS)
     private Duration pingToClientFrequency;

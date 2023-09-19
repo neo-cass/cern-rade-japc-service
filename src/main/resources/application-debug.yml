@@ -1,0 +1,8 @@
+logging:
+  config: "classpath:log4j2-debug.yml"
+
+service-properties:
+  pingToClientFrequency: 5000
+  waitTimeForNewValueFromSub: 1000
+  socketIdleTimeout: 10000
+  subQueueSize: 100

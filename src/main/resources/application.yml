@@ -1,24 +1,10 @@
+spring:
+  application:
+    name: "rade-services-japc"
+  profiles:
+    active: prod
+
 server:
   port: 8443
   ssl:
     enabled: false
-
-logging:
-  level:
-    com.netflix.config.sources.URLConfigurationSource: ERROR
-    org.springframework.boot.autoconfigure: ERROR
-    cern.cmw.directory.http.client.impl.feign.FeignDecoder: WARN
-    cern.cmw.rda3.impl.transport.client.ClientDispatcher: WARN
-    cern.cmw.rda3.impl.transport.zeromq.ZMQAdapter: WARN
-  config: "classpath:logback.xml"
-
-spring:
-  application:
-    name: "rade-services-japc"
-
-
-radeservicesjapc:
-  pingToClientFrequency: 5000
-  waitTimeForNewValueFromSub: 1000
-  socketIdleTimeout: 10000
-  subQueueSize: 100
