@@ -1,33 +1,43 @@
 Configuration:
   status: warn
   properties:
-
     property:
       - name: pattern
         value: "%white{%date{ISO8601}} %highlight{%-5level} [Thread: %yellow{%thread}] [Class: %green{%class{1}}]: %message%n%red{%exception{full}}"
       - name: log_file
         value: logs/${spring:spring.application.name}.log
+      - name: app_name
+        value: ${spring:spring.application.name}
   Appenders:
     Console:
       target: SYSTEM_OUT
       name: console
       PatternLayout:
         pattern: ${pattern}
-    File:
+    RollingFile:
       name: file
       PatternLayout:
         pattern: ${pattern}
-      fileName: ${log_file}
+      filePattern: "logs/$${date:yyyy-MM}/${log_file}-%d{MM-dd-yyyy}-%i.log.gz"
+      Policy:
+        - TimeBasedTriggeringPolicy:
+            interval: 1
+            modulate: false
+        - SizeBasedTriggeringPolicy:
+            size: "250 MB"
+      DefaultRolloverStrategy:
+        max: 20
     Socket:
       name: logstash
-      host: cs-ccr-rade4.cern.ch
+      host: localhost
       port: 30000
       protocol: udp
-      GelfLayout:
-        host: rade-services-japc
-        compressionType: "OFF"
-        includeNullDelimiter: false
-        messagePattern: ${pattern}
+      JsonTemplateLayout:
+        eventTemplateUri: "classpath:LogstashJsonEventLayoutV1.json"
+        eventTemplateAdditionalField:
+          - key: "app_name"
+            value: "${app_name}"
+            format: "STRING"
 
   Loggers:
     Root:

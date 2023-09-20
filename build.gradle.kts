@@ -41,29 +41,27 @@ dependencies {
     implementation ("com.google.code.gson:gson:2.10.1")
 
     //implementation("net.logstash.logback:logstash-logback-encoder:7.4")
-//    implementation("org.springframework.boot:spring-boot-starter:3.1.2"){
-//        exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
-//    }
     //implementation("org.springframework.boot:spring-boot-starter-logging:3.1.2")
 
-    //implementation ("biz.paluch.logging:logstash-gelf:1.15.0")
 
 
     //necessary for log4j2 yaml config file to work
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.14.2")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.15.2")
 
-    implementation("org.springframework.boot:spring-boot-starter-log4j2:3.1.2")
+    implementation("org.springframework.boot:spring-boot-starter-log4j2:3.1.3")
+    implementation("org.apache.logging.log4j:log4j-layout-template-json:2.20.0")
+
     implementation("org.apache.logging.log4j:log4j-spring-boot:2.20.0"){
         exclude(group="commons-logging", module="commons-logging")
     }
-    implementation ("org.springframework.boot:spring-boot-starter-websocket:3.1.2"){
+    implementation ("org.springframework.boot:spring-boot-starter-websocket:3.1.3"){
         exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
     }
-    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor:3.1.2")
-    implementation ("org.springframework.boot:spring-boot-starter-web-services:3.1.2"){
+    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor:3.1.3")
+    implementation ("org.springframework.boot:spring-boot-starter-web-services:3.1.3"){
         exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
     }
-    providedRuntime("org.springframework.boot:spring-boot-starter-tomcat:3.1.2")
+    providedRuntime("org.springframework.boot:spring-boot-starter-tomcat:3.1.3")
 }
 
 tasks.named<org.springframework.boot.gradle.tasks.bundling.BootWar>("bootWar") {
