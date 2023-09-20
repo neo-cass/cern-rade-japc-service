@@ -6,3 +6,5 @@ service-properties:
   waitTimeForNewValueFromSub: 1000
   socketIdleTimeout: 10000
   subQueueSize: 100
+  logstashHost: "localhost"
+  logstashPort: 30000

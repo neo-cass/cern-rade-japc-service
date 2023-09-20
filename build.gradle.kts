@@ -1,17 +1,16 @@
 plugins {
     id ("java")
     id ("war")
-    id ("cern.devops.cbng.dependency") version "4.0.82"
-    id ("org.springframework.boot") version "3.1.2"
+    id ("cern.devops.cbng.dependency") version "4.0.83"
+    id ("org.springframework.boot") version "3.1.3"
 
 
-    id("io.spring.dependency-management") version "1+"
-    kotlin("jvm") version "1.6.10"
-    kotlin("plugin.spring") version "1.6.10"
+    id("io.spring.dependency-management") version "1.1.3"
+    kotlin("jvm") version "1.7.20"
+    kotlin("plugin.spring") version "1.7.20"
 }
 
 repositories {
-    mavenLocal()
     // our package index to resolve dependencies
     maven {
         url = uri("https://artifactory.cern.ch/release")
@@ -69,17 +68,17 @@ tasks.named<org.springframework.boot.gradle.tasks.bundling.BootWar>("bootWar") {
     if(warName!=null){
         archiveFileName.set(warName as String)
     }
-    //duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    destinationDirectory.set(file("."))
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 // requirement for building this project
 java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(17))
     }
     withJavadocJar()
     withSourcesJar()
 }
-
 // missing: manifest (see https://docs.gradle.org/7.4.2/userguide/building_java_projects.html#sec:jar_manifest)
 
