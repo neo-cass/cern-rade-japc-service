@@ -1,5 +1,4 @@
 Dockerfile
-build
 webapp-build
 application-build
 .idea

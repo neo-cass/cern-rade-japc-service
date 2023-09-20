@@ -1,12 +1,8 @@
 FROM eclipse-temurin:17-alpine
 ARG WAR_NAME="japc-1.0.0.war"
 ENV WAR_NAME=${WAR_NAME}
-RUN mkdir /japc
-RUN ls -la
-RUN ls -la ./build
-RUN ls -la ./build/libs
-COPY ./build/libs/${WAR_NAME} /japc
 WORKDIR /japc
+COPY build/libs/${WAR_NAME} .
 EXPOSE 8443
 RUN chgrp -R 0 /japc && chmod -R g=u /japc
 ENTRYPOINT ["/bin/sh", "-c"]

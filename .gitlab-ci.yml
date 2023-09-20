@@ -25,6 +25,7 @@ build_war:
     - keytool -cacerts -keypass changeit -alias root.crt -storepass changeit -noprompt -importcert -file root.crt
     - keytool -cacerts -keypass changeit -alias auth.crt -storepass changeit -noprompt -importcert -file auth.crt
     - ./gradlew -PwarName=$WAR_NAME bootWar
+    - ls -la
 
 build_image:
   image:
