@@ -33,8 +33,8 @@ dependencies {
     implementation ("cern.accsoft.security:rbac-util:PRO")
     implementation ("cern.cmw:cmw-data:PRO")
 
-    implementation ("cern.rade.services:codec:codec-renovation-new")
-    implementation ("cern.rade.services:common:common-renovation-new")
+    implementation ("cern.rade.services:codec:master")
+    implementation ("cern.rade.services:common:master")
 
     implementation ("org.apache.commons:commons-lang3:3.12.0")
     implementation ("com.google.code.gson:gson:2.10.1")
