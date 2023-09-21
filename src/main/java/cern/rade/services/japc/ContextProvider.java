@@ -8,7 +8,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
-
+/**
+ * This class provides the application context to every class in this project. It also provided the singleton bean reference to the sub and rbac manager
+ * Also provides the ServiceProperties class which contains the properties from application.yml
+ */
 @Component
 public class ContextProvider implements ApplicationContextAware {
     private static ApplicationContext applicationContext;
@@ -17,7 +20,6 @@ public class ContextProvider implements ApplicationContextAware {
     public void setApplicationContext(@NotNull ApplicationContext applicationContext) throws BeansException {
         ContextProvider.applicationContext = applicationContext;
     }
-
     public static SubscriptionManager getSubManager(){
         return applicationContext.getBean(SubscriptionManager.class);
     }

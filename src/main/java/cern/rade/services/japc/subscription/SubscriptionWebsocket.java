@@ -33,10 +33,13 @@ public class SubscriptionWebsocket {
     @OnOpen
     public void onOpen(Session session, @PathParam("id") int id)  {
         session.setMaxIdleTimeout(socketIdleTimeout*1000);
-        logger.info("Idle time out: " + socketIdleTimeout);
         Thread.currentThread().setName("Subscription-Thread-ID-" + id);
         this.id=id;
         this.handler = subManager.removeSubHandler(id);
+        if(handler==null){
+            closeOnError("There is no subscription associated with that sub_id", new Exception("No sub handler with that sub_id"));
+            return;
+        }
         subManager.addSubSock(id, this);
         this.session=session;
         this.client = handler.getClient();
@@ -62,7 +65,6 @@ public class SubscriptionWebsocket {
         byte[] data;
         ByteBuffer sendBuffer;
         try {
-            //logger.info("Wait time for new data: "+socketIdleTimeout);
             data = handler.getLVData(waitTimeForNewValueFromSub);
             if(data==null){
                 return;
@@ -133,7 +135,7 @@ public class SubscriptionWebsocket {
 
     public void closeOnError(String message, Exception e){
         logger.error(message,e);
-        close(new CloseReason(CloseReason.CloseCodes.CLOSED_ABNORMALLY, message));
+        close(new CloseReason(CloseReason.CloseCodes.CLOSED_ABNORMALLY, e.getMessage()));
     }
     public int getId() {
         return id;

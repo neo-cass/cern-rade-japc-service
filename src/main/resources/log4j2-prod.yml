@@ -1,7 +1,9 @@
 Configuration:
+  #set the configuration logging level to info
   status: info
   properties:
     property:
+      #pattern for file and console logging
       - name: pattern
         value: "%white{%date{ISO8601}} %highlight{%-5level} [Thread: %yellow{%thread}] [Class: %green{%class{1}}]: %message%n%red{%exception{full}}"
       - name: app_name
@@ -37,6 +39,7 @@ Configuration:
       port: ${logstash_port}
       protocol: udp
       JsonTemplateLayout:
+        #uses the official logstash logging layout
         eventTemplateUri: "classpath:LogstashJsonEventLayoutV1.json"
         eventTemplateAdditionalField:
           - key: "app_name"

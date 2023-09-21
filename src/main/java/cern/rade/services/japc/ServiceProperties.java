@@ -6,6 +6,10 @@ import org.springframework.context.annotation.Configuration;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+
+/**
+ * a POJO configuration class. Holds the properties from application.yml
+ */
 @Configuration
 @ConfigurationProperties(prefix = "service-properties")
 public class ServiceProperties {
@@ -29,7 +33,6 @@ public class ServiceProperties {
     public int getSubQueueSize() {
         return subQueueSize;
     }
-
     public void setPingToClientFrequency(Duration pingToClientFrequency) {
         this.pingToClientFrequency = pingToClientFrequency;
     }

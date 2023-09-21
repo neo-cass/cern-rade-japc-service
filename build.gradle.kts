@@ -47,12 +47,17 @@ dependencies {
     //necessary for log4j2 yaml config file to work
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.15.2")
 
+    //log4j2 from springboot
     implementation("org.springframework.boot:spring-boot-starter-log4j2:3.1.3")
+
+    //needed to use json layouts for log messages
     implementation("org.apache.logging.log4j:log4j-layout-template-json:2.20.0")
 
+    //needed to bridge log4j2 to springboot. I am excluding commons-logging as it is included in another dependency
     implementation("org.apache.logging.log4j:log4j-spring-boot:2.20.0"){
         exclude(group="commons-logging", module="commons-logging")
     }
+
     implementation ("org.springframework.boot:spring-boot-starter-websocket:3.1.3"){
         exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
     }
