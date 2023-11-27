@@ -15,29 +15,36 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 public class SubscriptionInitialiser {
+    private ArrayList<String> header;
+    private Map<String, List<String>> headers;
     private Client client;
     private HttpSender sender;
-    private HttpServletResponse response;
     private SubscriptionHandler handler;
     private final MetaData responseMetaData = new MetaData();
     private final SubscriptionManager subManager = ContextProvider.getSubManager();
     private final Logger logger = LoggerFactory.getLogger(SubscriptionInitialiser.class);
 
-    public SubscriptionInitialiser(HttpServletResponse response,Client client){
+    public SubscriptionInitialiser(Map<String, List<String>> headers, Client client){
         this.client=client;
-        this.response=response;
+        this.headers = headers;
+        this.header = new ArrayList<>(1);
+        headers.put("MetaData", header);
     }
 
-    private void init() throws IOException, ParameterException, AuthenticationException {
-        this.sender = new HttpSender(response);
+    private void init() throws ParameterException, AuthenticationException {
         this.handler = new SubscriptionHandler(client);
         handler.init();
         subManager.addSubHandler(handler.getSub_id(), handler);
     }
-
-    private boolean respond(){
+    public SubscriptionHandler getHandler(){
+        return handler;
+    }
+    private void respond(){
         int sub_id = handler.getSub_id();
         responseMetaData.setSub_id(sub_id);
         if(client.getAuthenticationType()!=AuthenticationType.NONE){
@@ -46,35 +53,42 @@ public class SubscriptionInitialiser {
         if(client.getType_descriptor()==null){
             responseMetaData.setType_descriptor(handler.getType_descriptor());
         }
-        return sender.send("SUCCESS", responseMetaData);
+        setHeader();
+    }
+
+    private void setHeader(){
+        header.add(responseMetaData.flatten());
+    }
+
+    private void handleError(Exception e, String message){
+        responseMetaData.setError(ErrorUtil.createErrorMessage(e, message));
+        logger.error(message, e);
+        setHeader();
     }
 
     public void execute() {
         try {
             init();
         }
-        catch (AuthenticationException | TokenFormatException e){
-            ErrorUtil.sendErrorResponse(sender, logger, responseMetaData, "Error initialising RBAC.", e);
-            return;
-        } catch (IOException e) {
-            logger.error("Error initialising response sender.", e);
+        catch (AuthenticationException e){
+            handleError(e, "Error authenticating with RBAC.");
             return;
         }
         catch (ParameterException e){
-            logger.error("Error creating parameter, check CCDB.", e);
+            handleError(e, "Error in parameter.");
             return;
         }
 
         try {
             handler.init();
         } catch (ParameterException e) {
-            ErrorUtil.sendErrorResponse(sender, logger, responseMetaData, "Error starting subscription", e);
+            handleError(e, "Error starting subscription.");
             return;
         } catch(AuthenticationException e){
-            ErrorUtil.sendErrorResponse(sender, logger, responseMetaData, "Error authenticating with RBAC.", e);
+            handleError(e, "Error authenticating with RBAC.");
             return;
         } catch (ParameterRuntimeException e){
-            ErrorUtil.sendErrorResponse(sender, logger, responseMetaData, "Unrecoverable problem encountered when starting subscription", e);
+            handleError(e, "Unrecoverable problem encountered when starting subscription.");
             return;
         }
         respond();

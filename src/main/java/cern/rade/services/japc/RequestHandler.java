@@ -15,6 +15,7 @@ import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.TokenFormatException;
 import com.google.gson.JsonParser;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.websocket.server.HandshakeRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,16 +29,28 @@ public final class RequestHandler {
     static Logger logger = LoggerFactory.getLogger(RequestHandler.class);
     public static Client decodeRequest(HttpServletRequest request) throws IOException {
         Client client = new Client();
+        client.setRemoteHost(request.getRemoteHost());
         client.setRawData(request.getInputStream().readAllBytes());
         String jsonMsg = request.getHeader("MetaData");
+        return decodeRequest(client, jsonMsg);
+    }
+
+    public static Client decodeRequest(HandshakeRequest request)  {
+        Client client = new Client();
+        client.setRemoteHost("TODO");
+        String jsonMsg = request.getHeaders().get("MetaData").get(0);
+        return decodeRequest(client, jsonMsg);
+    }
+
+    public static Client decodeRequest(Client client, String jsonMsg)  {
         if(jsonMsg==null){
             client.invalidate("Missing MetaData header in HTTP POST request.");
-            logger.info("Received message from: {} but they provided no MetaData header, rejecting.", request.getRemoteHost());
+            logger.info("Received message from: {} but they provided no MetaData header, rejecting.", client.getRemoteHost());
             return client;
         }
 
         MetaData metaData = new MetaData(JsonParser.parseString(jsonMsg).getAsJsonObject());
-        logger.info("Received request from: {} with MetaData: {}.", request.getRemoteHost(), metaData);
+        logger.info("Received request from: {} with MetaData: {}.", client.getRemoteHost(), metaData);
 
         if(metaData.getRequest_language() == null){
             client.invalidate("req_lang not provided.");

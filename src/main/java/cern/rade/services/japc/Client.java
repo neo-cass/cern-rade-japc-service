@@ -22,8 +22,17 @@ public class Client {
     private RequestAction action;
     private AuthenticationType authenticationType;
     private RequestLanguage requestLanguage;
+    private String remoteHost;
     public Client(){
         this.valid=true;
+    }
+
+    public void setRemoteHost(String remoteHost) {
+        this.remoteHost = remoteHost;
+    }
+
+    public String getRemoteHost() {
+        return remoteHost;
     }
 
     public void setDataContainer(DataContainer dataContainer) {

@@ -40,10 +40,8 @@ public class SubscriptionManager {
         }
     }
 
-
-
     public void pingSockets(){
-        sockets.forEach((id, socket)-> submitToPingService(socket));
+        sockets.forEach((id, socket) -> submitToPingService(socket));
     }
 
     public void submitToPingService(SubscriptionWebsocket socket){

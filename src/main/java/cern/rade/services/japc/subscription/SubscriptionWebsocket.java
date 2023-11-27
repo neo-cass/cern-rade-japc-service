@@ -15,7 +15,7 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 //, configurator = SpringConfigurator.class
-@ServerEndpoint(value = "/subs/{id}")
+@ServerEndpoint(value = "/subscription", configurator = SubscriptionEndpointConfig.class)
 public class SubscriptionWebsocket {
     private int id;
     private RemoteEndpoint.Async asyncRemote;
@@ -23,7 +23,6 @@ public class SubscriptionWebsocket {
     private Session session;
     private Client client;
     private final SubscriptionManager subManager = ContextProvider.getSubManager();
-    private final AtomicReference<Long> lastPongReceived = new AtomicReference<>(System.currentTimeMillis());
     private  Future<Void> future;
     private static final Logger logger = LoggerFactory.getLogger(SubscriptionWebsocket.class);
     private final ExecutorService sendService = Executors.newSingleThreadExecutor();
@@ -31,16 +30,10 @@ public class SubscriptionWebsocket {
     private final long waitTimeForNewValueFromSub = ContextProvider.getServiceProperties().getWaitTimeForNewValueFromSub();
     public SubscriptionWebsocket(){}
     @OnOpen
-    public void onOpen(Session session, @PathParam("id") int id)  {
+    public void onOpen(Session session)  {
         session.setMaxIdleTimeout(socketIdleTimeout*1000);
-        Thread.currentThread().setName("Subscription-Thread-ID-" + id);
-        this.id=id;
-        this.handler = subManager.removeSubHandler(id);
-        if(handler==null){
-            closeOnError("There is no subscription associated with that sub_id", new Exception("No sub handler with that sub_id"));
-            return;
-        }
-        subManager.addSubSock(id, this);
+        Thread.currentThread().setName("Subscription-Thread-ID-" + session.getId());
+        subManager.addSubSock(handler.getSub_id(), this);
         this.session=session;
         this.client = handler.getClient();
         this.asyncRemote=session.getAsyncRemote();
@@ -115,11 +108,6 @@ public class SubscriptionWebsocket {
         closeOnError("Exception in subscription client: " + id, (Exception) throwable);
     }
 
-    @OnMessage
-    public void onPongMessage(Session session, PongMessage message){
-        lastPongReceived.set(System.currentTimeMillis());
-    }
-
     public void close(CloseReason reason){
         subManager.removeSubSock(id);
         sendService.shutdownNow();
@@ -140,5 +128,7 @@ public class SubscriptionWebsocket {
     public int getId() {
         return id;
     }
-
+    public void setSubHandler(SubscriptionHandler handler) {
+        this.handler = handler;
+    }
 }

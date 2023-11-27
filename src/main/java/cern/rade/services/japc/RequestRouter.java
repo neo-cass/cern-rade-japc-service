@@ -32,7 +32,7 @@ public class RequestRouter extends HttpServlet {
         switch(client.getAction()){
             case GET -> handleJAPCGet(new GetHandler(response, client));
             case SET -> handleJAPCSet(new SetHandler(response, client));
-            case SUBSCRIBE -> handleJAPCSub(new SubscriptionInitialiser(response, client));
+            //case SUBSCRIBE -> handleJAPCSub(new SubscriptionInitialiser(response, client));
         }
     }
 

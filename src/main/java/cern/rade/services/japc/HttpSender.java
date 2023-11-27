@@ -39,7 +39,7 @@ public class HttpSender {
     }
 
     public boolean send(byte[] data, MetaData metaData)  {
-        response.setHeader("MetaData", metaData.flatten());
+        response.addHeader("MetaData", metaData.flatten());
         try {
             out.write(data);
             out.flush();
