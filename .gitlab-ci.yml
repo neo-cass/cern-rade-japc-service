@@ -45,7 +45,7 @@ deploy_to_paas:
   script:
     - oc login $SERVER --token=$PAAS_SERVICE_TOKEN
     - oc project $PROJECT
-    - oc import-image $APP_NAME --all --confirm
+    - oc import-image $APP_NAME --all
     - sleep 10 && oc rollout status deployment/$APP_NAME
   # if you are using Openshift's DeploymentConfig (instead of regular Deployments), use this command:
   # - sleep 10 && oc rollout status deploymentconfig/$APP_NAME
