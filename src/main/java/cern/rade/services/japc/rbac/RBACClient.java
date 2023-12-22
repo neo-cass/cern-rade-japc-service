@@ -12,13 +12,13 @@ public class RBACClient {
     private MasterToken masterToken;
     private int rbac_id;
     private final RBACManager rbacManager = ContextProvider.getRbacManager();
-    public RBACClient(String username, String password) throws AuthenticationException {
+    public RBACClient(String username, char[] password) throws AuthenticationException {
         this.masterToken = rbacManager.getMasterToken(username, password);
         this.applicationToken = rbacManager.getRbaToken(masterToken);
         this.rbac_id = this.hashCode();
     }
 
-    public RBACClient(byte[] token) throws AuthenticationException, TokenFormatException {
+    public RBACClient(byte[] token) throws TokenFormatException {
         masterToken = rbacManager.getMasterToken(token);
         applicationToken = rbacManager.getRbaToken(masterToken);
         rbac_id = this.hashCode();

@@ -10,8 +10,6 @@ import jakarta.websocket.server.ServerEndpointConfig;
 import jakarta.websocket.server.ServerEndpointConfig.Configurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
 import java.util.ArrayList;
 
 public class SubscriptionEndpointConfig extends Configurator {
@@ -33,6 +31,7 @@ public class SubscriptionEndpointConfig extends Configurator {
             rejectClient(client, response);
             return;
         }
+
         logger.error("Client: {}", client);
         SubscriptionInitialiser initialiser = new SubscriptionInitialiser(response.getHeaders(), client);
         initialiser.execute();

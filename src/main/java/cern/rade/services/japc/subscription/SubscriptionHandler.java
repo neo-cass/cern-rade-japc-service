@@ -88,7 +88,7 @@ public class SubscriptionHandler implements ParameterValueListener{
     }
     @Override
     public void valueReceived(String parameterName, AcquiredParameterValue value) {
-        //TODO: lossy queue
+        //TODO: lossy queuq
         try {
             valueQueue.put(value);
         } catch (InterruptedException e) {

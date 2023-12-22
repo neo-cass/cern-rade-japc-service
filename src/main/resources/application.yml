@@ -3,6 +3,9 @@ spring:
     name: "rade-services-japc"
   profiles:
     active: prod
+  mvc:
+    pathmatch:
+      use-suffix-pattern: false
 
 server:
   port: 8443

@@ -1,6 +1,5 @@
 package cern.rade.services.japc;
 import cern.rade.services.common.communication.MetaData;
-import cern.rade.services.common.communication.Request;
 import cern.rade.services.japc.subscription.SubscriptionInitialiser;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -30,13 +29,13 @@ public class RequestRouter extends HttpServlet {
 
     public void requestCaller(Client client, HttpServletResponse response)  {
         switch(client.getAction()){
-            case GET -> handleJAPCGet(new GetHandler(response, client));
+            case GET -> handleJAPCGet(new GetHandlerImpl(response, client));
             case SET -> handleJAPCSet(new SetHandler(response, client));
             //case SUBSCRIBE -> handleJAPCSub(new SubscriptionInitialiser(response, client));
         }
     }
 
-    public void handleJAPCGet(GetHandler handler)  {
+    public void handleJAPCGet(GetHandlerImpl handler)  {
        handler.execute();
     }
 

@@ -162,6 +162,7 @@ public final class RequestHandler {
             client.invalidate(ErrorUtil.createErrorMessage(e,"Failed to decode provided LabVIEW type descriptor."));
             return;
         }
+
         client.setLvTypeDescriptor(lvTypeDescriptor);
         try {
             client.setDataContainer(LVDataContainerFactory.createDataContainer(lvTypeDescriptor));
