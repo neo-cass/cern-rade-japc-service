@@ -5,16 +5,10 @@ import cern.japc.core.ParameterRuntimeException;
 import cern.rade.services.common.communication.AuthenticationType;
 import cern.rade.services.common.communication.MetaData;
 import cern.rade.services.japc.ContextProvider;
-import cern.rade.services.japc.Client;
-import cern.rade.services.japc.HttpSender;
-import cern.rade.services.japc.ErrorUtil;
 import cern.rbac.client.authentication.AuthenticationException;
-import cern.rbac.common.TokenFormatException;
-import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

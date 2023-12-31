@@ -1,19 +1,15 @@
 package cern.rade.services.japc.subscription;
 import cern.rade.services.codec.CodecException;
 import cern.rade.services.japc.ContextProvider;
-import cern.rade.services.japc.Client;
 import jakarta.websocket.*;
-import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.socket.server.standard.SpringConfigurator;
 
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicReference;
+
 //, configurator = SpringConfigurator.class
 @ServerEndpoint(value = "/subscription", configurator = SubscriptionEndpointConfig.class)
 public class SubscriptionWebsocket {

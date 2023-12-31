@@ -61,7 +61,9 @@ public class RBACManager {
     }
 
     private RBACClient initRBACExplicit(String username, char[] password) throws AuthenticationException{
-        RBACClient rbacClient = new RBACClient(username, password);
+        MasterToken masterToken = getMasterToken(username, password);
+        RbaToken applicationToken = getRbaToken(masterToken);
+        RBACClient rbacClient = new RBACClient(masterToken, applicationToken);
         addClient(rbacClient);
         return rbacClient;
     }
@@ -75,7 +77,9 @@ public class RBACManager {
     }
 
     private RBACClient initRBACLocation(byte[] rbac_token) throws TokenFormatException {
-        RBACClient rbacClient = new RBACClient(rbac_token);
+        MasterToken masterToken = getMasterToken(rbac_token);
+        RbaToken applicationToken = getRbaToken(masterToken);
+        RBACClient rbacClient = new RBACClient(masterToken, applicationToken);
         addClient(rbacClient);
         return rbacClient;
     }

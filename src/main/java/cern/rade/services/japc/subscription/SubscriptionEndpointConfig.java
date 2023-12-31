@@ -1,9 +1,6 @@
 package cern.rade.services.japc.subscription;
 
 import cern.rade.services.common.communication.MetaData;
-import cern.rade.services.japc.Client;
-import cern.rade.services.japc.RequestHandler;
-import jakarta.servlet.http.HttpSession;
 import jakarta.websocket.HandshakeResponse;
 import jakarta.websocket.server.HandshakeRequest;
 import jakarta.websocket.server.ServerEndpointConfig;
@@ -20,8 +17,6 @@ public class SubscriptionEndpointConfig extends Configurator {
         ArrayList<String> arr = new ArrayList<>();
         arr.add("value");
         request.getHeaders().forEach((h, v) -> logger.error(h + ": " + v));
-
-
         super.modifyHandshake(sec, request, response);
         response.getHeaders().put("header", arr);
         response.getHeaders().forEach((h, v) -> logger.error(h + ": " + v));
