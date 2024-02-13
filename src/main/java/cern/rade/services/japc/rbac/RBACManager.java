@@ -33,7 +33,7 @@ public class RBACManager {
     }
 
     public void addClient(RBACClient rbacClient){
-        rbacClients.put(rbacClient.hashCode(), rbacClient);
+        rbacClients.put(rbacClient.getRbac_id(), rbacClient);
     }
     public RBACClient getClient(int id){
         return rbacClients.get(id);

@@ -24,7 +24,7 @@ public class GetService {
     private String selectorName;
     private RBACClient rbacClient;
     private long acquisitionStamp;
-    private boolean isExecuted = false;
+    private boolean executed = false;
     private final Logger logger = LoggerFactory.getLogger(GetService.class);
 
     public GetService(String selectorName, String device, String property, String field){
@@ -104,22 +104,22 @@ public class GetService {
         init();
         get();
         decode();
-        this.isExecuted = true;
+        this.executed = true;
     }
 
     public boolean isExecuted() {
-        return isExecuted;
+        return executed;
     }
 
     public DataContainer getData() {
-        if(!isExecuted){
+        if(!isExecuted()){
             throw new RuntimeException("GetService has not been executed yet. You cant retrieve the data");
         }
         return data;
     }
 
     public long getAcquisitionStamp() {
-        if(!isExecuted){
+        if(!isExecuted()){
             throw new RuntimeException("GetService has not been executed yet. You cant retrieve the acquisition stamp.");
         }
         return acquisitionStamp;
