@@ -120,14 +120,25 @@ public class SubscriptionService implements ParameterValueListener {
 
     @Override
     public void exceptionOccured(String parameterName, String description, ParameterException exception) {
-
+        logger.error("Exception occurred in subscription service: " + description, exception);
     }
 
-    public DataContainer getLatest(long timeout) throws InterruptedException, CodecException {
+    public boolean pushLatestIntoContainer(long timeout) throws CodecException {
         //TODO: consider implementing a copy of the DataContainer to avoid race conditions, is this necessary?
         //Its a bit strange to return the same DataContainer every time with different values
-        AcquiredParameterValue apv = valueQueue.poll(timeout, TimeUnit.SECONDS);
+        if(!isInitialised()){throw new RuntimeException("SubscriptionService not initialised");}
+        AcquiredParameterValue apv;
+        try {
+            apv = valueQueue.poll(timeout, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            return false;
+        }
+        if (apv == null){return false;}
         decode(apv);
+        return true;
+    }
+
+    public DataContainer getLatest() {
         return data;
     }
 
@@ -142,5 +153,13 @@ public class SubscriptionService implements ParameterValueListener {
 
     public boolean isInitialised() {
         return initialised;
+    }
+
+    public boolean isMonitoring() {
+        return sh.isMonitoring();
+    }
+
+    public RBACClient getRbacClient() {
+        return rbacClient;
     }
 }

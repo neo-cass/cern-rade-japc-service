@@ -36,7 +36,7 @@ public class GetEndpoint extends Endpoint{
         return getService;
     }
 
-    public GetService getDevice_Type_Descriptor(String selector, String device, DataContainer data, String authStr)
+    public GetService getDevice_DataContainer(String selector, String device, DataContainer data, String authStr)
             throws TokenFormatException, AuthenticationException {
         GetService getService;
         if (authStr!=null){

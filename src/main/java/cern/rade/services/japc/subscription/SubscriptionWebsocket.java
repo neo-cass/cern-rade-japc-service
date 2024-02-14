@@ -1,5 +1,7 @@
 package cern.rade.services.japc.subscription;
 import cern.rade.services.codec.CodecException;
+import cern.rade.services.codec.javatolv.LVDataEncoder;
+import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.japc.ContextProvider;
 import jakarta.websocket.*;
 import jakarta.websocket.server.ServerEndpoint;
@@ -11,27 +13,28 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.*;
 
 //, configurator = SpringConfigurator.class
-@ServerEndpoint(value = "/subscription", configurator = SubscriptionEndpointConfig.class)
+@ServerEndpoint(value = "/labview/subscription", configurator = SubscriptionInitialiser.class)
 public class SubscriptionWebsocket {
-    private int id;
+    private String id;
     private RemoteEndpoint.Async asyncRemote;
-    private SubscriptionHandler handler;
+    private SubscriptionService subService;
     private Session session;
-    private Client client;
     private final SubscriptionManager subManager = ContextProvider.getSubManager();
     private  Future<Void> future;
     private static final Logger logger = LoggerFactory.getLogger(SubscriptionWebsocket.class);
     private final ExecutorService sendService = Executors.newSingleThreadExecutor();
     private final long socketIdleTimeout = ContextProvider.getServiceProperties().getSocketIdleTimeout();
     private final long waitTimeForNewValueFromSub = ContextProvider.getServiceProperties().getWaitTimeForNewValueFromSub();
+    private DataContainer currentValue;
     public SubscriptionWebsocket(){}
     @OnOpen
     public void onOpen(Session session)  {
         session.setMaxIdleTimeout(socketIdleTimeout*1000);
         Thread.currentThread().setName("Subscription-Thread-ID-" + session.getId());
-        subManager.addSubSock(handler.getSub_id(), this);
+        subManager.addSubSock(session.getId(), this);
         this.session=session;
-        this.client = handler.getClient();
+        this.id = session.getId();
+        this.currentValue = subService.getLatest();
         this.asyncRemote=session.getAsyncRemote();
         init();
     }
@@ -42,26 +45,20 @@ public class SubscriptionWebsocket {
 
     public void sendData() {
         while(session.isOpen() && !Thread.interrupted()) {
-            switch (client.getRequestLanguage()) {
-                case LABVIEW -> sendLVData();
-                case PYTHON -> sendPYData();
-            }
+            sendLVData();
         }
         future.cancel(true);
     }
 
     private void sendLVData()  {
-        byte[] data;
         ByteBuffer sendBuffer;
         try {
-            data = handler.getLVData(waitTimeForNewValueFromSub);
-            if(data==null){
+            boolean newValue = subService.pushLatestIntoContainer(waitTimeForNewValueFromSub);
+
+            if(!newValue){
                 return;
             }
-            sendBuffer = ByteBuffer.wrap(data);
-        } catch (InterruptedException e) {
-            closeOnError("Handler interrupted while waiting for new value.", e);
-            return;
+            sendBuffer = ByteBuffer.wrap(LVDataEncoder.encode(currentValue));
         } catch (CodecException e) {
             closeOnError("Received data did not match type descriptor provided.", e);
             return;
@@ -79,11 +76,6 @@ public class SubscriptionWebsocket {
             closeOnError("Sender thread interrupted.", e);
         }
     }
-
-    private void sendPYData() {
-
-    }
-
     @OnMessage
     public void onMessage(Session session, String message) {
 
@@ -121,10 +113,10 @@ public class SubscriptionWebsocket {
         logger.error(message,e);
         close(new CloseReason(CloseReason.CloseCodes.CLOSED_ABNORMALLY, e.getMessage()));
     }
-    public int getId() {
+    public String getId() {
         return id;
     }
-    public void setSubHandler(SubscriptionHandler handler) {
-        this.handler = handler;
+    public void setSubService(SubscriptionService subService) {
+        this.subService = subService;
     }
 }

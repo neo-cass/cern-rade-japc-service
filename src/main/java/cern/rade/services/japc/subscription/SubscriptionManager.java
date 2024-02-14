@@ -13,8 +13,8 @@ import java.util.concurrent.*;
 @Component
 public class SubscriptionManager {
     private final long pingToClientFrequency = ContextProvider.getServiceProperties().getPingToClientFrequency();
-    private ConcurrentHashMap<Integer, SubscriptionWebsocket> sockets;
-    private ConcurrentHashMap<Integer, SubscriptionHandler> clients;
+    private ConcurrentHashMap<String, SubscriptionWebsocket> sockets;
+    private ConcurrentHashMap<Integer, SubscriptionService> clients;
     private ScheduledExecutorService pingSchedulerService;
     private ExecutorService pingService;
     private final Logger logger = LoggerFactory.getLogger(SubscriptionManager.class);
@@ -47,19 +47,19 @@ public class SubscriptionManager {
     public void submitToPingService(SubscriptionWebsocket socket){
         pingService.submit(() -> pingSocket(socket));
     }
-    public void addSubSock(int sessionID, SubscriptionWebsocket sub){
+    public void addSubSock(String sessionID, SubscriptionWebsocket sub){
         sockets.put(sessionID, sub);
     }
-    public void removeSubSock(int id){
+    public void removeSubSock(String id){
         sockets.remove(id);
     }
     public SubscriptionWebsocket getSubSock(int id){
         return sockets.get(id);
     }
-    public void addSubHandler(int id, SubscriptionHandler client){
+    public void addSubHandler(int id, SubscriptionService client){
         clients.put(id, client);
     }
-    public SubscriptionHandler removeSubHandler(int id){
+    public SubscriptionService removeSubHandler(int id){
         return clients.remove(id);
     }
     public void clearSubHandlers(){
@@ -71,12 +71,12 @@ public class SubscriptionManager {
         sockets.clear();
     }
 
-    public void closeTimedOutSubSocket(int id){
+    public void closeTimedOutSubSocket(String id){
         sockets.get(id).close(new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "Slow client, did not respond to pings within 10 seconds"));
         removeSubSock(id);
     }
 
-    public void closeUnresponsiveClient(int id){
+    public void closeUnresponsiveClient(String id){
         sockets.get(id).close(new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "Max ping retry attempts reached."));
         removeSubSock(id);
     }
