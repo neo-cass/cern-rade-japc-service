@@ -23,6 +23,7 @@ import jakarta.websocket.server.ServerEndpointConfig;
 import jakarta.websocket.server.ServerEndpointConfig.Configurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.socket.server.standard.SpringConfigurator;
 
 import java.nio.ByteBuffer;
 import java.util.Base64;
@@ -30,11 +31,18 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 
-public class SubscriptionInitialiser extends Configurator implements ServletRequestListener {
+public class SubscriptionInitialiser extends SpringConfigurator implements ServletRequestListener {
     private final Logger logger = LoggerFactory.getLogger(SubscriptionInitialiser.class);
     private final RBACManager rbacManager = ContextProvider.getRbacManager();
     @Override
     public void modifyHandshake(ServerEndpointConfig sec, HandshakeRequest request, HandshakeResponse response) {
+        request.getHttpSession();
+        HttpSession httpSession = (HttpSession) request.getHttpSession();
+        if(httpSession==null){
+            logger.error("HttpSession is null");
+        }
+        logger.error("pass");
+        sec.getUserProperties().put("httpSession", httpSession);
         super.modifyHandshake(sec, request, response);
         try {
             handleNewSubscription(sec, request, response);
@@ -81,8 +89,7 @@ public class SubscriptionInitialiser extends Configurator implements ServletRequ
         subscriptionService.init();
         subscriptionService.startSubscription();
 
-        sec.getConfigurator().getEndpointInstance(SubscriptionWebsocket.class).setSubService(subscriptionService);
-
+        sec.getUserProperties().put("subscriptionService", subscriptionService);
         if(authStr!=null){
             setSingleHeaderValue(retHeaders, "Rbac","Cached " + subscriptionService.getRbacClient().getRbac_id());
         }
@@ -170,12 +177,18 @@ public class SubscriptionInitialiser extends Configurator implements ServletRequ
     @Override
     public void requestInitialized(ServletRequestEvent sre) {
         HttpServletRequest request = (HttpServletRequest) sre.getServletRequest();
+        HttpSession session = request.getSession(true); // This ensures a session is created if it doesn't exist
+        request.setAttribute("HttpSession", session);
+        request.getParameterMap().put("remoteAddr", new String[]{request.getRemoteAddr()});
+        session.setAttribute("remoteAddr", request.getRemoteAddr());
+        request.getServletContext().setAttribute("remoteAddr", request.getRemoteAddr());
         request.setAttribute("remoteAddr", request.getRemoteAddr());
     }
 
     private String getRemoteAddr(HandshakeRequest request){
         HttpSession httpSession = (HttpSession) request.getHttpSession();
-        HttpServletRequest httpServletRequest = (HttpServletRequest) httpSession.getServletContext().getAttribute("javax.servlet.http.HttpServletRequest");
+//        request.getParameterMap().get("remoteAddr").get(0);
+        HttpServletRequest httpServletRequest = (HttpServletRequest) httpSession.getServletContext().getAttribute("jakarta.servlet.http.HttpServletRequest");
         return (String) httpServletRequest.getAttribute("remoteAddr");
     }
 }
