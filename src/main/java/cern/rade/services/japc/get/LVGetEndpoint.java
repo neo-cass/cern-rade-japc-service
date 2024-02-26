@@ -1,4 +1,4 @@
-package cern.rade.services.japc.endpoints;
+package cern.rade.services.japc.get;
 
 import cern.japc.core.ParameterException;
 import cern.rade.services.codec.CodecException;
@@ -9,9 +9,11 @@ import cern.rade.services.codec.lvtojava.LVTypeDecoder;
 import cern.rade.services.common.BytesUtil;
 import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.common.containers.labview.LVTypeDescriptor;
-import cern.rade.services.japc.GetService;
+import cern.rade.services.japc.subscription.SubscriptionInitialiser;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.TokenFormatException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +24,7 @@ import java.util.Base64;
 @RestController
 @RequestMapping(value = "/get", produces = "application/labview-variant")
 public class LVGetEndpoint extends GetEndpoint{
+    private final Logger logger = LoggerFactory.getLogger(LVGetEndpoint.class);
 
     private byte[] getLVData(GetService getService) throws CodecException {
         return LVDataEncoder.encode(getService.getData());
@@ -46,7 +49,7 @@ public class LVGetEndpoint extends GetEndpoint{
             @PathVariable("property") String property,
             @RequestHeader(value = "Rbac", required = false) String authStr)
             throws ParameterException, CodecException, TokenFormatException, AuthenticationException {
-
+        logger.info("Get request for device: " + device + " property: " + property + " selector: " + selector);
         HttpHeaders retHeaders = new HttpHeaders();
         GetService getService = getDevice_Property(selector, device, property, authStr);
         getService.execute();
@@ -54,6 +57,7 @@ public class LVGetEndpoint extends GetEndpoint{
         if (authStr!=null){
             retHeaders.set("Rbac", "Cached " + getService.getRbacClient().getRbac_id());
         }
+
         return ResponseEntity
                 .ok()
                 .headers(retHeaders)
@@ -105,9 +109,9 @@ public class LVGetEndpoint extends GetEndpoint{
 
     @ExceptionHandler({ParameterException.class, CodecException.class, TokenFormatException.class, AuthenticationException.class})
     public ResponseEntity<String> handleException(Exception e){
+        //TODO: generate LabVIEW error cluster
+        logger.error("Error in LabVIEW GET endpoint", e);
         return ResponseEntity.badRequest().body(e.getMessage());
     }
-
-
 
 }

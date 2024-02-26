@@ -19,9 +19,6 @@ public class ContextProvider implements ApplicationContextAware {
     public void setApplicationContext(@NotNull ApplicationContext applicationContext) throws BeansException {
         ContextProvider.applicationContext = applicationContext;
     }
-    public static SubscriptionManager getSubManager(){
-        return applicationContext.getBean(SubscriptionManager.class);
-    }
     public static RBACManager getRbacManager(){
         return applicationContext.getBean(RBACManager.class);
     }

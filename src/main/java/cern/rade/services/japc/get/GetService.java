@@ -1,4 +1,4 @@
-package cern.rade.services.japc;
+package cern.rade.services.japc.get;
 
 import cern.japc.core.*;
 import cern.japc.core.factory.ParameterFactory;
@@ -61,9 +61,6 @@ public class GetService {
         this.parameterName = Parameters.buildParameterName(device, data.getName());
         this.data = data;
     }
-
-
-
 
     private void init() throws ParameterException {
         this.parameter = ParameterFactory.newInstance().newParameter(parameterName);

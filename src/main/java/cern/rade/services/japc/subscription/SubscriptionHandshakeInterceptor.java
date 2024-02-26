@@ -2,19 +2,12 @@ package cern.rade.services.japc.subscription;
 
 import cern.japc.core.ParameterException;
 import cern.rade.services.codec.CodecException;
-import cern.rade.services.codec.javatolv.LVTypeEncoder;
-import cern.rade.services.codec.lvtojava.LVDataContainerFactory;
-import cern.rade.services.codec.lvtojava.LVTypeDecoder;
-import cern.rade.services.common.BytesUtil;
 import cern.rade.services.common.containers.java.DataContainer;
-import cern.rade.services.common.containers.labview.LVTypeDescriptor;
 import cern.rade.services.japc.ContextProvider;
 import cern.rade.services.japc.rbac.RBACClient;
 import cern.rade.services.japc.rbac.RBACManager;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.TokenFormatException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.server.ServerHttpRequest;
@@ -22,8 +15,6 @@ import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.support.HttpSessionHandshakeInterceptor;
 
-import java.nio.ByteBuffer;
-import java.util.Base64;
 import java.util.Map;
 
 public abstract class SubscriptionHandshakeInterceptor extends HttpSessionHandshakeInterceptor {
@@ -34,7 +25,13 @@ public abstract class SubscriptionHandshakeInterceptor extends HttpSessionHandsh
         if (!valid) {
             return false;
         }
-        return handleNewSubscription(request, response, wsHandler, attributes) ;
+        try{
+            valid = handleNewSubscription(request, response, wsHandler, attributes);
+        }catch(TokenFormatException | AuthenticationException | CodecException | ParameterException e){
+            rejectClient(response, response.getHeaders(), e.getMessage(), 400);
+            return false;
+        }
+        return valid;
     }
 
     public abstract boolean handleNewSubscription(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, Map<String, Object> attributes) throws TokenFormatException, AuthenticationException, CodecException, ParameterException ;

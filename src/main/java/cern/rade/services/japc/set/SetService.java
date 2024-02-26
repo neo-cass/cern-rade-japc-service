@@ -1,15 +1,12 @@
-package cern.rade.services.japc;
+package cern.rade.services.japc.set;
 
 import cern.japc.core.*;
 import cern.japc.core.factory.ParameterFactory;
 import cern.japc.core.factory.SelectorFactory;
 import cern.japc.value.ParameterValue;
 import cern.rade.services.codec.CodecException;
-import cern.rade.services.codec.japcjava.JAPCDecoder;
 import cern.rade.services.codec.japcjava.JAPCEncoder;
-import cern.rade.services.common.communication.AuthenticationType;
 import cern.rade.services.common.containers.java.DataContainer;
-import cern.rade.services.common.containers.java.PropertyContainer;
 import cern.rade.services.japc.rbac.RBACClient;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.RbaToken;

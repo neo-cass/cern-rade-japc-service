@@ -1,9 +1,8 @@
-package cern.rade.services.japc.endpoints;
+package cern.rade.services.japc.get;
 
 
 import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.japc.ContextProvider;
-import cern.rade.services.japc.GetService;
 import cern.rade.services.japc.rbac.RBACClient;
 import cern.rade.services.japc.rbac.RBACManager;
 import cern.rbac.client.authentication.AuthenticationException;
@@ -16,10 +15,10 @@ public abstract class GetEndpoint {
         GetService getService;
         if (authStr!=null){
             RBACClient rbacClient = rbacManager.createClient(authStr);
-            getService = new GetService(selector, device, property, rbacClient);
+            getService = new GetService(cleanSelector(selector), device, property, rbacClient);
         }
         else{
-            getService = new GetService(selector, device, property);
+            getService = new GetService(cleanSelector(selector), device, property);
         }
         return getService;
 
@@ -30,10 +29,10 @@ public abstract class GetEndpoint {
         GetService getService;
         if (authStr!=null){
             RBACClient rbacClient = rbacManager.createClient(authStr);
-            getService = new GetService(selector, device, property, field, rbacClient);
+            getService = new GetService(cleanSelector(selector), device, property, field, rbacClient);
         }
         else{
-            getService = new GetService(selector, device, property, field);
+            getService = new GetService(cleanSelector(selector), device, property, field);
         }
         return getService;
     }
@@ -43,12 +42,16 @@ public abstract class GetEndpoint {
         GetService getService;
         if (authStr!=null){
             RBACClient rbacClient = rbacManager.createClient(authStr);
-            getService = new GetService(selector, device, data, rbacClient);
+            getService = new GetService(cleanSelector(selector), device, data, rbacClient);
         }
         else{
-            getService = new GetService(selector, device, data);
+            getService = new GetService(cleanSelector(selector), device, data);
         }
         return getService;
     }
 
+    protected String cleanSelector(String selector){
+        selector = selector.equals("NONE") ? "" : selector;
+        return selector;
+    }
 }

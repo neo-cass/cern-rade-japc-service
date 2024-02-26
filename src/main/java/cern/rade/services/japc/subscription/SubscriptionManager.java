@@ -2,7 +2,6 @@ package cern.rade.services.japc.subscription;
 
 
 import cern.rade.services.japc.ContextProvider;
-import jakarta.websocket.CloseReason;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
@@ -20,29 +19,29 @@ import java.util.Map;
 import java.util.concurrent.*;
 public class SubscriptionManager implements WebSocketHandler, BeanFactoryAware, Closeable {
     private final long pingToClientFrequency = ContextProvider.getServiceProperties().getPingToClientFrequency();
-    private ConcurrentHashMap<WebSocketSession, SubscriptionHandler> handlers;
+    private ConcurrentHashMap<WebSocketSession, SubscriptionWebSocketHandler> handlers;
     private ScheduledExecutorService pingSchedulerService;
     private ExecutorService pingService;
     private boolean supportsPartialMessages;
     private final Logger logger = LoggerFactory.getLogger(SubscriptionManager.class);
-    private final BeanCreatingHandlerProvider<SubscriptionHandler> provider;
+    private final BeanCreatingHandlerProvider<SubscriptionWebSocketHandler> provider;
 
-    public SubscriptionManager() {
-        this(false);
+    public SubscriptionManager(Class<? extends SubscriptionWebSocketHandler> handlerType) {
+        this(handlerType,false);
     }
 
-    public SubscriptionManager(boolean supportsPartialMessages) {
+    public SubscriptionManager(Class<? extends SubscriptionWebSocketHandler> handlerType, boolean supportsPartialMessages) {
         this.supportsPartialMessages = supportsPartialMessages;
-        this.provider = new BeanCreatingHandlerProvider<>(SubscriptionHandler.class);
+        this.provider = new BeanCreatingHandlerProvider<>(handlerType);
         this.handlers = new ConcurrentHashMap<>();
     }
     public void init(){
         this.pingSchedulerService = Executors.newSingleThreadScheduledExecutor();
         this.pingService = Executors.newCachedThreadPool();
-        pingSchedulerService.scheduleAtFixedRate(this::pingSockets,0, pingToClientFrequency, TimeUnit.SECONDS);
+        pingSchedulerService.scheduleAtFixedRate(this::pingSockets,0, pingToClientFrequency, TimeUnit.MILLISECONDS);
     }
 
-    public void pingSocket(SubscriptionHandler handler){
+    public void pingSocket(SubscriptionWebSocketHandler handler){
         try {
             handler.ping();
         } catch (IOException e) {
@@ -52,12 +51,12 @@ public class SubscriptionManager implements WebSocketHandler, BeanFactoryAware, 
     public void pingSockets(){
         handlers.forEach((session, handler) -> submitToPingService(handler));
     }
-    public void submitToPingService(SubscriptionHandler handler){
+    public void submitToPingService(SubscriptionWebSocketHandler handler){
         pingService.submit(() -> pingSocket(handler));
     }
     public void clearSubscriptionHandlers() throws IOException{
-        for (Map.Entry<WebSocketSession, SubscriptionHandler> entry : handlers.entrySet()) {
-            SubscriptionHandler handler = entry.getValue();
+        for (Map.Entry<WebSocketSession, SubscriptionWebSocketHandler> entry : handlers.entrySet()) {
+            SubscriptionWebSocketHandler handler = entry.getValue();
             handler.closeSession(new CloseStatus(CloseStatus.GOING_AWAY.getCode(), "Cleanup from subscription manager"));
         }
     }
@@ -74,7 +73,7 @@ public class SubscriptionManager implements WebSocketHandler, BeanFactoryAware, 
     }
 
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        SubscriptionHandler handler = this.provider.getHandler();
+        SubscriptionWebSocketHandler handler = this.provider.getHandler();
         this.handlers.put(session, handler);
         handler.afterConnectionEstablished(new ConcurrentWebSocketSessionDecorator(session, 32768, 32768));
     }
@@ -93,7 +92,6 @@ public class SubscriptionManager implements WebSocketHandler, BeanFactoryAware, 
         } finally {
             this.destroyHandler(session);
         }
-
     }
 
     public boolean supportsPartialMessages() {
@@ -101,7 +99,7 @@ public class SubscriptionManager implements WebSocketHandler, BeanFactoryAware, 
     }
 
     private WebSocketHandler getHandler(WebSocketSession session) {
-        SubscriptionHandler handler = this.handlers.get(session);
+        SubscriptionWebSocketHandler handler = this.handlers.get(session);
         if (handler == null) {
             throw new IllegalStateException("WebSocketHandler not found for " + session);
         } else {
@@ -110,7 +108,7 @@ public class SubscriptionManager implements WebSocketHandler, BeanFactoryAware, 
     }
 
     private void destroyHandler(WebSocketSession session) {
-        SubscriptionHandler handler = this.handlers.remove(session);
+        SubscriptionWebSocketHandler handler = this.handlers.remove(session);
 
         try {
             if (handler != null) {
@@ -124,7 +122,7 @@ public class SubscriptionManager implements WebSocketHandler, BeanFactoryAware, 
 
     }
     public String toString() {
-        return "PerConnectionWebSocketHandlerProxy[handlerType=" + this.provider.getHandlerType() + "]";
+        return "SubscriptionManager[handlerType=" + this.provider.getHandlerType() + "]";
     }
 
 

@@ -1,10 +1,9 @@
-package cern.rade.services.japc.endpoints;
+package cern.rade.services.japc.set;
 
 import cern.japc.core.ParameterException;
 import cern.rade.services.codec.CodecException;
 import cern.rade.services.codec.lvtojava.LVDecoder;
 import cern.rade.services.common.containers.java.DataContainer;
-import cern.rade.services.japc.SetService;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.TokenFormatException;
 import org.springframework.http.HttpHeaders;
@@ -50,7 +49,4 @@ public class LVSetEndpoint extends SetEndpoint{
     public ResponseEntity<String> handleException(Exception e){
         return ResponseEntity.badRequest().body(e.getMessage());
     }
-
-
-
 }

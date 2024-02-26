@@ -8,24 +8,20 @@ import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 import org.springframework.web.socket.handler.PerConnectionWebSocketHandler;
 import org.springframework.web.socket.server.standard.ServletServerContainerFactoryBean;
-import org.springframework.web.socket.server.support.HttpSessionHandshakeInterceptor;
-
-import java.util.concurrent.TimeUnit;
 
 @Configuration
 @EnableWebSocket
-public class SubscriptionConfigurator implements WebSocketConfigurer {
-    private final long socketIdleTimeout = ContextProvider.getServiceProperties().getSocketIdleTimeout();
+public class SubscriptionWebSocketConfigurator implements WebSocketConfigurer {
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(new LVSubscriptionHandler(), "/subscription/labview").addInterceptors(new LVSubscriptionHandshakeInterceptor());
+        registry.addHandler(new SubscriptionManager(LVSubscriptionWebSocketHandler.class), "/subscription/labview").addInterceptors(new LVSubscriptionHandshakeInterceptor());
     }
     @Bean
     public ServletServerContainerFactoryBean createWebSocketContainer() {
         ServletServerContainerFactoryBean container = new ServletServerContainerFactoryBean();
         container.setMaxTextMessageBufferSize(8192);
         container.setMaxBinaryMessageBufferSize(8192);
-        container.setMaxSessionIdleTimeout(socketIdleTimeout*1000);
+        container.setMaxSessionIdleTimeout(ContextProvider.getServiceProperties().getSocketIdleTimeout());
         return container;
     }
 

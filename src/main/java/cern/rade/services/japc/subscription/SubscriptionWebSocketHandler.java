@@ -14,13 +14,13 @@ import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-
-public class LVSubscriptionHandler implements SubscriptionHandler {
-    private final Logger logger = LoggerFactory.getLogger(SubscriptionHandshakeInterceptor.class);
-    private final long waitTimeForNewValueFromSub = ContextProvider.getServiceProperties().getWaitTimeForNewValueFromSub();
-    private ConcurrentWebSocketSessionDecorator session;
-    private String ID;
-    private SubscriptionService subscriptionService;
+public abstract class SubscriptionWebSocketHandler implements WebSocketHandler {
+    private final Logger logger = LoggerFactory.getLogger(SubscriptionWebSocketHandler.class);
+    protected final long waitTimeForNewValueFromSub = ContextProvider.getServiceProperties().getWaitTimeForNewValueFromSub();
+    protected ConcurrentWebSocketSessionDecorator session;
+    protected String ID;
+    protected SubscriptionService subscriptionService;
+    protected boolean timeout = false;
     private final ExecutorService sendService = Executors.newSingleThreadExecutor();
 
     @Override
@@ -32,27 +32,25 @@ public class LVSubscriptionHandler implements SubscriptionHandler {
     }
 
     private void streamData() {
-        sendService.submit(this::send);
+        sendService.submit(this::iterativelySendData);
     }
-
-    private void send() {
-        try {
-            DataContainer data = subscriptionService.getLatest();
-            byte[] bytes = LVDataEncoder.encode(data);
-            session.sendMessage(new BinaryMessage(bytes));
-            subscriptionService.pushLatestIntoContainer(waitTimeForNewValueFromSub);
-        } catch (IOException e) {
-            logger.error("Error sending data to subscription client with ID {}", ID, e);
-        } catch (CodecException e) {
-            logger.error("Error encoding data for subscription client with ID {}", ID, e);
+    private void iterativelySendData(){
+        while(session.isOpen() && !Thread.currentThread().isInterrupted()){
+            try {
+                timeout = sendData();
+            } catch (IOException e) {
+                logger.error("Error while sending data to the subscription client with ID {}", ID, e);
+            } catch (CodecException e) {
+                logger.error("Error while encoding data for the subscription client with ID {}", ID, e);;
+            }
         }
     }
+    abstract boolean sendData() throws IOException, CodecException;
 
     @Override
     public void handleMessage(@NotNull WebSocketSession session, @NotNull WebSocketMessage<?> message) throws Exception {
 
     }
-
     @Override
     public void handleTransportError(@NotNull WebSocketSession session, @NotNull Throwable exception) throws Exception {
         this.session.close();
@@ -60,6 +58,8 @@ public class LVSubscriptionHandler implements SubscriptionHandler {
 
     @Override
     public void afterConnectionClosed(@NotNull WebSocketSession session, @NotNull CloseStatus closeStatus) throws Exception {
+        sendService.shutdown();
+        subscriptionService.stopSubscription();
         logger.info("Subscription with ID {} has been closed with reason {}", ID, closeStatus.getReason());
     }
 
@@ -68,19 +68,20 @@ public class LVSubscriptionHandler implements SubscriptionHandler {
         return false;
     }
 
-    public void ping() throws IOException {
+    protected void ping() throws IOException {
         PingMessage pingMessage = new PingMessage();
         session.sendMessage(pingMessage);
     }
 
-    @Override
-    public void closeSession(CloseStatus closeStatus) throws IOException {
+    protected void closeSession(CloseStatus closeStatus) throws IOException {
         session.close(closeStatus);
     }
 
-    @Override
-    public String getId() {
+    protected String getId() {
         return ID;
     }
 
+    protected boolean isTimedOut() {
+        return timeout;
+    }
 }

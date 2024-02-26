@@ -20,14 +20,12 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.websocket.HandshakeResponse;
 import jakarta.websocket.server.HandshakeRequest;
 import jakarta.websocket.server.ServerEndpointConfig;
-import jakarta.websocket.server.ServerEndpointConfig.Configurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.socket.server.standard.SpringConfigurator;
 
 import java.nio.ByteBuffer;
 import java.util.Base64;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 

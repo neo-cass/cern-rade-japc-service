@@ -5,7 +5,6 @@ import cern.japc.core.factory.ParameterFactory;
 import cern.japc.core.factory.SelectorFactory;
 import cern.rade.services.codec.CodecException;
 import cern.rade.services.codec.japcjava.JAPCDecoder;
-import cern.rade.services.common.communication.AuthenticationType;
 import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.common.containers.java.PropertyContainer;
 import cern.rade.services.japc.ContextProvider;
@@ -129,7 +128,7 @@ public class SubscriptionService implements ParameterValueListener {
         if(!isInitialised()){throw new RuntimeException("SubscriptionService not initialised");}
         AcquiredParameterValue apv;
         try {
-            apv = valueQueue.poll(timeout, TimeUnit.SECONDS);
+            apv = valueQueue.poll(timeout, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             return false;
         }

@@ -1,8 +1,7 @@
-package cern.rade.services.japc.endpoints;
+package cern.rade.services.japc.set;
 
 import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.japc.ContextProvider;
-import cern.rade.services.japc.SetService;
 import cern.rade.services.japc.rbac.RBACClient;
 import cern.rade.services.japc.rbac.RBACManager;
 import cern.rbac.common.TokenFormatException;
@@ -13,10 +12,14 @@ public abstract class SetEndpoint{
         SetService setService;
         if (authStr != null) {
             RBACClient rbacClient = rbacManager.createClient(authStr);
-            setService = new SetService(selector, device, data, rbacClient);
+            setService = new SetService(cleanSelector(selector), device, data, rbacClient);
         } else {
-            setService = new SetService(selector, device, data);
+            setService = new SetService(cleanSelector(selector), device, data);
         }
         return setService;
+    }
+    protected String cleanSelector(String selector){
+        selector = selector.equals("NONE") ? "" : selector;
+        return selector;
     }
 }

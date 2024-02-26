@@ -20,15 +20,20 @@ public class ServiceProperties {
     @DurationUnit(ChronoUnit.MILLIS)
     private Duration socketIdleTimeout;
     private int subQueueSize;
+    private long getInMs(Duration value){
+        long seconds = value.getSeconds() * 1000L;
+        long nanoSeconds = value.getNano() / 1000000L;
+        return seconds + nanoSeconds;
+    }
 
     public long getPingToClientFrequency() {
-        return pingToClientFrequency.getSeconds();
+        return getInMs(pingToClientFrequency);
     }
     public long getWaitTimeForNewValueFromSub() {
-        return waitTimeForNewValueFromSub.getSeconds();
+        return getInMs(waitTimeForNewValueFromSub);
     }
     public long getSocketIdleTimeout() {
-        return socketIdleTimeout.getSeconds();
+        return getInMs(socketIdleTimeout);
     }
     public int getSubQueueSize() {
         return subQueueSize;

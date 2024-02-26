@@ -69,7 +69,7 @@ public class LVSubscriptionHandshakeInterceptor extends SubscriptionHandshakeInt
     }
 
     private String getLVType(SubscriptionService subscriptionService) throws CodecException {
-        subscriptionService.pushLatestIntoContainer(1);
+        subscriptionService.pushLatestIntoContainer(1000);
         DataContainer dataContainer = subscriptionService.getLatest();
         byte[] type_desc = BytesUtil.shortArrToByteArr(LVTypeEncoder.encodeTypeDescriptor(dataContainer));
         return Base64.getEncoder().encodeToString(type_desc);
