@@ -1,6 +1,5 @@
 package cern.rade.services.japc;
 
-import cern.rade.services.japc.subscription.SubscriptionWebsocket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
@@ -21,15 +20,6 @@ public class InitialiseService {
         SpringApplication.run(InitialiseService.class, args);
         Thread.setDefaultUncaughtExceptionHandler((t, e) -> logger.error("Uncaught exception in thread {}.", t, e));
         logger.info("Initialisation complete.");
-    }
-
-    @Bean
-    public ServerEndpointExporter serverEndpointExporter() {
-        return new ServerEndpointExporter();
-    }
-    @Bean
-    public SubscriptionWebsocket subscriptionWebsocket(){
-        return new SubscriptionWebsocket();
     }
 }
 

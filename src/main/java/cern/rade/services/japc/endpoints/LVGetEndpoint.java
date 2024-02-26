@@ -20,7 +20,7 @@ import java.nio.ByteBuffer;
 import java.util.Base64;
 
 @RestController
-@RequestMapping(value = "/rest/get", produces = "application/labview")
+@RequestMapping(value = "/get", produces = "application/labview-variant")
 public class LVGetEndpoint extends GetEndpoint{
 
     private byte[] getLVData(GetService getService) throws CodecException {

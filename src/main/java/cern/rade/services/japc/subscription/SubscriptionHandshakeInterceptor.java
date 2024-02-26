@@ -1,0 +1,90 @@
+package cern.rade.services.japc.subscription;
+
+import cern.japc.core.ParameterException;
+import cern.rade.services.codec.CodecException;
+import cern.rade.services.codec.javatolv.LVTypeEncoder;
+import cern.rade.services.codec.lvtojava.LVDataContainerFactory;
+import cern.rade.services.codec.lvtojava.LVTypeDecoder;
+import cern.rade.services.common.BytesUtil;
+import cern.rade.services.common.containers.java.DataContainer;
+import cern.rade.services.common.containers.labview.LVTypeDescriptor;
+import cern.rade.services.japc.ContextProvider;
+import cern.rade.services.japc.rbac.RBACClient;
+import cern.rade.services.japc.rbac.RBACManager;
+import cern.rbac.client.authentication.AuthenticationException;
+import cern.rbac.common.TokenFormatException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.server.ServerHttpRequest;
+import org.springframework.http.server.ServerHttpResponse;
+import org.springframework.web.socket.WebSocketHandler;
+import org.springframework.web.socket.server.support.HttpSessionHandshakeInterceptor;
+
+import java.nio.ByteBuffer;
+import java.util.Base64;
+import java.util.Map;
+
+public abstract class SubscriptionHandshakeInterceptor extends HttpSessionHandshakeInterceptor {
+    protected final RBACManager rbacManager = ContextProvider.getRbacManager();
+    @Override
+    public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, Map<String, Object> attributes) throws Exception {
+        boolean valid = super.beforeHandshake(request, response, wsHandler, attributes);
+        if (!valid) {
+            return false;
+        }
+        return handleNewSubscription(request, response, wsHandler, attributes) ;
+    }
+
+    public abstract boolean handleNewSubscription(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, Map<String, Object> attributes) throws TokenFormatException, AuthenticationException, CodecException, ParameterException ;
+    protected SubscriptionService subscribeDevice_Property(String selector, String device, String property, String authStr)
+            throws TokenFormatException, AuthenticationException {
+        SubscriptionService subscriptionService;
+        if (authStr!=null){
+            RBACClient rbacClient = rbacManager.createClient(authStr);
+            subscriptionService = new SubscriptionService(selector, device, property, rbacClient);
+        }
+        else{
+            subscriptionService = new SubscriptionService(selector, device, property);
+        }
+        return subscriptionService;
+
+    }
+
+    protected SubscriptionService subscribeDevice_Property_Field(String selector, String device, String property, String field, String authStr)
+            throws TokenFormatException, AuthenticationException {
+        SubscriptionService subscriptionService;
+        if (authStr!=null){
+            RBACClient rbacClient = rbacManager.createClient(authStr);
+            subscriptionService = new SubscriptionService(selector, device, property, field, rbacClient);
+        }
+        else{
+            subscriptionService = new SubscriptionService(selector, device, property, field);
+        }
+        return subscriptionService;
+    }
+
+    protected SubscriptionService subscribeDevice_DataContainer(String selector, String device, DataContainer data, String authStr)
+            throws TokenFormatException, AuthenticationException {
+        SubscriptionService subscriptionService;
+        if (authStr!=null){
+            RBACClient rbacClient = rbacManager.createClient(authStr);
+            subscriptionService = new SubscriptionService(selector, device, data, rbacClient);
+        }
+        else{
+            subscriptionService = new SubscriptionService(selector, device, data);
+        }
+        return subscriptionService;
+    }
+
+    protected void rejectClient(ServerHttpResponse response, HttpHeaders retHeaders, String message, int statusCode){
+        response.setStatusCode(HttpStatusCode.valueOf(statusCode));
+        retHeaders.set("Subscription-Error", message);
+    }
+
+    @Override
+    public void afterHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, Exception exception) {
+
+    }
+}

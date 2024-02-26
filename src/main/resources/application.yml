@@ -11,3 +11,5 @@ server:
   port: 8443
   ssl:
     enabled: false
+  #tomcat:
+    #relaxed-query-chars: "[,],{,},^,-"
