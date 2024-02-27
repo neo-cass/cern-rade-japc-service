@@ -1,8 +1,6 @@
 package cern.rade.services.japc.subscription;
 
 import cern.rade.services.codec.CodecException;
-import cern.rade.services.codec.javatolv.LVDataEncoder;
-import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.japc.ContextProvider;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -20,7 +18,7 @@ public abstract class SubscriptionWebSocketHandler implements WebSocketHandler {
     protected ConcurrentWebSocketSessionDecorator session;
     protected String ID;
     protected SubscriptionService subscriptionService;
-    protected boolean timeout = false;
+    protected boolean newValue = false;
     private final ExecutorService sendService = Executors.newSingleThreadExecutor();
 
     @Override
@@ -37,7 +35,7 @@ public abstract class SubscriptionWebSocketHandler implements WebSocketHandler {
     private void iterativelySendData(){
         while(session.isOpen() && !Thread.currentThread().isInterrupted()){
             try {
-                timeout = sendData();
+                newValue = sendData();
             } catch (IOException e) {
                 logger.error("Error while sending data to the subscription client with ID {}", ID, e);
             } catch (CodecException e) {
@@ -81,7 +79,7 @@ public abstract class SubscriptionWebSocketHandler implements WebSocketHandler {
         return ID;
     }
 
-    protected boolean isTimedOut() {
-        return timeout;
+    protected boolean hasNewValue() {
+        return newValue;
     }
 }
