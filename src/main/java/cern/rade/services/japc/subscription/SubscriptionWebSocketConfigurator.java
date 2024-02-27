@@ -9,12 +9,18 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 import org.springframework.web.socket.handler.PerConnectionWebSocketHandler;
 import org.springframework.web.socket.server.standard.ServletServerContainerFactoryBean;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 @Configuration
 @EnableWebSocket
 public class SubscriptionWebSocketConfigurator implements WebSocketConfigurer {
+    private ConcurrentHashMap <String, SubscriptionManager> subscriptionHandlers = new ConcurrentHashMap<>();
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(new SubscriptionManager(LVSubscriptionWebSocketHandler.class), "/subscription/labview").addInterceptors(new LVSubscriptionHandshakeInterceptor());
+        SubscriptionManager lvHandler = new SubscriptionManager(LVSubscriptionWebSocketHandler.class);
+        subscriptionHandlers.put("labview", lvHandler);
+        lvHandler.init();
+        registry.addHandler(lvHandler, "/subscription/labview").addInterceptors(new LVSubscriptionHandshakeInterceptor());
     }
     @Bean
     public ServletServerContainerFactoryBean createWebSocketContainer() {
