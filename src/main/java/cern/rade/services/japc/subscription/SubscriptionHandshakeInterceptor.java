@@ -41,10 +41,10 @@ public abstract class SubscriptionHandshakeInterceptor implements HandshakeInter
         SubscriptionService subscriptionService;
         if (authStr!=null){
             RBACClient rbacClient = rbacManager.createClient(authStr);
-            subscriptionService = new SubscriptionService(selector, device, property, rbacClient);
+            subscriptionService = new SubscriptionService(cleanSelector(selector), device, property, rbacClient);
         }
         else{
-            subscriptionService = new SubscriptionService(selector, device, property);
+            subscriptionService = new SubscriptionService(cleanSelector(selector), device, property);
         }
         return subscriptionService;
 
@@ -55,10 +55,10 @@ public abstract class SubscriptionHandshakeInterceptor implements HandshakeInter
         SubscriptionService subscriptionService;
         if (authStr!=null){
             RBACClient rbacClient = rbacManager.createClient(authStr);
-            subscriptionService = new SubscriptionService(selector, device, property, field, rbacClient);
+            subscriptionService = new SubscriptionService(cleanSelector(selector), device, property, field, rbacClient);
         }
         else{
-            subscriptionService = new SubscriptionService(selector, device, property, field);
+            subscriptionService = new SubscriptionService(cleanSelector(selector), device, property, field);
         }
         return subscriptionService;
     }
@@ -68,12 +68,16 @@ public abstract class SubscriptionHandshakeInterceptor implements HandshakeInter
         SubscriptionService subscriptionService;
         if (authStr!=null){
             RBACClient rbacClient = rbacManager.createClient(authStr);
-            subscriptionService = new SubscriptionService(selector, device, data, rbacClient);
+            subscriptionService = new SubscriptionService(cleanSelector(selector), device, data, rbacClient);
         }
         else{
-            subscriptionService = new SubscriptionService(selector, device, data);
+            subscriptionService = new SubscriptionService(cleanSelector(selector), device, data);
         }
         return subscriptionService;
+    }
+    protected String cleanSelector(String selector){
+        selector = selector.equals("NONE") ? "" : selector;
+        return selector;
     }
 
     protected void rejectClient(ServerHttpResponse response, HttpHeaders retHeaders, String message, int statusCode){
