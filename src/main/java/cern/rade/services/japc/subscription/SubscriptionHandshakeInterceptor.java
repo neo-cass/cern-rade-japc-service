@@ -13,18 +13,19 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.socket.WebSocketHandler;
+import org.springframework.web.socket.server.HandshakeInterceptor;
 import org.springframework.web.socket.server.support.HttpSessionHandshakeInterceptor;
 
 import java.util.Map;
 
-public abstract class SubscriptionHandshakeInterceptor extends HttpSessionHandshakeInterceptor {
+public abstract class SubscriptionHandshakeInterceptor implements HandshakeInterceptor {
     protected final RBACManager rbacManager = ContextProvider.getRbacManager();
     @Override
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, Map<String, Object> attributes) throws Exception {
-        boolean valid = super.beforeHandshake(request, response, wsHandler, attributes);
-        if (!valid) {
-            return false;
-        }
+        boolean valid; //= super.beforeHandshake(request, response, wsHandler, attributes);
+//        if (!valid) {
+//            return false;
+//        }
         try{
             valid = handleNewSubscription(request, response, wsHandler, attributes);
         }catch(TokenFormatException | AuthenticationException | CodecException | ParameterException e){

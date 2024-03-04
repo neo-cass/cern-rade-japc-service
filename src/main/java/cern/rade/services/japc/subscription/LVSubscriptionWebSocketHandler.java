@@ -12,7 +12,6 @@ import java.io.IOException;
 
 public class LVSubscriptionWebSocketHandler extends SubscriptionWebSocketHandler {
     private final Logger logger = LoggerFactory.getLogger(LVSubscriptionWebSocketHandler.class);
-
     boolean sendData() throws IOException, CodecException {
         //TODO what about the value we miss for generating the type_desc?
         this.newValue = subscriptionService.pushLatestIntoContainer(waitTimeForNewValueFromSub);
