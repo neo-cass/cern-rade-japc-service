@@ -19,7 +19,7 @@ import java.util.Base64;
 public class LVSetEndpoint extends SetEndpoint{
     private DataContainer getDataContainer(byte[] data, String type_descriptor) throws CodecException {
         byte[] type_desc = Base64.getDecoder().decode(type_descriptor);
-        return LVDecoder.decode(ByteBuffer.wrap(data), ByteBuffer.wrap(type_desc));
+        return LVDecoder.decode(ByteBuffer.wrap(type_desc), ByteBuffer.wrap(data));
     }
 
     @PutMapping("/{selector}/{device}")
