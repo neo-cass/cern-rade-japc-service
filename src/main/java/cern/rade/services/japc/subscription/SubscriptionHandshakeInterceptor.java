@@ -22,10 +22,7 @@ public abstract class SubscriptionHandshakeInterceptor implements HandshakeInter
     protected final RBACManager rbacManager = ContextProvider.getRbacManager();
     @Override
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, Map<String, Object> attributes) throws Exception {
-        boolean valid; //= super.beforeHandshake(request, response, wsHandler, attributes);
-//        if (!valid) {
-//            return false;
-//        }
+        boolean valid;
         try{
             valid = handleNewSubscription(request, response, wsHandler, attributes);
         }catch(TokenFormatException | AuthenticationException | CodecException | ParameterException e){

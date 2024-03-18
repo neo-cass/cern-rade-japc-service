@@ -69,6 +69,7 @@ public class LVSubscriptionHandshakeInterceptor extends SubscriptionHandshakeInt
     }
 
     private String getLVType(SubscriptionService subscriptionService) throws CodecException {
+        //Push the latest value into the container, so we can generate the type descriptor to send back to the client
         subscriptionService.pushLatestIntoContainer(1000);
         DataContainer dataContainer = subscriptionService.getLatest();
         byte[] type_desc = BytesUtil.shortArrToByteArr(LVTypeEncoder.encodeTypeDescriptor(dataContainer));
