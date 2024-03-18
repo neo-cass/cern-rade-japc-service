@@ -53,6 +53,7 @@ public class LVGetEndpoint extends GetEndpoint{
         HttpHeaders retHeaders = new HttpHeaders();
         GetService getService = getDevice_Property(selector, device, property, authStr);
         getService.execute();
+
         retHeaders.set("Type-Descriptor", getLVType(getService));
         if (authStr!=null){
             retHeaders.set("Rbac", "Cached " + getService.getRbacClient().getRbac_id());
