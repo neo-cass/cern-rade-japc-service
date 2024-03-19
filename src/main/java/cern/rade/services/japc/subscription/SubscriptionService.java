@@ -5,6 +5,7 @@ import cern.japc.core.factory.ParameterFactory;
 import cern.japc.core.factory.SelectorFactory;
 import cern.rade.services.codec.CodecException;
 import cern.rade.services.codec.japcjava.JAPCDecoder;
+import cern.rade.services.common.containers.java.ContainerException;
 import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.common.containers.java.PropertyContainer;
 import cern.rade.services.japc.ContextProvider;
@@ -122,7 +123,7 @@ public class SubscriptionService implements ParameterValueListener {
         logger.error("Exception occurred in subscription service: " + description, exception);
     }
 
-    public boolean pushLatestIntoContainer(long timeout) throws CodecException {
+    public boolean pushLatestIntoContainer(long timeout) throws CodecException, ContainerException {
         //TODO: consider implementing a copy of the DataContainer to avoid race conditions, is this necessary?
         //Its a bit strange to return the same DataContainer every time with different values
         if(!isInitialised()){throw new RuntimeException("SubscriptionService not initialised");}
@@ -141,7 +142,7 @@ public class SubscriptionService implements ParameterValueListener {
         return data;
     }
 
-    private void decode(AcquiredParameterValue apv) throws CodecException {
+    private void decode(AcquiredParameterValue apv) throws CodecException, ContainerException {
         if(data==null){
             data = JAPCDecoder.decode(apv);
         }

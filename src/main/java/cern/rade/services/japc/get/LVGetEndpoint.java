@@ -7,6 +7,7 @@ import cern.rade.services.codec.javatolv.LVTypeEncoder;
 import cern.rade.services.codec.lvtojava.LVDataContainerFactory;
 import cern.rade.services.codec.lvtojava.LVTypeDecoder;
 import cern.rade.services.common.BytesUtil;
+import cern.rade.services.common.containers.java.ContainerException;
 import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.common.containers.labview.LVTypeDescriptor;
 import cern.rade.services.japc.subscription.SubscriptionInitialiser;
@@ -48,7 +49,7 @@ public class LVGetEndpoint extends GetEndpoint{
             @PathVariable("device") String device,
             @PathVariable("property") String property,
             @RequestHeader(value = "Rbac", required = false) String authStr)
-            throws ParameterException, CodecException, TokenFormatException, AuthenticationException {
+            throws ParameterException, CodecException, TokenFormatException, AuthenticationException, ContainerException {
         logger.info("Get request for device: " + device + " property: " + property + " selector: " + selector);
         HttpHeaders retHeaders = new HttpHeaders();
         GetService getService = getDevice_Property(selector, device, property, authStr);
@@ -72,7 +73,7 @@ public class LVGetEndpoint extends GetEndpoint{
             @PathVariable("property") String property,
             @PathVariable("field") String field,
             @RequestHeader(value = "Rbac", required = false) String authStr)
-            throws ParameterException, CodecException, TokenFormatException, AuthenticationException {
+            throws ParameterException, CodecException, TokenFormatException, AuthenticationException, ContainerException {
 
         HttpHeaders retHeaders = new HttpHeaders();
         GetService getService = getDevice_Property_Field(selector, device, property, field, authStr);
@@ -93,7 +94,7 @@ public class LVGetEndpoint extends GetEndpoint{
             @PathVariable("device") String device,
             @RequestHeader("Type-Descriptor") String type_descriptor,
             @RequestHeader(value = "Rbac", required = false) String authStr)
-            throws ParameterException, CodecException, TokenFormatException, AuthenticationException {
+            throws ParameterException, CodecException, TokenFormatException, AuthenticationException, ContainerException {
 
         HttpHeaders retHeaders = new HttpHeaders();
         DataContainer dataContainer = getDataContainer(type_descriptor);
@@ -108,7 +109,7 @@ public class LVGetEndpoint extends GetEndpoint{
                 .body(getLVData(getService));
     }
 
-    @ExceptionHandler({ParameterException.class, CodecException.class, TokenFormatException.class, AuthenticationException.class})
+    @ExceptionHandler({ParameterException.class, CodecException.class, TokenFormatException.class, AuthenticationException.class, ContainerException.class})
     public ResponseEntity<String> handleException(Exception e){
         //TODO: generate LabVIEW error cluster
         logger.error("Error in LabVIEW GET endpoint", e);

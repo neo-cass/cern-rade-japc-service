@@ -6,6 +6,7 @@ import cern.rade.services.codec.javatolv.LVTypeEncoder;
 import cern.rade.services.codec.lvtojava.LVDataContainerFactory;
 import cern.rade.services.codec.lvtojava.LVTypeDecoder;
 import cern.rade.services.common.BytesUtil;
+import cern.rade.services.common.containers.java.ContainerException;
 import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.common.containers.labview.LVTypeDescriptor;
 import cern.rade.services.japc.ContextProvider;
@@ -45,12 +46,12 @@ public class SubscriptionInitialiser extends SpringConfigurator implements Servl
         try {
             handleNewSubscription(sec, request, response);
         } catch (TokenFormatException | ParameterException | CodecException |
-                 InstantiationException e) {
+                 InstantiationException | ContainerException e) {
             rejectClient(response.getHeaders(), e.getMessage());
         }
     }
 
-    private void handleNewSubscription(ServerEndpointConfig sec, HandshakeRequest request, HandshakeResponse response) throws TokenFormatException, CodecException, ParameterException, InstantiationException {
+    private void handleNewSubscription(ServerEndpointConfig sec, HandshakeRequest request, HandshakeResponse response) throws TokenFormatException, CodecException, ParameterException, InstantiationException, ContainerException {
         //"{selector}/{device}/{property}/{field}"
         Map<String, List<String>> headers =  request.getHeaders();
         Map<String, List<String>> retHeaders = response.getHeaders();
@@ -109,7 +110,7 @@ public class SubscriptionInitialiser extends SpringConfigurator implements Servl
         headers.put(header, List.of(value));
     }
 
-    private String getLVType(SubscriptionService subscriptionService) throws CodecException {
+    private String getLVType(SubscriptionService subscriptionService) throws CodecException, ContainerException {
         subscriptionService.pushLatestIntoContainer(1);
         DataContainer dataContainer = subscriptionService.getLatest();
         byte[] type_desc = BytesUtil.shortArrToByteArr(LVTypeEncoder.encodeTypeDescriptor(dataContainer));

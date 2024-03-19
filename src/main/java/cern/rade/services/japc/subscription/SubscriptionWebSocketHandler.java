@@ -1,6 +1,7 @@
 package cern.rade.services.japc.subscription;
 
 import cern.rade.services.codec.CodecException;
+import cern.rade.services.common.containers.java.ContainerException;
 import cern.rade.services.japc.ContextProvider;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -40,10 +41,12 @@ public abstract class SubscriptionWebSocketHandler implements WebSocketHandler {
                 logger.error("Error while sending data to the subscription client with ID {}", ID, e);
             } catch (CodecException e) {
                 logger.error("Error while encoding data for the subscription client with ID {}", ID, e);;
+            } catch (ContainerException e) {
+                logger.error("Error while setting data in the DataContainer for the subscription client with ID {}", ID, e);;
             }
         }
     }
-    abstract boolean sendData() throws IOException, CodecException;
+    abstract boolean sendData() throws IOException, CodecException, ContainerException;
 
     @Override
     public void handleMessage(@NotNull WebSocketSession session, @NotNull WebSocketMessage<?> message) throws Exception {

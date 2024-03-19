@@ -2,6 +2,7 @@ package cern.rade.services.japc.subscription;
 
 import cern.japc.core.ParameterException;
 import cern.rade.services.codec.CodecException;
+import cern.rade.services.common.containers.java.ContainerException;
 import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.japc.ContextProvider;
 import cern.rade.services.japc.rbac.RBACClient;
@@ -32,7 +33,7 @@ public abstract class SubscriptionHandshakeInterceptor implements HandshakeInter
         return valid;
     }
 
-    public abstract boolean handleNewSubscription(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, Map<String, Object> attributes) throws TokenFormatException, AuthenticationException, CodecException, ParameterException ;
+    public abstract boolean handleNewSubscription(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, Map<String, Object> attributes) throws TokenFormatException, AuthenticationException, CodecException, ParameterException, ContainerException;
     protected SubscriptionService subscribeDevice_Property(String selector, String device, String property, String authStr)
             throws TokenFormatException, AuthenticationException {
         SubscriptionService subscriptionService;

@@ -6,6 +6,7 @@ import cern.rade.services.codec.javatolv.LVTypeEncoder;
 import cern.rade.services.codec.lvtojava.LVDataContainerFactory;
 import cern.rade.services.codec.lvtojava.LVTypeDecoder;
 import cern.rade.services.common.BytesUtil;
+import cern.rade.services.common.containers.java.ContainerException;
 import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.common.containers.labview.LVTypeDescriptor;
 import cern.rbac.client.authentication.AuthenticationException;
@@ -20,7 +21,7 @@ import java.util.Base64;
 import java.util.Map;
 
 public class LVSubscriptionHandshakeInterceptor extends SubscriptionHandshakeInterceptor{
-    public boolean handleNewSubscription(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, Map<String, Object> attributes) throws TokenFormatException, AuthenticationException, CodecException, ParameterException {
+    public boolean handleNewSubscription(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, Map<String, Object> attributes) throws TokenFormatException, AuthenticationException, CodecException, ParameterException, ContainerException {
         //"{selector}/{device}/{property}/{field}"
         HttpHeaders headers =  request.getHeaders();
         HttpHeaders retHeaders = response.getHeaders();
@@ -68,7 +69,7 @@ public class LVSubscriptionHandshakeInterceptor extends SubscriptionHandshakeInt
         return true;
     }
 
-    private String getLVType(SubscriptionService subscriptionService) throws CodecException {
+    private String getLVType(SubscriptionService subscriptionService) throws CodecException, ContainerException {
         //Push the latest value into the container, so we can generate the type descriptor to send back to the client
         subscriptionService.pushLatestIntoContainer(1000);
         DataContainer dataContainer = subscriptionService.getLatest();
