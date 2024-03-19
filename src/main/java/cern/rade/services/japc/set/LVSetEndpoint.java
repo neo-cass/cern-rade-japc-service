@@ -18,7 +18,7 @@ import java.util.Base64;
 @RequestMapping(value = "/set", consumes = "application/labview-variant")
 public class LVSetEndpoint extends SetEndpoint{
     private DataContainer getDataContainer(byte[] data, String type_descriptor) throws CodecException {
-        byte[] type_desc = Base64.getDecoder().decode(type_descriptor);
+        byte[] type_desc = Base64.getUrlDecoder().decode(type_descriptor);
         return LVDecoder.decode(ByteBuffer.wrap(type_desc), ByteBuffer.wrap(data));
     }
 

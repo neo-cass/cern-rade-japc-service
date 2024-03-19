@@ -73,11 +73,11 @@ public class LVSubscriptionHandshakeInterceptor extends SubscriptionHandshakeInt
         subscriptionService.pushLatestIntoContainer(1000);
         DataContainer dataContainer = subscriptionService.getLatest();
         byte[] type_desc = BytesUtil.shortArrToByteArr(LVTypeEncoder.encodeTypeDescriptor(dataContainer));
-        return Base64.getEncoder().encodeToString(type_desc);
+        return Base64.getUrlEncoder().encodeToString(type_desc);
     }
 
     private DataContainer getDataContainer(String type_descriptor) throws CodecException {
-        byte[] type_desc = Base64.getDecoder().decode(type_descriptor);
+        byte[] type_desc = Base64.getUrlDecoder().decode(type_descriptor);
         LVTypeDescriptor lvTypeDescriptor = LVTypeDecoder.decode(ByteBuffer.wrap(type_desc));
         return LVDataContainerFactory.createDataContainer(lvTypeDescriptor);
     }

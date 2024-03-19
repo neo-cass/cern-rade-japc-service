@@ -69,7 +69,7 @@ public class RBACManager {
         }
         switch (auth[0]) {
             case "Explicit" -> {
-                byte[] credentials = Base64.getDecoder().decode(auth[1]);
+                byte[] credentials = Base64.getUrlDecoder().decode(auth[1]);
                 String credentialsStr = new String(credentials, StandardCharsets.ISO_8859_1);
                 String[] credentialsArr = credentialsStr.split(":");
                 if (credentialsArr.length != 2) {
@@ -78,7 +78,7 @@ public class RBACManager {
                 return createClient(credentialsArr[0], credentialsArr[1].toCharArray());
             }
             case "Location" -> {
-                return createClient(Base64.getDecoder().decode(auth[1]));
+                return createClient(Base64.getUrlDecoder().decode(auth[1]));
             }
             case "Cached" -> {
                 return createClient(Integer.parseInt(auth[1]));
