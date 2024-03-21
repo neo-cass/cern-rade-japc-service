@@ -1,5 +1,6 @@
 package cern.rade.services.japc.subscription;
 import cern.rade.services.codec.CodecException;
+import cern.rade.services.common.containers.java.ContainerException;
 import cern.rade.services.japc.ContextProvider;
 import cern.rade.services.japc.Client;
 import jakarta.websocket.*;
@@ -73,7 +74,7 @@ public class SubscriptionWebsocket {
         } catch (InterruptedException e) {
             closeOnError("Handler interrupted while waiting for new value.", e);
             return;
-        } catch (CodecException e) {
+        } catch (CodecException | ContainerException e) {
             closeOnError("Received data did not match type descriptor provided.", e);
             return;
         }

@@ -10,6 +10,7 @@ import cern.rade.services.codec.javatolv.LVDataEncoder;
 import cern.rade.services.codec.javatolv.LVTypeEncoder;
 import cern.rade.services.common.communication.AuthenticationType;
 import cern.rade.services.common.communication.MetaData;
+import cern.rade.services.common.containers.java.ContainerException;
 import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.common.containers.java.PropertyContainer;
 import cern.rade.services.japc.rbac.RBACClient;
@@ -53,7 +54,7 @@ public class GetHandler {
 
     }
 
-    public void get() throws ParameterException, AuthenticationException, CodecException {
+    public void get() throws ParameterException, AuthenticationException, CodecException, ContainerException {
         if (client.getAuthenticationType()==AuthenticationType.NONE){
             japcGET();
         }
@@ -62,7 +63,7 @@ public class GetHandler {
         }
     }
 
-    private void japcGET() throws ParameterException, CodecException {
+    private void japcGET() throws ParameterException, CodecException, ContainerException {
         apv = parameter.getValue(selector);
         if(data==null){
             data = JAPCDecoder.decode(apv);
@@ -74,7 +75,7 @@ public class GetHandler {
         }
     }
 
-    private void japcGET_SECURE() throws ParameterException, AuthenticationException, CodecException {
+    private void japcGET_SECURE() throws ParameterException, AuthenticationException, CodecException, ContainerException {
         RbaToken token = rbacClient.getApplicationToken();
         MiddleTierRbaTokenHolder.set(token);
         japcGET();
@@ -124,7 +125,7 @@ public class GetHandler {
         } catch (AuthenticationException e){
             ErrorUtil.sendErrorResponse(sender, logger, responseMetaData, "RBAC Token expired", e);
             return;
-        }catch (CodecException e) {
+        }catch (CodecException | ContainerException e) {
             ErrorUtil.sendErrorResponse(sender, logger, responseMetaData, "Error encoding data", e);
             return;
         }

@@ -7,6 +7,7 @@ import cern.rade.services.codec.japcjava.JAPCDecoder;
 import cern.rade.services.codec.javatolv.LVDataEncoder;
 import cern.rade.services.codec.javatolv.LVTypeEncoder;
 import cern.rade.services.common.communication.AuthenticationType;
+import cern.rade.services.common.containers.java.ContainerException;
 import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.common.containers.java.PropertyContainer;
 import cern.rade.services.japc.Client;
@@ -99,7 +100,7 @@ public class SubscriptionHandler implements ParameterValueListener{
         return valueQueue.poll(timeout, TimeUnit.SECONDS);
     }
 
-    public byte[] getLVData(long timeout) throws InterruptedException, CodecException {
+    public byte[] getLVData(long timeout) throws InterruptedException, CodecException, ContainerException {
         AcquiredParameterValue apv = getLatest(timeout);
         if (apv==null){return null;}
         if(data==null){
