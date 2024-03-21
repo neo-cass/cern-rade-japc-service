@@ -41,7 +41,7 @@ deploy_to_paas:
   variables:
     SERVER: https://api.paas.okd.cern.ch
     PROJECT: rade-services   # name of your Openshift project
-    APP_NAME: japc-dev  # name of the ImageStream/DeploymentConfig objects created by oc new-app
+    APP_NAME: ncass-masters-v2  # name of the ImageStream/DeploymentConfig objects created by oc new-app
   script:
     - oc login $SERVER --token=$PAAS_SERVICE_TOKEN
     - oc project $PROJECT
