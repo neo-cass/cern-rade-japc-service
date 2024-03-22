@@ -6,6 +6,8 @@ import cern.rade.services.codec.lvtojava.LVDecoder;
 import cern.rade.services.common.containers.java.DataContainer;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.TokenFormatException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +19,7 @@ import java.util.Base64;
 @RestController
 @RequestMapping(value = "/set", consumes = "application/labview-variant")
 public class LVSetEndpoint extends SetEndpoint{
+    private final Logger logger = LoggerFactory.getLogger(LVSetEndpoint.class);
     private DataContainer getDataContainer(byte[] data, String type_descriptor) throws CodecException {
         byte[] type_desc = Base64.getUrlDecoder().decode(type_descriptor);
         return LVDecoder.decode(ByteBuffer.wrap(type_desc), ByteBuffer.wrap(data));
@@ -47,6 +50,7 @@ public class LVSetEndpoint extends SetEndpoint{
 
     @ExceptionHandler({ParameterException.class, CodecException.class, TokenFormatException.class, AuthenticationException.class})
     public ResponseEntity<String> handleException(Exception e){
+        logger.error("Error in LabVIEW set endpoint", e);
         return ResponseEntity.badRequest().body(e.getMessage());
     }
 }
