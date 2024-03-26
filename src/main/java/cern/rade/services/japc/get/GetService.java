@@ -38,30 +38,28 @@ public class GetService {
         this.selectorName =selectorName;
     }
 
-    public GetService(String selectorName, String device, String property, String field, RBACClient rbacClient){
-        this.parameterName = Parameters.buildParameterName(device, property, field);
-        this.selectorName =selectorName;
-        this.rbacClient = rbacClient;
-    }
-
-    public GetService(String selectorName, String device, String property, RBACClient rbacClient){
-        this.parameterName = Parameters.buildParameterName(device, property);
-        this.selectorName = selectorName;
-        this.rbacClient = rbacClient;
-    }
-
-    public GetService(String selectorName, String device, DataContainer data, RBACClient rbacClient){
-        this.selectorName =selectorName;
-        this.parameterName = Parameters.buildParameterName(device, data.getName());
-        this.data = data;
-        this.rbacClient = rbacClient;
-    }
-
     public GetService(String selectorName, String device, DataContainer data){
         this.selectorName = selectorName;
         this.parameterName = Parameters.buildParameterName(device, data.getName());
         this.data = data;
     }
+
+    public GetService(String selectorName, String device, String property, String field, RBACClient rbacClient){
+        this(selectorName, device, property, field);
+        this.rbacClient = rbacClient;
+    }
+
+    public GetService(String selectorName, String device, String property, RBACClient rbacClient){
+        this(selectorName, device, property);
+        this.rbacClient = rbacClient;
+    }
+
+    public GetService(String selectorName, String device, DataContainer data, RBACClient rbacClient){
+        this(selectorName, device, data);
+        this.rbacClient = rbacClient;
+    }
+
+
 
     private void init() throws ParameterException {
         this.parameter = ParameterFactory.newInstance().newParameter(parameterName);

@@ -24,17 +24,15 @@ public class SetService {
     private boolean isExecuted = false;
     private final Logger logger = LoggerFactory.getLogger(SetService.class);
 
-    public SetService(String selectorName, String device, DataContainer data, RBACClient rbacClient){
-        this.selectorName =selectorName;
-        this.parameterName = Parameters.buildParameterName(device, data.getName());
-        this.data = data;
-        this.rbacClient = rbacClient;
-    }
-
     public SetService(String selectorName, String device, DataContainer data){
         this.selectorName = selectorName;
         this.parameterName = Parameters.buildParameterName(device, data.getName());
         this.data = data;
+    }
+
+    public SetService(String selectorName, String device, DataContainer data, RBACClient rbacClient){
+        this(selectorName, device, data);
+        this.rbacClient = rbacClient;
     }
 
     private void init() throws ParameterException {

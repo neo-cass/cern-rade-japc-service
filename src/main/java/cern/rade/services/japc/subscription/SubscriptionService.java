@@ -40,29 +40,25 @@ public class SubscriptionService implements ParameterValueListener {
         this.selectorName =selectorName;
     }
 
-    public SubscriptionService(String selectorName, String device, String property, String field, RBACClient rbacClient){
-        this.parameterName = Parameters.buildParameterName(device, property, field);
-        this.selectorName =selectorName;
-        this.rbacClient = rbacClient;
-    }
-
-    public SubscriptionService(String selectorName, String device, String property, RBACClient rbacClient){
-        this.parameterName = Parameters.buildParameterName(device, property);
-        this.selectorName = selectorName;
-        this.rbacClient = rbacClient;
-    }
-
-    public SubscriptionService(String selectorName, String device, DataContainer data, RBACClient rbacClient){
-        this.selectorName =selectorName;
-        this.parameterName = Parameters.buildParameterName(device, data.getName());
-        this.data = data;
-        this.rbacClient = rbacClient;
-    }
-
     public SubscriptionService(String selectorName, String device, DataContainer data){
         this.selectorName = selectorName;
         this.parameterName = Parameters.buildParameterName(device, data.getName());
         this.data = data;
+    }
+
+    public SubscriptionService(String selectorName, String device, String property, String field, RBACClient rbacClient){
+        this(selectorName, device, property, field);
+        this.rbacClient = rbacClient;
+    }
+
+    public SubscriptionService(String selectorName, String device, String property, RBACClient rbacClient){
+        this(selectorName, device, property);
+        this.rbacClient = rbacClient;
+    }
+
+    public SubscriptionService(String selectorName, String device, DataContainer data, RBACClient rbacClient){
+        this(selectorName, device, data);
+        this.rbacClient = rbacClient;
     }
 
     public void init() throws ParameterRuntimeException, ParameterException, AuthenticationException {
