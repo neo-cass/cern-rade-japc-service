@@ -28,7 +28,7 @@ public class SubscriptionService implements ParameterValueListener {
     private DataContainer data;
     private SubscriptionHandle sh;
     private LinkedBlockingQueue<AcquiredParameterValue> valueQueue;
-    private boolean initialised = false;
+    private boolean executed = false;
     private final Logger logger = LoggerFactory.getLogger(SubscriptionService.class);
     public SubscriptionService(String selectorName, String device, String property, String field){
         this.parameterName = Parameters.buildParameterName(device, property, field);
@@ -66,11 +66,9 @@ public class SubscriptionService implements ParameterValueListener {
         this.selector = SelectorFactory.newSelector(selectorName);
         this.sh = parameter.createSubscription(selector, this);
         this.valueQueue = new LinkedBlockingQueue<>(ContextProvider.getServiceProperties().getSubQueueSize());
-        this.initialised = true;
     }
 
-    public void startSubscription() throws ParameterException, AuthenticationException {
-        if(!isInitialised()){throw new RuntimeException("SubscriptionService not initialised");}
+    private void subscribe() throws ParameterException, AuthenticationException {
         if(rbacClient == null){
             startNormalSubscription();
         }
@@ -86,23 +84,25 @@ public class SubscriptionService implements ParameterValueListener {
     private void startSecureSubscription() throws ParameterException, AuthenticationException{
         MiddleTierRbaTokenHolder.set(rbacClient.getApplicationToken());
         startNormalSubscription();
+        MiddleTierRbaTokenHolder.clear();
     }
 
     public void stopSubscription() {
-        if(this.rbacClient == null){
-            stopNormalSubscription();
-        }
-        else{
-            stopSecureSubscription();
-        }
-    }
-    private void stopSecureSubscription() {
-        MiddleTierRbaTokenHolder.clear();
-        stopNormalSubscription();
-    }
-    private void stopNormalSubscription() {
         sh.stopMonitoring();
+//        if(this.rbacClient == null){
+//            stopNormalSubscription();
+//        }
+//        else{
+//            stopSecureSubscription();
+//        }
     }
+//    private void stopSecureSubscription() {
+//        MiddleTierRbaTokenHolder.clear();
+//        stopNormalSubscription();
+//    }
+//    private void stopNormalSubscription() {
+//        sh.stopMonitoring();
+//    }
 
     @Override
     public void valueReceived(String parameterName, AcquiredParameterValue value) {
@@ -119,10 +119,17 @@ public class SubscriptionService implements ParameterValueListener {
         logger.error("Exception occurred in subscription service: " + description, exception);
     }
 
+    /**
+     * Pushes the latest value from the subscription into the DataContainer
+     * @param timeout the amount of time to wait in milliseconds for a value to be available before timing out.
+     * @return true if a value was pushed into the DataContainer, false if the timeout was reached
+     * @throws CodecException if the value could not be decoded into the DataContainer
+     * @throws ContainerException  if the DataContainer is not compatible with the value received from the subscription
+     */
     public boolean pushLatestIntoContainer(long timeout) throws CodecException, ContainerException {
         //TODO: consider implementing a copy of the DataContainer to avoid race conditions, is this necessary?
         //Its a bit strange to return the same DataContainer every time with different values
-        if(!isInitialised()){throw new RuntimeException("SubscriptionService not initialised");}
+        if(!isExecuted()){throw new RuntimeException("SubscriptionService not initialised");}
         AcquiredParameterValue apv;
         try {
             apv = valueQueue.poll(timeout, TimeUnit.MILLISECONDS);
@@ -134,7 +141,21 @@ public class SubscriptionService implements ParameterValueListener {
         return true;
     }
 
+    /**
+     * Initialises the subscription, starts monitoring and pushes the latest value into the DataContainer.
+     * @throws ParameterException if the parameter could not be created or if the subscription could not be started.
+     * @throws ContainerException if the DataContainer is not compatible with the value received from the subscription.
+     * @throws CodecException if the value could not be decoded into the DataContainer.
+     */
+    public void execute() throws ParameterException, ContainerException, CodecException {
+        init();
+        subscribe();
+        pushLatestIntoContainer(1000);
+        this.executed = true;
+    }
+
     public DataContainer getLatest() {
+        if(!isExecuted()){throw new RuntimeException("SubscriptionService not initialised");}
         return data;
     }
 
@@ -147,8 +168,8 @@ public class SubscriptionService implements ParameterValueListener {
         }
     }
 
-    public boolean isInitialised() {
-        return initialised;
+    public boolean isExecuted() {
+        return executed;
     }
 
     public boolean isMonitoring() {

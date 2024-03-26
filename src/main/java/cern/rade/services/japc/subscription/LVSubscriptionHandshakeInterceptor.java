@@ -54,8 +54,7 @@ public class LVSubscriptionHandshakeInterceptor extends SubscriptionHandshakeInt
             return false;
         }
 
-        subscriptionService.init();
-        subscriptionService.startSubscription();
+        subscriptionService.execute();
 
         attributes.put("subscriptionService", subscriptionService);
         byte[] ipAddr = request.getRemoteAddress().getAddress().getAddress();
@@ -69,9 +68,7 @@ public class LVSubscriptionHandshakeInterceptor extends SubscriptionHandshakeInt
         return true;
     }
 
-    private String getLVType(SubscriptionService subscriptionService) throws CodecException, ContainerException {
-        //Push the latest value into the container, so we can generate the type descriptor to send back to the client
-        subscriptionService.pushLatestIntoContainer(1000);
+    private String getLVType(SubscriptionService subscriptionService) throws CodecException {
         DataContainer dataContainer = subscriptionService.getLatest();
         byte[] type_desc = BytesUtil.shortArrToByteArr(LVTypeEncoder.encodeTypeDescriptor(dataContainer));
         return Base64.getUrlEncoder().encodeToString(type_desc);

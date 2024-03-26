@@ -85,8 +85,7 @@ public class SubscriptionInitialiser extends SpringConfigurator implements Servl
             return;
         }
 
-        subscriptionService.init();
-        subscriptionService.startSubscription();
+        subscriptionService.execute();
 
         sec.getUserProperties().put("subscriptionService", subscriptionService);
         if(authStr!=null){
@@ -111,7 +110,6 @@ public class SubscriptionInitialiser extends SpringConfigurator implements Servl
     }
 
     private String getLVType(SubscriptionService subscriptionService) throws CodecException, ContainerException {
-        subscriptionService.pushLatestIntoContainer(1);
         DataContainer dataContainer = subscriptionService.getLatest();
         byte[] type_desc = BytesUtil.shortArrToByteArr(LVTypeEncoder.encodeTypeDescriptor(dataContainer));
         return Base64.getUrlEncoder().encodeToString(type_desc);
