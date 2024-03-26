@@ -129,7 +129,7 @@ public class SubscriptionService implements ParameterValueListener {
     public boolean pushLatestIntoContainer(long timeout) throws CodecException, ContainerException {
         //TODO: consider implementing a copy of the DataContainer to avoid race conditions, is this necessary?
         //Its a bit strange to return the same DataContainer every time with different values
-        if(!isExecuted()){throw new RuntimeException("SubscriptionService not initialised");}
+        if(!isMonitoring()){throw new RuntimeException("SubscriptionService not initialised");}
         AcquiredParameterValue apv;
         try {
             apv = valueQueue.poll(timeout, TimeUnit.MILLISECONDS);
