@@ -17,7 +17,7 @@ import java.util.Base64;
 
 
 @RestController
-@RequestMapping(value = "/set", consumes = "application/labview-variant")
+@RequestMapping(value = "/rest", consumes = "application/labview-variant")
 public class LVSetEndpoint extends SetEndpoint{
     private final Logger logger = LoggerFactory.getLogger(LVSetEndpoint.class);
     private DataContainer getDataContainer(byte[] data, String type_descriptor) throws CodecException {

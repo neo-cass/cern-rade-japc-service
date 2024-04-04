@@ -23,7 +23,7 @@ import java.nio.ByteBuffer;
 import java.util.Base64;
 
 @RestController
-@RequestMapping(value = "/get", produces = "application/labview-variant")
+@RequestMapping(value = "/rest", produces = "application/labview-variant")
 public class LVGetEndpoint extends GetEndpoint{
     private final Logger logger = LoggerFactory.getLogger(LVGetEndpoint.class);
 
