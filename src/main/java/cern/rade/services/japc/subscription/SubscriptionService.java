@@ -1,8 +1,13 @@
 package cern.rade.services.japc.subscription;
 
 import cern.japc.core.*;
+import cern.japc.core.factory.MapParameterValueFactory;
 import cern.japc.core.factory.ParameterFactory;
 import cern.japc.core.factory.SelectorFactory;
+import cern.japc.core.factory.SimpleParameterValueFactory;
+import cern.japc.value.MapParameterValue;
+import cern.japc.value.ParameterValue;
+import cern.japc.value.SimpleParameterValue;
 import cern.rade.services.codec.CodecException;
 import cern.rade.services.codec.japcjava.JAPCDecoder;
 import cern.rade.services.common.containers.java.ContainerException;
@@ -89,20 +94,7 @@ public class SubscriptionService implements ParameterValueListener {
 
     public void stopSubscription() {
         sh.stopMonitoring();
-//        if(this.rbacClient == null){
-//            stopNormalSubscription();
-//        }
-//        else{
-//            stopSecureSubscription();
-//        }
     }
-//    private void stopSecureSubscription() {
-//        MiddleTierRbaTokenHolder.clear();
-//        stopNormalSubscription();
-//    }
-//    private void stopNormalSubscription() {
-//        sh.stopMonitoring();
-//    }
 
     @Override
     public void valueReceived(String parameterName, AcquiredParameterValue value) {
@@ -110,13 +102,13 @@ public class SubscriptionService implements ParameterValueListener {
         try {
             valueQueue.put(value);
         } catch (InterruptedException e) {
-            logger.error("Handler thread interrupted, missed value", e);
+            logger.error("Handler thread interrupted, missed value.", e);
         }
     }
 
     @Override
     public void exceptionOccured(String parameterName, String description, ParameterException exception) {
-        logger.error("Exception occurred in subscription service: " + description, exception);
+        logger.error("ParameterException occurred in the JAPC subscription: " + description, exception);
     }
 
     /**
@@ -128,7 +120,6 @@ public class SubscriptionService implements ParameterValueListener {
      */
     public boolean pushLatestIntoContainer(long timeout) throws CodecException, ContainerException {
         //TODO: consider implementing a copy of the DataContainer to avoid race conditions, is this necessary?
-        //Its a bit strange to return the same DataContainer every time with different values
         if(!isMonitoring()){throw new RuntimeException("SubscriptionService not initialised");}
         AcquiredParameterValue apv;
         try {
@@ -159,6 +150,12 @@ public class SubscriptionService implements ParameterValueListener {
         return data;
     }
 
+    /**
+     * Decodes an {@link AcquiredParameterValue} into either the provided {@link PropertyContainer} or generates a new one based on apv.
+     * @param apv the {@link AcquiredParameterValue} to be decoded.
+     * @throws CodecException if the value could not be decoded into a {@link PropertyContainer}.
+     * @throws ContainerException if the DataContainer is not compatible with the {@link AcquiredParameterValue}.
+     */
     private void decode(AcquiredParameterValue apv) throws CodecException, ContainerException {
         if(data==null){
             data = JAPCDecoder.decode(apv);

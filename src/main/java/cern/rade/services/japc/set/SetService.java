@@ -20,6 +20,7 @@ public class SetService {
     private Selector selector;
     private String parameterName;
     private String selectorName;
+    private ParameterValue parameterValue;
     private RBACClient rbacClient;
     private boolean isExecuted = false;
     private final Logger logger = LoggerFactory.getLogger(SetService.class);
@@ -49,9 +50,12 @@ public class SetService {
         }
     }
 
+    private void encode() throws CodecException {
+        parameterValue = JAPCEncoder.encode(data);
+    }
+
     private void japcSET() throws ParameterException, CodecException {
-        ParameterValue pv = JAPCEncoder.encode(data);
-        parameter.setValue(selector, pv);
+        parameter.setValue(selector, parameterValue);
     }
 
     private void japcSET_SECURE() throws ParameterException, AuthenticationException, CodecException {
@@ -62,6 +66,7 @@ public class SetService {
     }
 
     public void execute() throws ParameterException, CodecException, AuthenticationException{
+        encode();
         init();
         set();
         this.isExecuted = true;
