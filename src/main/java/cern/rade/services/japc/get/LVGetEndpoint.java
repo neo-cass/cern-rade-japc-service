@@ -112,7 +112,7 @@ public class LVGetEndpoint extends GetEndpoint{
     @ExceptionHandler({ParameterException.class, CodecException.class, TokenFormatException.class, AuthenticationException.class, ContainerException.class})
     public ResponseEntity<String> handleException(Exception e){
         //TODO: generate LabVIEW error cluster
-        logger.error("Error in LabVIEW GET endpoint", e);
+        logger.error("Error in LabVIEW GET endpoint.", e);
         return ResponseEntity.badRequest().body(e.getMessage());
     }
 
