@@ -115,5 +115,4 @@ public class LVGetEndpoint extends GetEndpoint{
         logger.error("Error in LabVIEW GET endpoint.", e);
         return ResponseEntity.badRequest().body(e.getMessage());
     }
-
 }
