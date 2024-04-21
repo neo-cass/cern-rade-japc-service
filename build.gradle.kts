@@ -48,6 +48,7 @@ dependencies {
 
 
     //necessary for log4j2 yaml config file to work
+
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.15.2")
 
     //log4j2 from springboot
