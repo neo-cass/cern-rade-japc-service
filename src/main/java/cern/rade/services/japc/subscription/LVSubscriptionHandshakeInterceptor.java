@@ -27,7 +27,6 @@ public class LVSubscriptionHandshakeInterceptor extends SubscriptionHandshakeInt
         HttpHeaders retHeaders = response.getHeaders();
         String url = headers.getFirst("Subscription-Url");
         if(url==null){
-            //TODO: maybe throw a new type of exception instead and handle in modifyHandshake
             rejectClient(response, retHeaders,"Subscription-Url header not provided",400);
             return false;
         }

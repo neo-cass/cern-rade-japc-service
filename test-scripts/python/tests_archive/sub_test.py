@@ -67,7 +67,7 @@ for i in range(0, len(vals)):
 # argParser.add_argument("-t", "--tls", help="secure connection or not", default=False, action='store_true')
 # args = argParser.parse_args()
 
-# server = "collimator-test-rade-services.app.cern.ch"
+# server = "tests_archive-rade-services.app.cern.ch"
 # server="localhost:8080"
 # server = "cwe-513-vpl581.cern.ch:8080"
 

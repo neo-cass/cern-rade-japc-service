@@ -5,8 +5,8 @@ webapp-build
 application-build
 .idea
 *idea
-test-scripts/venv
+test-scripts/python/venv
 *logs*
-test-scripts/.idea
+test-scripts/python/.idea
 *.war
 

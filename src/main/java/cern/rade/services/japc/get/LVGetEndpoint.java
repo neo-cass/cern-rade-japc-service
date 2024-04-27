@@ -50,7 +50,6 @@ public class LVGetEndpoint extends GetEndpoint{
             @PathVariable("property") String property,
             @RequestHeader(value = "Rbac", required = false) String authStr)
             throws ParameterException, CodecException, TokenFormatException, AuthenticationException, ContainerException {
-        logger.info("Get request for device: " + device + " property: " + property + " selector: " + selector);
         HttpHeaders retHeaders = new HttpHeaders();
         GetService getService = getDevice_Property(selector, device, property, authStr);
         getService.execute();
