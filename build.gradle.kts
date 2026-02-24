@@ -35,6 +35,9 @@ dependencies {
 
     implementation ("cern.rade.services:codec:master")
     implementation ("cern.rade.services:common:master")
+//    implementation(files("/home/ncass/Workspace/common/build/libs/common-1.0.3.jar"))
+//    implementation(files("/home/ncass/Workspace/rade-codec/java-codec/build/libs/codec-1.0.3.jar"))
+
 
     implementation ("org.apache.commons:commons-lang3:3.12.0")
     implementation ("com.google.code.gson:gson:2.10.1")
@@ -45,6 +48,7 @@ dependencies {
 
 
     //necessary for log4j2 yaml config file to work
+
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.15.2")
 
     //log4j2 from springboot

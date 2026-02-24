@@ -41,11 +41,11 @@ deploy_to_paas:
   variables:
     SERVER: https://api.paas.okd.cern.ch
     PROJECT: rade-services   # name of your Openshift project
-    APP_NAME: japc-dev  # name of the ImageStream/DeploymentConfig objects created by oc new-app
+    APP_NAME: ncass-masters-v3  # name of the ImageStream/DeploymentConfig objects created by oc new-app
   script:
     - oc login $SERVER --token=$PAAS_SERVICE_TOKEN
     - oc project $PROJECT
-    - oc import-image $APP_NAME --all
+    - oc import-image $APP_NAME --all --confirm
     - sleep 10 && oc rollout status deployment/$APP_NAME
   # if you are using Openshift's DeploymentConfig (instead of regular Deployments), use this command:
   # - sleep 10 && oc rollout status deploymentconfig/$APP_NAME

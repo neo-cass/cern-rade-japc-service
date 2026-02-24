@@ -2,96 +2,129 @@ package cern.rade.services.japc.subscription;
 
 
 import cern.rade.services.japc.ContextProvider;
-import jakarta.annotation.PostConstruct;
-import jakarta.websocket.CloseReason;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.BeanFactoryAware;
+import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.WebSocketHandler;
+import org.springframework.web.socket.WebSocketMessage;
+import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.handler.BeanCreatingHandlerProvider;
+import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorator;
 
+import java.io.Closeable;
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.*;
-@Component
-public class SubscriptionManager {
+public class SubscriptionManager implements WebSocketHandler, BeanFactoryAware, Closeable {
     private final long pingToClientFrequency = ContextProvider.getServiceProperties().getPingToClientFrequency();
-    private ConcurrentHashMap<Integer, SubscriptionWebsocket> sockets;
-    private ConcurrentHashMap<Integer, SubscriptionHandler> clients;
+    private ConcurrentHashMap<WebSocketSession, SubscriptionWebSocketHandler> handlers;
     private ScheduledExecutorService pingSchedulerService;
     private ExecutorService pingService;
+    private boolean supportsPartialMessages;
     private final Logger logger = LoggerFactory.getLogger(SubscriptionManager.class);
+    private final BeanCreatingHandlerProvider<SubscriptionWebSocketHandler> provider;
 
-    public SubscriptionManager(){
+    public SubscriptionManager(Class<? extends SubscriptionWebSocketHandler> handlerType) {
+        this(handlerType,false);
     }
 
-    @PostConstruct
+    public SubscriptionManager(Class<? extends SubscriptionWebSocketHandler> handlerType, boolean supportsPartialMessages) {
+        this.supportsPartialMessages = supportsPartialMessages;
+        this.provider = new BeanCreatingHandlerProvider<>(handlerType);
+        this.handlers = new ConcurrentHashMap<>();
+    }
     public void init(){
-        pingSchedulerService = Executors.newSingleThreadScheduledExecutor();
-        pingService = Executors.newCachedThreadPool();
-        sockets = new ConcurrentHashMap<>();
-        clients = new ConcurrentHashMap<>();
-        pingSchedulerService.scheduleAtFixedRate(this::pingSockets,0, pingToClientFrequency, TimeUnit.SECONDS);
+        this.pingSchedulerService = Executors.newSingleThreadScheduledExecutor();
+        this.pingService = Executors.newCachedThreadPool();
+        pingSchedulerService.scheduleAtFixedRate(this::pingSockets,0, pingToClientFrequency, TimeUnit.MILLISECONDS);
     }
 
-    public void pingSocket(SubscriptionWebsocket socket){
+    public void pingSocket(SubscriptionWebSocketHandler handler){
         try {
-            socket.ping();
+            handler.ping();
         } catch (IOException e) {
-            logger.error("Error pinging client", e);
-            closeUnresponsiveClient(socket.getId());
+            logger.error("Error pinging client with ID {}", handler.getId(), e);
         }
     }
-
-
-
     public void pingSockets(){
-        sockets.forEach((id, socket)-> submitToPingService(socket));
+        handlers.forEach((session, handler) -> submitToPingService(handler));
     }
-
-    public void submitToPingService(SubscriptionWebsocket socket){
-        pingService.submit(() -> pingSocket(socket));
+    public void submitToPingService(SubscriptionWebSocketHandler handler){
+        pingService.submit(() -> pingSocket(handler));
     }
-    public void addSubSock(int sessionID, SubscriptionWebsocket sub){
-        sockets.put(sessionID, sub);
+    public void clearSubscriptionHandlers() throws IOException{
+        for (Map.Entry<WebSocketSession, SubscriptionWebSocketHandler> entry : handlers.entrySet()) {
+            SubscriptionWebSocketHandler handler = entry.getValue();
+            handler.closeSession(new CloseStatus(CloseStatus.GOING_AWAY.getCode(), "Cleanup from subscription manager"));
+        }
     }
-    public void removeSubSock(int id){
-        sockets.remove(id);
-    }
-    public SubscriptionWebsocket getSubSock(int id){
-        return sockets.get(id);
-    }
-    public void addSubHandler(int id, SubscriptionHandler client){
-        clients.put(id, client);
-    }
-    public SubscriptionHandler removeSubHandler(int id){
-        return clients.remove(id);
-    }
-    public void clearSubHandlers(){
-        clients.forEach((id, client) -> client.stopSubscription());
-        clients.clear();
-    }
-    public void clearSubWebsockets(){
-        sockets.forEach((id, socket) -> socket.close(new CloseReason(CloseReason.CloseCodes.SERVICE_RESTART, "Cleanup from subscription manager")));
-        sockets.clear();
-    }
-
-    public void closeTimedOutSubSocket(int id){
-        sockets.get(id).close(new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "Slow client, did not respond to pings within 10 seconds"));
-        removeSubSock(id);
-    }
-
-    public void closeUnresponsiveClient(int id){
-        sockets.get(id).close(new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "Max ping retry attempts reached."));
-        removeSubSock(id);
-    }
-    public void shutdownService(){
-        clearSubHandlers();
-        clearSubWebsockets();
+    @Override
+    public void close() throws IOException {
+        clearSubscriptionHandlers();
         pingService.shutdown();
         pingSchedulerService.shutdown();
     }
 
-    public void restartService(){
-        shutdownService();
-        init();
+    //WebSocketHandler methods
+    public void setBeanFactory(BeanFactory beanFactory) {
+        this.provider.setBeanFactory(beanFactory);
     }
 
+    public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+        SubscriptionWebSocketHandler handler = this.provider.getHandler();
+        this.handlers.put(session, handler);
+        handler.afterConnectionEstablished(new ConcurrentWebSocketSessionDecorator(session, 32768, 32768));
+    }
+
+    public void handleMessage(WebSocketSession session, WebSocketMessage<?> message) throws Exception {
+        this.getHandler(session).handleMessage(session, message);
+    }
+
+    public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
+        this.getHandler(session).handleTransportError(session, exception);
+    }
+
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) throws Exception {
+        try {
+            this.getHandler(session).afterConnectionClosed(session, closeStatus);
+        } finally {
+            this.destroyHandler(session);
+        }
+    }
+
+    public boolean supportsPartialMessages() {
+        return this.supportsPartialMessages;
+    }
+
+    private WebSocketHandler getHandler(WebSocketSession session) {
+        SubscriptionWebSocketHandler handler = this.handlers.get(session);
+        if (handler == null) {
+            throw new IllegalStateException("WebSocketHandler not found for " + session);
+        } else {
+            return handler;
+        }
+    }
+
+    private void destroyHandler(WebSocketSession session) {
+        SubscriptionWebSocketHandler handler = this.handlers.remove(session);
+
+        try {
+            if (handler != null) {
+                this.provider.destroy(handler);
+            }
+        } catch (Throwable var4) {
+            if (logger.isWarnEnabled()) {
+                logger.warn("Error while destroying " + handler, var4);
+            }
+        }
+
+    }
+    public String toString() {
+        return "SubscriptionManager[handlerType=" + this.provider.getHandlerType() + "]";
+    }
+
+
 }
+
