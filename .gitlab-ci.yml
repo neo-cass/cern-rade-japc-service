@@ -32,7 +32,7 @@ build_image:
   tags:
     - k8s-default
   image:
-    name: gitlab-registry.cern.ch/ci-tools/docker-image-builder:latest
+    name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
   stage: buildImage
   script:
