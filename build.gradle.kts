@@ -1,7 +1,7 @@
 plugins {
     id ("java")
     id ("war")
-    id ("cern.devops.cbng.dependency") version "4.0.83"
+    id ("cern.devops.cbng.dependency") version "4.9.0"
     id ("org.springframework.boot") version "3.1.3"
 
 

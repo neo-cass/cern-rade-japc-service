@@ -7,6 +7,8 @@ stages:
   - deploy
 
 build_war:
+  tags:
+    - k8s-default
   image:
     name: eclipse-temurin:17-alpine
   artifacts:
@@ -27,6 +29,8 @@ build_war:
     - ./gradlew -PwarName=$WAR_NAME bootWar
 
 build_image:
+  tags:
+    - k8s-default
   image:
     name: gitlab-registry.cern.ch/ci-tools/docker-image-builder:latest
     entrypoint: [""]
@@ -36,6 +40,8 @@ build_image:
     - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --build-arg WAR_NAME=$WAR_NAME
 
 deploy_to_paas:
+  tags:
+    - k8s-default
   stage: deploy
   image: gitlab-registry.cern.ch/paas-tools/openshift-client:latest
   variables:
