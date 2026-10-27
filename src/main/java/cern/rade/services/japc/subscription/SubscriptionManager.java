@@ -2,11 +2,13 @@ package cern.rade.services.japc.subscription;
 
 
 import cern.rade.services.japc.ContextProvider;
+import cern.rade.services.japc.format.Formats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.SubProtocolCapable;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.WebSocketMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -15,9 +17,10 @@ import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorato
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
-public class SubscriptionManager implements WebSocketHandler, BeanFactoryAware, Closeable {
+public class SubscriptionManager implements WebSocketHandler, SubProtocolCapable, BeanFactoryAware, Closeable {
     private final long pingToClientFrequency = ContextProvider.getServiceProperties().getPingToClientFrequency();
     private ConcurrentHashMap<WebSocketSession, SubscriptionWebSocketHandler> handlers;
     private ScheduledExecutorService pingSchedulerService;
@@ -34,6 +37,11 @@ public class SubscriptionManager implements WebSocketHandler, BeanFactoryAware, 
         this.supportsPartialMessages = supportsPartialMessages;
         this.provider = new BeanCreatingHandlerProvider<>(handlerType);
         this.handlers = new ConcurrentHashMap<>();
+    }
+
+    @Override
+    public List<String> getSubProtocols() {
+        return Formats.subprotocols();
     }
     public void init(){
         this.pingSchedulerService = Executors.newSingleThreadScheduledExecutor();

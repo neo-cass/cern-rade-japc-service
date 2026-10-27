@@ -19,13 +19,13 @@ public class SubscriptionWebSocketConfigurator implements WebSocketConfigurer {
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         //SubscriptionManager acts similarly to the PerConnectionWebSocketHandler,
         //but it instead requires the handler type to extend SubscriptionWebSocketHandler
-        SubscriptionManager lvHandler = new SubscriptionManager(LVSubscriptionWebSocketHandler.class);
-        subscriptionHandlers.put("labview", lvHandler);
+        SubscriptionManager subscriptionHandler = new SubscriptionManager(SubscriptionWebSocketHandler.class);
+        subscriptionHandlers.put("subscription", subscriptionHandler);
         //We must initialise so that the manager creates its executors for pinging connected clients
-        lvHandler.init();
+        subscriptionHandler.init();
         //We intercept the HTTP handshake, so we can initialise the SubscriptionService
         //and return the client's RBAC ID and type descriptor as required.
-        registry.addHandler(lvHandler, "/subscription/labview").addInterceptors(new LVSubscriptionHandshakeInterceptor());
+        registry.addHandler(subscriptionHandler, "/subscription/**").addInterceptors(new SubscriptionHandshakeInterceptor());
     }
     @Bean
     public ServletServerContainerFactoryBean createWebSocketContainer() {

@@ -2,12 +2,9 @@ package cern.rade.services.japc.subscription;
 
 import cern.japc.core.ParameterException;
 import cern.rade.services.codec.CodecException;
-import cern.rade.services.codec.javatolv.LVTypeEncoder;
-import cern.rade.services.codec.lvtojava.LVDataContainerFactory;
-import cern.rade.services.codec.lvtojava.LVTypeDecoder;
+import cern.rade.services.codec.labview.LVTypeEncoder;
+import cern.rade.services.codec.labview.LVTypeDecoder;
 import cern.rade.services.common.BytesUtil;
-import cern.rade.services.common.containers.java.ContainerException;
-import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.common.containers.labview.LVTypeDescriptor;
 import cern.rade.services.japc.ContextProvider;
 import cern.rade.services.japc.rbac.RBACClient;
@@ -46,12 +43,12 @@ public class SubscriptionInitialiser extends SpringConfigurator implements Servl
         try {
             handleNewSubscription(sec, request, response);
         } catch (TokenFormatException | ParameterException | CodecException |
-                 InstantiationException | ContainerException e) {
+                 InstantiationException e) {
             rejectClient(response.getHeaders(), e.getMessage());
         }
     }
 
-    private void handleNewSubscription(ServerEndpointConfig sec, HandshakeRequest request, HandshakeResponse response) throws TokenFormatException, CodecException, ParameterException, InstantiationException, ContainerException {
+    private void handleNewSubscription(ServerEndpointConfig sec, HandshakeRequest request, HandshakeResponse response) throws TokenFormatException, CodecException, ParameterException, InstantiationException {
         //"{selector}/{device}/{property}/{field}"
         Map<String, List<String>> headers =  request.getHeaders();
         Map<String, List<String>> retHeaders = response.getHeaders();
@@ -78,7 +75,7 @@ public class SubscriptionInitialiser extends SpringConfigurator implements Servl
                 rejectClient(retHeaders, "Type-Descriptor header not provided");
                 return;
             }
-            subscriptionService = subscribeDevice_DataContainer(names[0], names[1], getDataContainer(type_descriptor_str), authStr);
+            subscriptionService = subscribeDevice_Property(names[0], names[1], getTypeDescriptor(type_descriptor_str).getName(), authStr);
         }
         else{
             rejectClient(retHeaders, "Subscription-Url format not recognized");
@@ -92,7 +89,7 @@ public class SubscriptionInitialiser extends SpringConfigurator implements Servl
             setSingleHeaderValue(retHeaders, "Rbac","Cached " + subscriptionService.getRbacClient().getRbac_id());
         }
         if(type_descriptor_str==null){
-            setSingleHeaderValue(retHeaders, "Type-Descriptor", getLVType(subscriptionService));
+            setSingleHeaderValue(retHeaders, "Type-Descriptor", getLVType(names[names.length - 1], subscriptionService));
         }
     }
 
@@ -109,16 +106,15 @@ public class SubscriptionInitialiser extends SpringConfigurator implements Servl
         headers.put(header, List.of(value));
     }
 
-    private String getLVType(SubscriptionService subscriptionService) throws CodecException, ContainerException {
-        DataContainer dataContainer = subscriptionService.getLatest();
-        byte[] type_desc = BytesUtil.shortArrToByteArr(LVTypeEncoder.encodeTypeDescriptor(dataContainer));
+    private String getLVType(String name, SubscriptionService subscriptionService) throws CodecException {
+        LVTypeDescriptor lvTypeDescriptor = LVTypeEncoder.describe(name, subscriptionService.getLatest());
+        byte[] type_desc = BytesUtil.shortArrToByteArr(LVTypeEncoder.encodeTypeDescriptor(lvTypeDescriptor, subscriptionService.getLatest()));
         return Base64.getUrlEncoder().encodeToString(type_desc);
     }
 
-    private DataContainer getDataContainer(String type_descriptor) throws CodecException {
+    private LVTypeDescriptor getTypeDescriptor(String type_descriptor) throws CodecException {
         byte[] type_desc = Base64.getUrlDecoder().decode(type_descriptor);
-        LVTypeDescriptor lvTypeDescriptor = LVTypeDecoder.decode(ByteBuffer.wrap(type_desc));
-        return LVDataContainerFactory.createDataContainer(lvTypeDescriptor);
+        return LVTypeDecoder.decode(ByteBuffer.wrap(type_desc));
     }
 
     public SubscriptionService subscribeDevice_Property(String selector, String device, String property, String authStr)
@@ -144,19 +140,6 @@ public class SubscriptionInitialiser extends SpringConfigurator implements Servl
         }
         else{
             subscriptionService = new SubscriptionService(selector, device, property, field);
-        }
-        return subscriptionService;
-    }
-
-    public SubscriptionService subscribeDevice_DataContainer(String selector, String device, DataContainer data, String authStr)
-            throws TokenFormatException, AuthenticationException {
-        SubscriptionService subscriptionService;
-        if (authStr!=null){
-            RBACClient rbacClient = rbacManager.createClient(authStr);
-            subscriptionService = new SubscriptionService(selector, device, data, rbacClient);
-        }
-        else{
-            subscriptionService = new SubscriptionService(selector, device, data);
         }
         return subscriptionService;
     }

@@ -1,6 +1,6 @@
 package cern.rade.services.japc.set;
 
-import cern.rade.services.common.containers.java.DataContainer;
+import cern.japc.value.ParameterValue;
 import cern.rade.services.japc.ContextProvider;
 import cern.rade.services.japc.rbac.RBACClient;
 import cern.rade.services.japc.rbac.RBACManager;
@@ -11,18 +11,18 @@ import org.slf4j.LoggerFactory;
 public abstract class SetEndpoint{
     private final Logger logger = LoggerFactory.getLogger(SetEndpoint.class);
     private final RBACManager rbacManager = ContextProvider.getRbacManager();
-    protected SetService set(String selector, String device, DataContainer data, String authStr) throws TokenFormatException {
+    protected SetService set(String selector, String device, String property, ParameterValue data, String authStr) throws TokenFormatException {
         SetService setService;
         if (authStr != null) {
             RBACClient rbacClient = rbacManager.createClient(authStr);
-            setService = new SetService(cleanSelector(selector), device, data, rbacClient);
+            setService = new SetService(cleanSelector(selector), device, property, data, rbacClient);
         } else {
-            setService = new SetService(cleanSelector(selector), device, data);
+            setService = new SetService(cleanSelector(selector), device, property, data);
         }
         return setService;
     }
     protected String cleanSelector(String selector){
-        selector = selector.equals("NONE") ? "" : selector;
+        selector = selector == null ? "" : selector;
         return selector;
     }
 }

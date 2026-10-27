@@ -3,7 +3,6 @@ package cern.rade.services.japc.examples;
 import cern.japc.core.AcquiredParameterValue;
 import cern.japc.core.ParameterException;
 import cern.japc.core.ParameterValueListener;
-import cern.rade.services.codec.japcjava.JAPCDecoder;
 
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;

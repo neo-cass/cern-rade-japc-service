@@ -3,8 +3,6 @@ plugins {
     id ("war")
     id ("cern.devops.cbng.dependency") version "4.9.0"
     id ("org.springframework.boot") version "3.1.3"
-
-
     id("io.spring.dependency-management") version "1.1.3"
     kotlin("jvm") version "1.7.20"
     kotlin("plugin.spring") version "1.7.20"
@@ -23,7 +21,6 @@ configurations.configureEach {
 }
 
 dependencies {
-    //TODO: get rid of PRO
     implementation ("cern.japc:japc:PRO")
     implementation ("cern.japc:japc-ext-cmwrda3:PRO")
     implementation ("cern.japc:japc-value:PRO")
@@ -33,11 +30,8 @@ dependencies {
     implementation ("cern.accsoft.security:rbac-util:PRO")
     implementation ("cern.cmw:cmw-data:PRO")
 
-    implementation ("cern.rade.services:codec:master")
-    implementation ("cern.rade.services:common:master")
-//    implementation(files("/home/ncass/Workspace/common/build/libs/common-1.0.3.jar"))
-//    implementation(files("/home/ncass/Workspace/rade-codec/java-codec/build/libs/codec-1.0.3.jar"))
-
+    implementation ("cern.rade.services:codec:refactor-SNAPSHOT")
+    implementation ("cern.rade.services:common:refactor-SNAPSHOT")
 
     implementation ("org.apache.commons:commons-lang3:3.12.0")
     implementation ("com.google.code.gson:gson:2.10.1")
@@ -72,6 +66,11 @@ dependencies {
     providedRuntime("org.springframework.boot:spring-boot-starter-tomcat:3.1.3")
 }
 
+
+//    implementation(files("/home/ncass/Workspace/common/build/libs/common-1.0.3.jar"))
+////    implementation(files("/home/ncass/Workspace/rade-codec/java-codec/build/libs/codec-1.0.3.jar"))
+//    implementation(files("C:\\Users\\ncass\\workspace\\common\\build\\libs\\common-test.jar"))
+//    implementation(files("C:\\Users\\ncass\\workspace\\rade-codec\\java-codec\\build\\libs\\codec-1.0.3.jar"))
 tasks.named<org.springframework.boot.gradle.tasks.bundling.BootWar>("bootWar") {
     val warName = project.findProperty("warName")
     if(warName!=null){

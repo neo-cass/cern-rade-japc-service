@@ -3,11 +3,7 @@ package cern.rade.services.japc.get;
 import cern.japc.core.*;
 import cern.japc.core.factory.ParameterFactory;
 import cern.japc.core.factory.SelectorFactory;
-import cern.rade.services.codec.CodecException;
-import cern.rade.services.codec.japcjava.JAPCDecoder;
-import cern.rade.services.common.containers.java.ContainerException;
-import cern.rade.services.common.containers.java.DataContainer;
-import cern.rade.services.common.containers.java.PropertyContainer;
+import cern.japc.value.ParameterValue;
 import cern.rade.services.japc.rbac.RBACClient;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.RbaToken;
@@ -17,7 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class GetService {
-    private DataContainer data;
+    private ParameterValue data;
     private Parameter parameter;
     private Selector selector;
     private AcquiredParameterValue apv;
@@ -38,12 +34,6 @@ public class GetService {
         this.selectorName =selectorName;
     }
 
-    public GetService(String selectorName, String device, DataContainer data){
-        this.selectorName = selectorName;
-        this.parameterName = Parameters.buildParameterName(device, data.getName());
-        this.data = data;
-    }
-
     public GetService(String selectorName, String device, String property, String field, RBACClient rbacClient){
         this(selectorName, device, property, field);
         this.rbacClient = rbacClient;
@@ -54,10 +44,6 @@ public class GetService {
         this.rbacClient = rbacClient;
     }
 
-    public GetService(String selectorName, String device, DataContainer data, RBACClient rbacClient){
-        this(selectorName, device, data);
-        this.rbacClient = rbacClient;
-    }
 
 
 
@@ -80,13 +66,8 @@ public class GetService {
         this.acquisitionStamp = apv.getHeader().getAcqStamp();
     }
 
-    private void decode() throws CodecException, ContainerException {
-        if(data==null){
-            data = JAPCDecoder.decode(apv);
-        }
-        else{
-            JAPCDecoder.decode((PropertyContainer) data, apv);
-        }
+    private void decode() {
+        data = apv.getValue();
     }
 
     private void japcGET_SECURE() throws ParameterException, AuthenticationException {
@@ -96,7 +77,7 @@ public class GetService {
         MiddleTierRbaTokenHolder.clear();
     }
 
-    public void execute() throws ParameterException, CodecException, ContainerException {
+    public void execute() throws ParameterException {
         init();
         get();
         decode();
@@ -107,7 +88,7 @@ public class GetService {
         return executed;
     }
 
-    public DataContainer getData() {
+    public ParameterValue getData() {
         if(!isExecuted()){
             throw new RuntimeException("GetService has not been executed yet. You cant retrieve the data");
         }

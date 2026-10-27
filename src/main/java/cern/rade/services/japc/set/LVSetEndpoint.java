@@ -2,12 +2,13 @@ package cern.rade.services.japc.set;
 
 import cern.japc.core.ParameterException;
 import cern.rade.services.codec.CodecException;
-import cern.rade.services.codec.lvtojava.LVDecoder;
-import cern.rade.services.common.containers.java.DataContainer;
+import cern.japc.value.ParameterValue;
+import cern.rade.services.codec.labview.LVDataDecoder;
+import cern.rade.services.codec.labview.LVTypeDecoder;
+import cern.rade.services.common.containers.labview.LVTypeDescriptor;
+import cern.rade.services.japc.format.LabVIEWFormat;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.TokenFormatException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,26 +18,26 @@ import java.util.Base64;
 
 
 @RestController
-@RequestMapping(value = "/rest", consumes = "application/labview-variant")
+@RequestMapping(value = "/rest", consumes = LabVIEWFormat.MEDIA_TYPE)
 public class LVSetEndpoint extends SetEndpoint{
-    private final Logger logger = LoggerFactory.getLogger(LVSetEndpoint.class);
-    private DataContainer getDataContainer(byte[] data, String type_descriptor) throws CodecException {
+    private LVTypeDescriptor getTypeDescriptor(String type_descriptor) throws CodecException {
         byte[] type_desc = Base64.getUrlDecoder().decode(type_descriptor);
-        return LVDecoder.decode(ByteBuffer.wrap(type_desc), ByteBuffer.wrap(data));
+        return LVTypeDecoder.decode(ByteBuffer.wrap(type_desc));
     }
 
-    @PutMapping("/{selector}/{device}")
+    @PutMapping("/{device}")
     public ResponseEntity<byte[]> setDevice_Type_Descriptor(
-            @PathVariable("selector") String selector,
             @PathVariable("device") String device,
-            @RequestHeader("Type-Descriptor") String type_descriptor,
+            @RequestParam(value = "selector", required = false) String selector,
+            @RequestHeader(LabVIEWFormat.TYPE_DESCRIPTOR_HEADER) String type_descriptor,
             @RequestHeader(value = "Rbac", required = false) String authStr,
             @RequestBody byte[] data)
             throws ParameterException, CodecException, TokenFormatException, AuthenticationException {
 
         HttpHeaders retHeaders = new HttpHeaders();
-        DataContainer dataContainer = getDataContainer(data, type_descriptor);
-        SetService setService = set(selector, device, dataContainer, authStr);
+        LVTypeDescriptor lvTypeDescriptor = getTypeDescriptor(type_descriptor);
+        ParameterValue value = LVDataDecoder.decode(ByteBuffer.wrap(data), lvTypeDescriptor);
+        SetService setService = set(selector, device, lvTypeDescriptor.getName(), value, authStr);
 
         setService.execute();
         if(authStr!=null){
@@ -46,11 +47,5 @@ public class LVSetEndpoint extends SetEndpoint{
                 .ok()
                 .headers(retHeaders)
                 .build();
-    }
-
-    @ExceptionHandler({ParameterException.class, CodecException.class, TokenFormatException.class, AuthenticationException.class})
-    public ResponseEntity<String> handleException(Exception e){
-        logger.error("Error in LabVIEW set endpoint", e);
-        return ResponseEntity.badRequest().body(e.getMessage());
     }
 }

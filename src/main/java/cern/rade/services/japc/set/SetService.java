@@ -4,9 +4,6 @@ import cern.japc.core.*;
 import cern.japc.core.factory.ParameterFactory;
 import cern.japc.core.factory.SelectorFactory;
 import cern.japc.value.ParameterValue;
-import cern.rade.services.codec.CodecException;
-import cern.rade.services.codec.japcjava.JAPCEncoder;
-import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.japc.rbac.RBACClient;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.RbaToken;
@@ -15,24 +12,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SetService {
-    private DataContainer data;
     private Parameter parameter;
     private Selector selector;
     private String parameterName;
     private String selectorName;
-    private ParameterValue parameterValue;
+    private final ParameterValue parameterValue;
     private RBACClient rbacClient;
     private boolean isExecuted = false;
     private final Logger logger = LoggerFactory.getLogger(SetService.class);
 
-    public SetService(String selectorName, String device, DataContainer data){
+    public SetService(String selectorName, String device, String property, ParameterValue parameterValue){
         this.selectorName = selectorName;
-        this.parameterName = Parameters.buildParameterName(device, data.getName());
-        this.data = data;
+        this.parameterName = Parameters.buildParameterName(device, property);
+        this.parameterValue = parameterValue;
     }
 
-    public SetService(String selectorName, String device, DataContainer data, RBACClient rbacClient){
-        this(selectorName, device, data);
+    public SetService(String selectorName, String device, String property, ParameterValue parameterValue, RBACClient rbacClient){
+        this(selectorName, device, property, parameterValue);
         this.rbacClient = rbacClient;
     }
 
@@ -41,7 +37,7 @@ public class SetService {
         this.selector = SelectorFactory.newSelector(selectorName);
     }
 
-    private void set() throws ParameterException, CodecException, AuthenticationException {
+    private void set() throws ParameterException, AuthenticationException {
         if(rbacClient==null){
             japcSET();
         }
@@ -50,23 +46,18 @@ public class SetService {
         }
     }
 
-    private void encode() throws CodecException {
-        parameterValue = JAPCEncoder.encode(data);
-    }
-
-    private void japcSET() throws ParameterException, CodecException {
+    private void japcSET() throws ParameterException {
         parameter.setValue(selector, parameterValue);
     }
 
-    private void japcSET_SECURE() throws ParameterException, AuthenticationException, CodecException {
+    private void japcSET_SECURE() throws ParameterException, AuthenticationException {
         RbaToken token = rbacClient.getApplicationToken();
         MiddleTierRbaTokenHolder.set(token);
         japcSET();
         MiddleTierRbaTokenHolder.clear();
     }
 
-    public void execute() throws ParameterException, CodecException, AuthenticationException{
-        encode();
+    public void execute() throws ParameterException, AuthenticationException{
         init();
         set();
         this.isExecuted = true;

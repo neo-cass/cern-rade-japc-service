@@ -8,11 +8,6 @@ import cern.japc.core.factory.SimpleParameterValueFactory;
 import cern.japc.value.MapParameterValue;
 import cern.japc.value.ParameterValue;
 import cern.japc.value.SimpleParameterValue;
-import cern.rade.services.codec.CodecException;
-import cern.rade.services.codec.japcjava.JAPCDecoder;
-import cern.rade.services.common.containers.java.ContainerException;
-import cern.rade.services.common.containers.java.DataContainer;
-import cern.rade.services.common.containers.java.PropertyContainer;
 import cern.rade.services.japc.ContextProvider;
 import cern.rade.services.japc.rbac.RBACClient;
 import cern.rbac.client.authentication.AuthenticationException;
@@ -30,9 +25,9 @@ public class SubscriptionService implements ParameterValueListener {
     private Parameter parameter;
     private Selector selector;
     private RBACClient rbacClient;
-    private DataContainer data;
+    private ParameterValue data;
     private SubscriptionHandle sh;
-    private LinkedBlockingQueue<AcquiredParameterValue> valueQueue;
+    private LinkedBlockingQueue<Update> valueQueue;
     private boolean executed = false;
     private final Logger logger = LoggerFactory.getLogger(SubscriptionService.class);
     public SubscriptionService(String selectorName, String device, String property, String field){
@@ -45,12 +40,6 @@ public class SubscriptionService implements ParameterValueListener {
         this.selectorName =selectorName;
     }
 
-    public SubscriptionService(String selectorName, String device, DataContainer data){
-        this.selectorName = selectorName;
-        this.parameterName = Parameters.buildParameterName(device, data.getName());
-        this.data = data;
-    }
-
     public SubscriptionService(String selectorName, String device, String property, String field, RBACClient rbacClient){
         this(selectorName, device, property, field);
         this.rbacClient = rbacClient;
@@ -58,11 +47,6 @@ public class SubscriptionService implements ParameterValueListener {
 
     public SubscriptionService(String selectorName, String device, String property, RBACClient rbacClient){
         this(selectorName, device, property);
-        this.rbacClient = rbacClient;
-    }
-
-    public SubscriptionService(String selectorName, String device, DataContainer data, RBACClient rbacClient){
-        this(selectorName, device, data);
         this.rbacClient = rbacClient;
     }
 
@@ -100,7 +84,7 @@ public class SubscriptionService implements ParameterValueListener {
     public void valueReceived(String parameterName, AcquiredParameterValue value) {
         //TODO: lossy queue
         try {
-            valueQueue.put(value);
+            valueQueue.put(new Update(value, null));
         } catch (InterruptedException e) {
             logger.error("Handler thread interrupted, missed value.", e);
         }
@@ -109,60 +93,52 @@ public class SubscriptionService implements ParameterValueListener {
     @Override
     public void exceptionOccured(String parameterName, String description, ParameterException exception) {
         logger.error("ParameterException occurred in the JAPC subscription: " + description, exception);
+        try {
+            valueQueue.put(new Update(null, exception));
+        } catch (InterruptedException e) {
+            logger.error("Handler thread interrupted, missed exception.", e);
+        }
     }
 
     /**
      * Pushes the latest value from the subscription into the DataContainer
      * @param timeout the amount of time to wait in milliseconds for a value to be available before timing out.
      * @return true if a value was pushed into the DataContainer, false if the timeout was reached
-     * @throws CodecException if the value could not be decoded into the DataContainer
-     * @throws ContainerException  if the DataContainer is not compatible with the value received from the subscription
+     * @throws ParameterException if the subscription reported an exception instead of a value
      */
-    public boolean pushLatestIntoContainer(long timeout) throws CodecException, ContainerException {
+    public boolean pushLatestIntoContainer(long timeout) throws ParameterException {
         //TODO: consider implementing a copy of the DataContainer to avoid race conditions, is this necessary?
         if(!isMonitoring()){throw new RuntimeException("SubscriptionService not initialised");}
-        AcquiredParameterValue apv;
+        Update update;
         try {
-            apv = valueQueue.poll(timeout, TimeUnit.MILLISECONDS);
+            update = valueQueue.poll(timeout, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             return false;
         }
-        if (apv == null){return false;}
-        decode(apv);
+        if (update == null){return false;}
+        if (update.exception() != null){throw update.exception();}
+        decode(update.value());
         return true;
     }
 
     /**
      * Initialises the subscription, starts monitoring and pushes the latest value into the DataContainer.
      * @throws ParameterException if the parameter could not be created or if the subscription could not be started.
-     * @throws ContainerException if the DataContainer is not compatible with the value received from the subscription.
-     * @throws CodecException if the value could not be decoded into the DataContainer.
      */
-    public void execute() throws ParameterException, ContainerException, CodecException {
+    public void execute() throws ParameterException {
         init();
         subscribe();
         pushLatestIntoContainer(1000);
         this.executed = true;
     }
 
-    public DataContainer getLatest() {
+    public ParameterValue getLatest() {
         if(!isExecuted()){throw new RuntimeException("SubscriptionService not initialised");}
         return data;
     }
 
-    /**
-     * Decodes an {@link AcquiredParameterValue} into either the provided {@link PropertyContainer} or generates a new one based on apv.
-     * @param apv the {@link AcquiredParameterValue} to be decoded.
-     * @throws CodecException if the value could not be decoded into a {@link PropertyContainer}.
-     * @throws ContainerException if the DataContainer is not compatible with the {@link AcquiredParameterValue}.
-     */
-    private void decode(AcquiredParameterValue apv) throws CodecException, ContainerException {
-        if(data==null){
-            data = JAPCDecoder.decode(apv);
-        }
-        else{
-            JAPCDecoder.decode((PropertyContainer) data, apv);
-        }
+    private void decode(AcquiredParameterValue apv) {
+        data = apv.getValue();
     }
 
     public boolean isExecuted() {
@@ -175,5 +151,8 @@ public class SubscriptionService implements ParameterValueListener {
 
     public RBACClient getRbacClient() {
         return rbacClient;
+    }
+
+    private record Update(AcquiredParameterValue value, ParameterException exception) {
     }
 }

@@ -1,7 +1,6 @@
 package cern.rade.services.japc.get;
 
 
-import cern.rade.services.common.containers.java.DataContainer;
 import cern.rade.services.japc.ContextProvider;
 import cern.rade.services.japc.rbac.RBACClient;
 import cern.rade.services.japc.rbac.RBACManager;
@@ -37,21 +36,8 @@ public abstract class GetEndpoint {
         return getService;
     }
 
-    protected GetService getDevice_DataContainer(String selector, String device, DataContainer data, String authStr)
-            throws TokenFormatException, AuthenticationException {
-        GetService getService;
-        if (authStr!=null){
-            RBACClient rbacClient = rbacManager.createClient(authStr);
-            getService = new GetService(cleanSelector(selector), device, data, rbacClient);
-        }
-        else{
-            getService = new GetService(cleanSelector(selector), device, data);
-        }
-        return getService;
-    }
-
     protected String cleanSelector(String selector){
-        selector = selector.equals("NONE") ? "" : selector;
+        selector = selector == null ? "" : selector;
         return selector;
     }
 }
