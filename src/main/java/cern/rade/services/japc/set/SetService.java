@@ -4,6 +4,7 @@ import cern.japc.core.*;
 import cern.japc.core.factory.ParameterFactory;
 import cern.japc.core.factory.SelectorFactory;
 import cern.japc.value.ParameterValue;
+import cern.rade.services.japc.ParameterNames;
 import cern.rade.services.japc.rbac.RBACClient;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.RbaToken;
@@ -21,25 +22,10 @@ public class SetService {
     private boolean isExecuted = false;
     private final Logger logger = LoggerFactory.getLogger(SetService.class);
 
-    public SetService(String selectorName, String device, String property, ParameterValue parameterValue){
-        this.selectorName = selectorName;
-        this.parameterName = Parameters.buildParameterName(device, property);
-        this.parameterValue = parameterValue;
-    }
-
-    public SetService(String selectorName, String device, String property, String field, ParameterValue parameterValue){
-        this.selectorName = selectorName;
-        this.parameterName = Parameters.buildParameterName(device, property, field);
-        this.parameterValue = parameterValue;
-    }
-
-    public SetService(String selectorName, String device, String property, ParameterValue parameterValue, RBACClient rbacClient){
-        this(selectorName, device, property, parameterValue);
-        this.rbacClient = rbacClient;
-    }
-
     public SetService(String selectorName, String device, String property, String field, ParameterValue parameterValue, RBACClient rbacClient){
-        this(selectorName, device, property, field, parameterValue);
+        this.selectorName = ParameterNames.selector(selectorName);
+        this.parameterName = ParameterNames.parameter(device, property, field);
+        this.parameterValue = parameterValue;
         this.rbacClient = rbacClient;
     }
 

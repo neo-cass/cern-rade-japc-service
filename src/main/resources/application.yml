@@ -3,10 +3,6 @@ spring:
     name: "rade-services-japc"
   profiles:
     active: prod
-  mvc:
-    pathmatch:
-      use-suffix-pattern: false
-    throw-exception-if-no-handler-found: true #allows us to catch unhandled exceptions with our own error handler
   web:
     resources:
       add-mappings: false

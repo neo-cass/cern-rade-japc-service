@@ -18,7 +18,7 @@ public class ErrorHandler {
         logger.error("Error handling {} {}", request.getMethod(), request.getRequestURI(), e);
         return Formats.negotiate(request).errorResponse(
                 ErrorCode.httpStatus(e),
-                ErrorCode.code(e),
+                ErrorCode.of(e),
                 request.getMethod() + " " + request.getRequestURI(),
                 ErrorCode.message(e));
     }

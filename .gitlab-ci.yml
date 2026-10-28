@@ -10,7 +10,7 @@ build_war:
   tags:
     - k8s-default
   image:
-    name: eclipse-temurin:17-alpine
+    name: eclipse-temurin:21-alpine
   artifacts:
     name: "$WAR_NAME"
     paths:

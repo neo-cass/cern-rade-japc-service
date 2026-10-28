@@ -62,6 +62,10 @@ public class RBACManager {
         return initRBACCached(rbac_id);
     }
 
+    public RBACClient optionalClient(String authStr) throws TokenFormatException, AuthenticationException {
+        return authStr == null ? null : createClient(authStr);
+    }
+
     public RBACClient createClient(String authStr) throws TokenFormatException, AuthenticationException {
         String[] auth = authStr.split(" ");
         if (auth.length != 2) {

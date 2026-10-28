@@ -1,8 +1,7 @@
 package cern.rade.services.japc.get;
 
-
 import cern.rade.services.japc.ContextProvider;
-import cern.rade.services.japc.rbac.RBACClient;
+import cern.rade.services.japc.rbac.RBACHeaders;
 import cern.rade.services.japc.rbac.RBACManager;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.TokenFormatException;
@@ -13,40 +12,16 @@ public abstract class GetEndpoint {
     public static final String CYCLE_STAMP_HEADER = "Cycle-Stamp";
     private final RBACManager rbacManager = ContextProvider.getRbacManager();
 
-    protected void setStampHeaders(HttpHeaders headers, GetService getService) {
+    protected GetService getService(String selector, String device, String property, String field, String authStr)
+            throws TokenFormatException, AuthenticationException {
+        return new GetService(selector, device, property, field, rbacManager.optionalClient(authStr));
+    }
+
+    protected HttpHeaders responseHeaders(GetService getService) {
+        HttpHeaders headers = new HttpHeaders();
         headers.set(ACQ_STAMP_HEADER, Long.toString(getService.getAcquisitionStamp()));
         headers.set(CYCLE_STAMP_HEADER, Long.toString(getService.getCycleStamp()));
-    }
-
-    protected GetService getDevice_Property(String selector, String device, String property, String authStr)
-            throws TokenFormatException, AuthenticationException {
-        GetService getService;
-        if (authStr!=null){
-            RBACClient rbacClient = rbacManager.createClient(authStr);
-            getService = new GetService(cleanSelector(selector), device, property, rbacClient);
-        }
-        else{
-            getService = new GetService(cleanSelector(selector), device, property);
-        }
-        return getService;
-
-    }
-
-    protected GetService getDevice_Property_Field(String selector, String device, String property, String field, String authStr)
-            throws TokenFormatException, AuthenticationException {
-        GetService getService;
-        if (authStr!=null){
-            RBACClient rbacClient = rbacManager.createClient(authStr);
-            getService = new GetService(cleanSelector(selector), device, property, field, rbacClient);
-        }
-        else{
-            getService = new GetService(cleanSelector(selector), device, property, field);
-        }
-        return getService;
-    }
-
-    protected String cleanSelector(String selector){
-        selector = selector == null ? "" : selector;
-        return selector;
+        RBACHeaders.setCached(headers, getService.getRbacClient());
+        return headers;
     }
 }

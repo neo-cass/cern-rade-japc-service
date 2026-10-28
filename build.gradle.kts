@@ -1,24 +1,21 @@
 plugins {
     id ("java")
     id ("war")
-    id ("cern.devops.cbng.dependency") version "4.9.0"
-    id ("org.springframework.boot") version "3.1.3"
-    id("io.spring.dependency-management") version "1.1.3"
-    kotlin("jvm") version "1.7.20"
-    kotlin("plugin.spring") version "1.7.20"
+    id ("cern.devops.cbng.dependency")
+    id ("org.springframework.boot") version "4.1.2"
+    id("io.spring.dependency-management") version "1.1.7"
 }
 
 repositories {
-    // our package index to resolve dependencies
-    maven {
-        url = uri("https://artifactory.cern.ch/release")
-    }
     mavenCentral()
 }
 
 configurations.configureEach {
     resolutionStrategy.cacheChangingModulesFor(0, "seconds")
 }
+
+val springBootVersion = org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES.substringAfterLast(':')
+val log4j2Version = dependencyManagement.importedProperties["log4j2.version"]
 
 dependencies {
     implementation ("cern.japc:japc:PRO")
@@ -44,27 +41,22 @@ dependencies {
 
     //necessary for log4j2 yaml config file to work
 
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.15.2")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml")
 
     //log4j2 from springboot
-    implementation("org.springframework.boot:spring-boot-starter-log4j2:3.1.3")
+    implementation("org.springframework.boot:spring-boot-starter-log4j2:$springBootVersion")
 
     //needed to use json layouts for log messages
-    implementation("org.apache.logging.log4j:log4j-layout-template-json:2.20.0")
+    implementation("org.apache.logging.log4j:log4j-layout-template-json:$log4j2Version")
 
-    //needed to bridge log4j2 to springboot. I am excluding commons-logging as it is included in another dependency
-    implementation("org.apache.logging.log4j:log4j-spring-boot:2.20.0"){
-        exclude(group="commons-logging", module="commons-logging")
-    }
-
-    implementation ("org.springframework.boot:spring-boot-starter-websocket:3.1.3"){
+    implementation ("org.springframework.boot:spring-boot-starter-websocket:$springBootVersion"){
         exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
     }
-    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor:3.1.3")
-    implementation ("org.springframework.boot:spring-boot-starter-web-services:3.1.3"){
+    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor:$springBootVersion")
+    implementation ("org.springframework.boot:spring-boot-starter-webservices:$springBootVersion"){
         exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
     }
-    providedRuntime("org.springframework.boot:spring-boot-starter-tomcat:3.1.3")
+    providedRuntime("org.springframework.boot:spring-boot-starter-tomcat-runtime:$springBootVersion")
 }
 
 
@@ -81,10 +73,10 @@ tasks.named<org.springframework.boot.gradle.tasks.bundling.BootWar>("bootWar") {
 }
 // requirement for building this project
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(17))
+        languageVersion.set(JavaLanguageVersion.of(21))
     }
     withJavadocJar()
     withSourcesJar()

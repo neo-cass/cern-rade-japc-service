@@ -1,14 +1,11 @@
 package cern.rade.services.japc.subscription;
 
 import cern.japc.core.*;
-import cern.japc.core.factory.MapParameterValueFactory;
 import cern.japc.core.factory.ParameterFactory;
 import cern.japc.core.factory.SelectorFactory;
-import cern.japc.core.factory.SimpleParameterValueFactory;
-import cern.japc.value.MapParameterValue;
 import cern.japc.value.ParameterValue;
-import cern.japc.value.SimpleParameterValue;
 import cern.rade.services.japc.ContextProvider;
+import cern.rade.services.japc.ParameterNames;
 import cern.rade.services.japc.rbac.RBACClient;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.util.holder.MiddleTierRbaTokenHolder;
@@ -31,23 +28,9 @@ public class SubscriptionService implements ParameterValueListener {
     private LinkedBlockingQueue<Update> valueQueue;
     private boolean executed = false;
     private final Logger logger = LoggerFactory.getLogger(SubscriptionService.class);
-    public SubscriptionService(String selectorName, String device, String property, String field){
-        this.parameterName = Parameters.buildParameterName(device, property, field);
-        this.selectorName = selectorName;
-    }
-
-    public SubscriptionService(String selectorName, String device, String property){
-        this.parameterName = Parameters.buildParameterName(device, property);
-        this.selectorName =selectorName;
-    }
-
     public SubscriptionService(String selectorName, String device, String property, String field, RBACClient rbacClient){
-        this(selectorName, device, property, field);
-        this.rbacClient = rbacClient;
-    }
-
-    public SubscriptionService(String selectorName, String device, String property, RBACClient rbacClient){
-        this(selectorName, device, property);
+        this.parameterName = ParameterNames.parameter(device, property, field);
+        this.selectorName = ParameterNames.selector(selectorName);
         this.rbacClient = rbacClient;
     }
 

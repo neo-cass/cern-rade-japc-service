@@ -3,6 +3,7 @@ package cern.rade.services.japc.format;
 import cern.japc.core.ValueHeader;
 import cern.japc.value.ParameterValue;
 import cern.rade.services.codec.CodecException;
+import cern.rade.services.japc.error.ErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
@@ -26,16 +27,16 @@ public abstract class Format {
         return new HttpHeaders();
     }
 
-    protected abstract byte[] encodeError(int code, String origin, String message) throws CodecException;
+    protected abstract byte[] encodeError(ErrorCode code, String origin, String message) throws CodecException;
 
-    public ResponseEntity<byte[]> errorResponse(HttpStatusCode status, int code, String origin, String message) throws CodecException {
+    public ResponseEntity<byte[]> errorResponse(HttpStatusCode status, ErrorCode code, String origin, String message) throws CodecException {
         return ResponseEntity.status(status)
                 .contentType(mediaType())
                 .headers(errorHeaders())
                 .body(encodeError(code, origin, message));
     }
 
-    public void writeError(ServerHttpResponse response, HttpStatusCode status, int code, String origin, String message) throws CodecException, IOException {
+    public void writeError(ServerHttpResponse response, HttpStatusCode status, ErrorCode code, String origin, String message) throws CodecException, IOException {
         response.setStatusCode(status);
         response.getHeaders().setContentType(mediaType());
         response.getHeaders().addAll(errorHeaders());
@@ -51,5 +52,5 @@ public abstract class Format {
 
     public abstract WebSocketMessage<?> dataFrame(ParameterValue value, ValueHeader header, Map<String, Object> attributes) throws CodecException;
 
-    public abstract WebSocketMessage<?> errorFrame(int code, String origin, String message) throws CodecException;
+    public abstract WebSocketMessage<?> errorFrame(ErrorCode code, String origin, String message) throws CodecException;
 }

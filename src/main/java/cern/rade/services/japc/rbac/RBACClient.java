@@ -4,7 +4,6 @@ import cern.rade.services.japc.ContextProvider;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.MasterToken;
 import cern.rbac.common.RbaToken;
-import cern.rbac.common.TokenFormatException;
 
 
 public class RBACClient {

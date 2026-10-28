@@ -11,6 +11,7 @@ import cern.rade.services.common.BytesUtil;
 import cern.rade.services.common.containers.labview.LVClusterDescriptor;
 import cern.rade.services.common.containers.labview.LVType;
 import cern.rade.services.common.containers.labview.LVTypeDescriptor;
+import cern.rade.services.japc.error.ErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -29,6 +30,7 @@ public class LabVIEWFormat extends Format {
     public static final String TYPE_DESCRIPTOR_HEADER = "Lv-Type-Descriptor";
     public static final byte DATA_MESSAGE = 0x00;
     public static final byte ERROR_MESSAGE = 0x01;
+    private static final String TYPE_DESCRIPTOR_ATTRIBUTE = "typeDescriptor";
 
     @Override
     public MediaType mediaType() {
@@ -53,8 +55,8 @@ public class LabVIEWFormat extends Format {
     }
 
     @Override
-    protected byte[] encodeError(int code, String origin, String message) throws CodecException {
-        return LVErrorEncoder.encode(true, code, "rade-japc " + origin + "<ERR>" + message);
+    protected byte[] encodeError(ErrorCode code, String origin, String message) throws CodecException {
+        return LVErrorEncoder.encode(true, code.value(), "rade-japc " + origin + "<ERR>" + message);
     }
 
     @Override
@@ -73,12 +75,12 @@ public class LabVIEWFormat extends Format {
             lvTypeDescriptor = LVTypeEncoder.describe(field != null ? field : property, latest);
             responseHeaders.set(TYPE_DESCRIPTOR_HEADER, typeDescriptorToHeader(LVTypeEncoder.encodeTypeDescriptor(lvTypeDescriptor, latest)));
         }
-        attributes.put("typeDescriptor", lvTypeDescriptor);
+        attributes.put(TYPE_DESCRIPTOR_ATTRIBUTE, lvTypeDescriptor);
     }
 
     @Override
     public WebSocketMessage<?> dataFrame(ParameterValue value, ValueHeader header, Map<String, Object> attributes) throws CodecException {
-        byte[] data = LVDataEncoder.encode(value, (LVTypeDescriptor) attributes.get("typeDescriptor"));
+        byte[] data = LVDataEncoder.encode(value, (LVTypeDescriptor) attributes.get(TYPE_DESCRIPTOR_ATTRIBUTE));
         return new BinaryMessage(ByteBuffer.allocate(data.length + 17)
                 .put(DATA_MESSAGE)
                 .putLong(header.getAcqStamp())
@@ -88,7 +90,7 @@ public class LabVIEWFormat extends Format {
     }
 
     @Override
-    public WebSocketMessage<?> errorFrame(int code, String origin, String message) throws CodecException {
+    public WebSocketMessage<?> errorFrame(ErrorCode code, String origin, String message) throws CodecException {
         byte[] error = encodeError(code, origin, message);
         return new BinaryMessage(ByteBuffer.allocate(error.length + 1).put(ERROR_MESSAGE).put(error).flip());
     }

@@ -22,20 +22,35 @@ import org.springframework.web.socket.CloseStatus;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
-public final class ErrorCode {
-    public static final int JAPC_ERROR = 5000;
-    public static final int CODEC_ERROR = 5001;
-    public static final int RBAC_ERROR = 5002;
-    public static final int BAD_REQUEST = 5003;
-    public static final int INTERNAL_ERROR = 5004;
-    private static final int MAX_CLOSE_REASON_BYTES = 123;
+public enum ErrorCode {
+    JAPC_ERROR(5000),
+    CODEC_ERROR(5001),
+    RBAC_ERROR(5002),
+    BAD_REQUEST(5003),
+    INTERNAL_ERROR(5004);
 
-    private ErrorCode() {
+    private static final int MAX_CLOSE_REASON_BYTES = 123;
+    private final int value;
+
+    ErrorCode(int value) {
+        this.value = value;
     }
 
-    public static int code(Throwable e) {
+    public int value() {
+        return value;
+    }
+
+    public CloseStatus closeStatus(String message) {
+        String reason = message;
+        while (reason.getBytes(StandardCharsets.UTF_8).length > MAX_CLOSE_REASON_BYTES) {
+            reason = reason.substring(0, reason.length() - 1);
+        }
+        return new CloseStatus(4000 + (value - JAPC_ERROR.value), reason);
+    }
+
+    public static ErrorCode of(Throwable e) {
         if (e instanceof HttpMessageConversionException && e.getCause() != null) {
-            return code(e.getCause());
+            return of(e.getCause());
         }
         if (e instanceof HttpMessageNotReadableException) {
             return BAD_REQUEST;
@@ -104,13 +119,5 @@ public final class ErrorCode {
             return errorResponse.getBody().getDetail();
         }
         return Objects.toString(e.getMessage(), e.getClass().getSimpleName());
-    }
-
-    public static CloseStatus closeStatus(int code, String message) {
-        String reason = message;
-        while (reason.getBytes(StandardCharsets.UTF_8).length > MAX_CLOSE_REASON_BYTES) {
-            reason = reason.substring(0, reason.length() - 1);
-        }
-        return new CloseStatus(4000 + (code - JAPC_ERROR), reason);
     }
 }

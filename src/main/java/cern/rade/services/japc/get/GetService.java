@@ -4,6 +4,7 @@ import cern.japc.core.*;
 import cern.japc.core.factory.ParameterFactory;
 import cern.japc.core.factory.SelectorFactory;
 import cern.japc.value.ParameterValue;
+import cern.rade.services.japc.ParameterNames;
 import cern.rade.services.japc.rbac.RBACClient;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.RbaToken;
@@ -25,28 +26,11 @@ public class GetService {
     private boolean executed = false;
     private final Logger logger = LoggerFactory.getLogger(GetService.class);
 
-    public GetService(String selectorName, String device, String property, String field){
-        this.parameterName = Parameters.buildParameterName(device, property, field);
-        this.selectorName = selectorName;
-    }
-
-    public GetService(String selectorName, String device, String property){
-        this.parameterName = Parameters.buildParameterName(device, property);
-        this.selectorName =selectorName;
-    }
-
     public GetService(String selectorName, String device, String property, String field, RBACClient rbacClient){
-        this(selectorName, device, property, field);
+        this.parameterName = ParameterNames.parameter(device, property, field);
+        this.selectorName = ParameterNames.selector(selectorName);
         this.rbacClient = rbacClient;
     }
-
-    public GetService(String selectorName, String device, String property, RBACClient rbacClient){
-        this(selectorName, device, property);
-        this.rbacClient = rbacClient;
-    }
-
-
-
 
     private void init() throws ParameterException {
         this.parameter = ParameterFactory.newInstance().newParameter(parameterName);

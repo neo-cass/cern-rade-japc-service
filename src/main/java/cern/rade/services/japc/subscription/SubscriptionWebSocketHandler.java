@@ -6,7 +6,6 @@ import cern.rade.services.japc.ContextProvider;
 import cern.rade.services.japc.Fields;
 import cern.rade.services.japc.error.ErrorCode;
 import cern.rade.services.japc.format.Format;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.socket.*;
@@ -26,18 +25,17 @@ public class SubscriptionWebSocketHandler implements WebSocketHandler {
     protected Format format;
     protected String origin;
     protected List<String> fields;
-    protected boolean newValue = false;
     private final ExecutorService sendService = Executors.newSingleThreadExecutor();
 
     @Override
     @SuppressWarnings("unchecked")
-    public void afterConnectionEstablished(@NotNull WebSocketSession session) throws Exception {
+    public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         this.session = (ConcurrentWebSocketSessionDecorator) session;
         this.ID = session.getId();
-        this.subscriptionService = (SubscriptionService) this.session.getAttributes().get("subscriptionService");
-        this.format = (Format) this.session.getAttributes().get("format");
+        this.subscriptionService = (SubscriptionService) this.session.getAttributes().get(SessionAttributes.SUBSCRIPTION_SERVICE);
+        this.format = (Format) this.session.getAttributes().get(SessionAttributes.FORMAT);
         this.origin = "GET " + session.getUri().getPath();
-        this.fields = (List<String>) this.session.getAttributes().get("fields");
+        this.fields = (List<String>) this.session.getAttributes().get(SessionAttributes.FIELDS);
         streamData();
     }
 
@@ -47,7 +45,7 @@ public class SubscriptionWebSocketHandler implements WebSocketHandler {
     private void iterativelySendData(){
         while(session.isOpen() && !Thread.currentThread().isInterrupted()){
             try {
-                newValue = sendData();
+                sendData();
             } catch (ParameterException e) {
                 logger.warn("JAPC error in the subscription for client with ID {}", ID, e);
                 sendError(e);
@@ -56,25 +54,23 @@ public class SubscriptionWebSocketHandler implements WebSocketHandler {
                 close(CloseStatus.SERVER_ERROR);
             } catch (Exception e) {
                 logger.error("Fatal error in the subscription for client with ID {}", ID, e);
-                close(ErrorCode.closeStatus(ErrorCode.code(e), ErrorCode.message(e)));
+                close(ErrorCode.of(e).closeStatus(ErrorCode.message(e)));
             }
         }
     }
 
-    boolean sendData() throws IOException, CodecException, ParameterException {
-        if (!subscriptionService.pushLatestIntoContainer(waitTimeForNewValueFromSub)) {
-            return false;
+    private void sendData() throws IOException, CodecException, ParameterException {
+        if (subscriptionService.pushLatestIntoContainer(waitTimeForNewValueFromSub)) {
+            session.sendMessage(format.dataFrame(Fields.select(subscriptionService.getLatest(), fields), subscriptionService.getLatestHeader(), session.getAttributes()));
         }
-        session.sendMessage(format.dataFrame(Fields.select(subscriptionService.getLatest(), fields), subscriptionService.getLatestHeader(), session.getAttributes()));
-        return true;
     }
 
     private void sendError(Exception e) {
         try {
-            session.sendMessage(format.errorFrame(ErrorCode.code(e), origin, ErrorCode.message(e)));
+            session.sendMessage(format.errorFrame(ErrorCode.of(e), origin, ErrorCode.message(e)));
         } catch (Exception sendException) {
             logger.error("Could not send error to the subscription client with ID {}", ID, sendException);
-            close(ErrorCode.closeStatus(ErrorCode.code(e), ErrorCode.message(e)));
+            close(ErrorCode.of(e).closeStatus(ErrorCode.message(e)));
         }
     }
 
@@ -87,16 +83,16 @@ public class SubscriptionWebSocketHandler implements WebSocketHandler {
     }
 
     @Override
-    public void handleMessage(@NotNull WebSocketSession session, @NotNull WebSocketMessage<?> message) throws Exception {
+    public void handleMessage(WebSocketSession session, WebSocketMessage<?> message) throws Exception {
 
     }
     @Override
-    public void handleTransportError(@NotNull WebSocketSession session, @NotNull Throwable exception) throws Exception {
+    public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
         this.session.close();
     }
 
     @Override
-    public void afterConnectionClosed(@NotNull WebSocketSession session, @NotNull CloseStatus closeStatus) throws Exception {
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) throws Exception {
         sendService.shutdown();
         subscriptionService.stopSubscription();
         logger.info("Subscription with ID {} has been closed with reason {}", ID, closeStatus.getReason());
@@ -118,9 +114,5 @@ public class SubscriptionWebSocketHandler implements WebSocketHandler {
 
     protected String getId() {
         return ID;
-    }
-
-    protected boolean hasNewValue() {
-        return newValue;
     }
 }
