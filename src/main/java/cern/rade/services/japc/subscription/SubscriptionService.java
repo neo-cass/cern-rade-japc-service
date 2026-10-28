@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class SubscriptionService implements ParameterValueListener {
     private String parameterName;
@@ -22,8 +23,7 @@ public class SubscriptionService implements ParameterValueListener {
     private Parameter parameter;
     private Selector selector;
     private RBACClient rbacClient;
-    private ParameterValue data;
-    private ValueHeader header;
+    private volatile Latest latest;
     private SubscriptionHandle sh;
     private LinkedBlockingQueue<Update> valueQueue;
     private boolean executed = false;
@@ -66,32 +66,30 @@ public class SubscriptionService implements ParameterValueListener {
 
     @Override
     public void valueReceived(String parameterName, AcquiredParameterValue value) {
-        //TODO: lossy queue
-        try {
-            valueQueue.put(new Update(value, null));
-        } catch (InterruptedException e) {
-            logger.error("Handler thread interrupted, missed value.", e);
-        }
+        enqueue(new Update(value, null));
     }
 
     @Override
     public void exceptionOccured(String parameterName, String description, ParameterException exception) {
         logger.debug("JAPC subscription to {} reported {}: {}", parameterName, description, exception.getMessage());
-        try {
-            valueQueue.put(new Update(null, exception));
-        } catch (InterruptedException e) {
-            logger.error("Handler thread interrupted, missed exception.", e);
+        enqueue(new Update(null, exception));
+    }
+
+    private void enqueue(Update update) {
+        while (!valueQueue.offer(update)) {
+            if (valueQueue.poll() != null) {
+                logger.debug("JAPC subscription to {}: queue full, dropped oldest update", parameterName);
+            }
         }
     }
 
     /**
-     * Pushes the latest value from the subscription into the DataContainer
-     * @param timeout the amount of time to wait in milliseconds for a value to be available before timing out.
-     * @return true if a value was pushed into the DataContainer, false if the timeout was reached
+     * Waits for the next update from the subscription and makes it the latest value.
+     * @param timeout the amount of time to wait in milliseconds for an update before timing out.
+     * @return true if a new value is available, false if the timeout was reached
      * @throws ParameterException if the subscription reported an exception instead of a value
      */
-    public boolean pushLatestIntoContainer(long timeout) throws ParameterException {
-        //TODO: consider implementing a copy of the DataContainer to avoid race conditions, is this necessary?
+    public boolean awaitUpdate(long timeout) throws ParameterException {
         if(!isMonitoring()){throw new RuntimeException("SubscriptionService not initialised");}
         Update update;
         try {
@@ -101,34 +99,27 @@ public class SubscriptionService implements ParameterValueListener {
         }
         if (update == null){return false;}
         if (update.exception() != null){throw update.exception();}
-        decode(update.value());
+        latest = new Latest(update.value().getValue(), update.value().getHeader());
         return true;
     }
 
     /**
-     * Initialises the subscription, starts monitoring and pushes the latest value into the DataContainer.
-     * @throws ParameterException if the parameter could not be created or if the subscription could not be started.
+     * Initialises the subscription, starts monitoring and waits for the first update.
+     * @throws ParameterException if the subscription could not be started, reported an exception, or sent no first update in time.
      */
     public void execute() throws ParameterException {
         init();
         subscribe();
-        pushLatestIntoContainer(1000);
+        long timeout = ContextProvider.getServiceProperties().getFirstUpdateTimeout();
+        if (!awaitUpdate(timeout)) {
+            throw new ParameterException("No first update from " + parameterName + " within " + timeout + " ms", new TimeoutException());
+        }
         this.executed = true;
     }
 
-    public ParameterValue getLatest() {
+    public Latest latest() {
         if(!isExecuted()){throw new RuntimeException("SubscriptionService not initialised");}
-        return data;
-    }
-
-    public ValueHeader getLatestHeader() {
-        if(!isExecuted()){throw new RuntimeException("SubscriptionService not initialised");}
-        return header;
-    }
-
-    private void decode(AcquiredParameterValue apv) {
-        data = apv.getValue();
-        header = apv.getHeader();
+        return latest;
     }
 
     public boolean isExecuted() {
@@ -141,6 +132,9 @@ public class SubscriptionService implements ParameterValueListener {
 
     public RBACClient getRbacClient() {
         return rbacClient;
+    }
+
+    public record Latest(ParameterValue value, ValueHeader header) {
     }
 
     private record Update(AcquiredParameterValue value, ParameterException exception) {

@@ -11,6 +11,7 @@ logging:
 service-properties:
   pingToClientFrequency: 5000
   waitTimeForNewValueFromSub: 1000
+  firstUpdateTimeout: 5000
   socketIdleTimeout: 10000
   subQueueSize: 100
   logstashHost: "cs-ccr-rade4.cern.ch"

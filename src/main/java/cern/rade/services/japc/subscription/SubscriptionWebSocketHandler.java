@@ -64,12 +64,11 @@ public class SubscriptionWebSocketHandler implements WebSocketHandler {
     }
 
     private void sendData(boolean waitForUpdate) throws IOException, CodecException, ParameterException {
-        if (waitForUpdate && !subscriptionService.pushLatestIntoContainer(waitTimeForNewValueFromSub)) {
+        if (waitForUpdate && !subscriptionService.awaitUpdate(waitTimeForNewValueFromSub)) {
             return;
         }
-        if (subscriptionService.getLatest() != null) {
-            session.sendMessage(format.dataFrame(Fields.select(subscriptionService.getLatest(), fields), subscriptionService.getLatestHeader(), session.getAttributes()));
-        }
+        SubscriptionService.Latest latest = subscriptionService.latest();
+        session.sendMessage(format.dataFrame(Fields.select(latest.value(), fields), latest.header(), session.getAttributes()));
     }
 
     private void sendError(Exception e) {

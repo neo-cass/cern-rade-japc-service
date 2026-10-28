@@ -87,7 +87,7 @@ public class SubscriptionHandshakeInterceptor implements HandshakeInterceptor {
             if (fields != null){
                 attributes.put(SessionAttributes.FIELDS, fields);
             }
-            format.prepareSubscription(servletRequest, retHeaders, property, field, Fields.select(subscriptionService.getLatest(), fields), attributes);
+            format.prepareSubscription(servletRequest, retHeaders, property, field, Fields.select(subscriptionService.latest().value(), fields), attributes);
             return true;
         } catch (Exception e) {
             subscriptionService.stopSubscription();

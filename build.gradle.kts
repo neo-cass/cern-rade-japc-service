@@ -56,6 +56,9 @@ dependencies {
     implementation ("org.springframework.boot:spring-boot-starter-webservices:$springBootVersion"){
         exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
     }
+    implementation ("org.springframework.boot:spring-boot-starter-actuator:$springBootVersion"){
+        exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
+    }
     providedRuntime("org.springframework.boot:spring-boot-starter-tomcat-runtime:$springBootVersion")
 }
 

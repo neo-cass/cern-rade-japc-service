@@ -19,6 +19,8 @@ public class ServiceProperties {
     private Duration waitTimeForNewValueFromSub;
     @DurationUnit(ChronoUnit.MILLIS)
     private Duration socketIdleTimeout;
+    @DurationUnit(ChronoUnit.MILLIS)
+    private Duration firstUpdateTimeout;
     private int subQueueSize;
     private long getInMs(Duration value){
         long seconds = value.getSeconds() * 1000L;
@@ -35,6 +37,9 @@ public class ServiceProperties {
     public long getSocketIdleTimeout() {
         return getInMs(socketIdleTimeout);
     }
+    public long getFirstUpdateTimeout() {
+        return getInMs(firstUpdateTimeout);
+    }
     public int getSubQueueSize() {
         return subQueueSize;
     }
@@ -43,6 +48,10 @@ public class ServiceProperties {
     }
     public void setSocketIdleTimeout(Duration socketIdleTimeout) {
         this.socketIdleTimeout = socketIdleTimeout;
+    }
+
+    public void setFirstUpdateTimeout(Duration firstUpdateTimeout) {
+        this.firstUpdateTimeout = firstUpdateTimeout;
     }
 
     public void setSubQueueSize(int subQueueSize) {

@@ -93,7 +93,7 @@ public enum ErrorCode {
         if (causedBy(e, InvalidArgumentException.class) || causedBy(e, InvalidRequestException.class) || causedBy(e, BadSettingValueException.class)) {
             return HttpStatus.BAD_REQUEST;
         }
-        if (causedBy(e, TimeoutException.class)) {
+        if (causedBy(e, TimeoutException.class) || causedBy(e, java.util.concurrent.TimeoutException.class)) {
             return HttpStatus.GATEWAY_TIMEOUT;
         }
         if (e instanceof ParameterException) {
