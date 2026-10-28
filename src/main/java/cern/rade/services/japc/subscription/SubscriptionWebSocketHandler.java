@@ -3,6 +3,7 @@ package cern.rade.services.japc.subscription;
 import cern.japc.core.ParameterException;
 import cern.rade.services.codec.CodecException;
 import cern.rade.services.japc.ContextProvider;
+import cern.rade.services.japc.Fields;
 import cern.rade.services.japc.error.ErrorCode;
 import cern.rade.services.japc.format.Format;
 import org.jetbrains.annotations.NotNull;
@@ -12,6 +13,7 @@ import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorator;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -23,16 +25,19 @@ public class SubscriptionWebSocketHandler implements WebSocketHandler {
     protected SubscriptionService subscriptionService;
     protected Format format;
     protected String origin;
+    protected List<String> fields;
     protected boolean newValue = false;
     private final ExecutorService sendService = Executors.newSingleThreadExecutor();
 
     @Override
+    @SuppressWarnings("unchecked")
     public void afterConnectionEstablished(@NotNull WebSocketSession session) throws Exception {
         this.session = (ConcurrentWebSocketSessionDecorator) session;
         this.ID = session.getId();
         this.subscriptionService = (SubscriptionService) this.session.getAttributes().get("subscriptionService");
         this.format = (Format) this.session.getAttributes().get("format");
         this.origin = "GET " + session.getUri().getPath();
+        this.fields = (List<String>) this.session.getAttributes().get("fields");
         streamData();
     }
 
@@ -60,7 +65,7 @@ public class SubscriptionWebSocketHandler implements WebSocketHandler {
         if (!subscriptionService.pushLatestIntoContainer(waitTimeForNewValueFromSub)) {
             return false;
         }
-        session.sendMessage(format.dataFrame(subscriptionService.getLatest(), session.getAttributes()));
+        session.sendMessage(format.dataFrame(Fields.select(subscriptionService.getLatest(), fields), subscriptionService.getLatestHeader(), session.getAttributes()));
         return true;
     }
 

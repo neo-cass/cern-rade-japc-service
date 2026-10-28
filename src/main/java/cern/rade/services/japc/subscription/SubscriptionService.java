@@ -26,6 +26,7 @@ public class SubscriptionService implements ParameterValueListener {
     private Selector selector;
     private RBACClient rbacClient;
     private ParameterValue data;
+    private ValueHeader header;
     private SubscriptionHandle sh;
     private LinkedBlockingQueue<Update> valueQueue;
     private boolean executed = false;
@@ -137,8 +138,14 @@ public class SubscriptionService implements ParameterValueListener {
         return data;
     }
 
+    public ValueHeader getLatestHeader() {
+        if(!isExecuted()){throw new RuntimeException("SubscriptionService not initialised");}
+        return header;
+    }
+
     private void decode(AcquiredParameterValue apv) {
         data = apv.getValue();
+        header = apv.getHeader();
     }
 
     public boolean isExecuted() {

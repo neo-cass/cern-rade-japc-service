@@ -2,7 +2,9 @@ package cern.rade.services.japc.subscription;
 
 import cern.japc.core.ParameterException;
 import cern.rade.services.codec.CodecException;
+import cern.rade.services.japc.ApiPaths;
 import cern.rade.services.japc.ContextProvider;
+import cern.rade.services.japc.Fields;
 import cern.rade.services.japc.error.ErrorCode;
 import cern.rade.services.japc.format.Format;
 import cern.rade.services.japc.format.Formats;
@@ -14,6 +16,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.http.server.ServletServerHttpRequest;
@@ -22,12 +26,13 @@ import org.springframework.web.socket.server.HandshakeInterceptor;
 import org.springframework.web.util.UriTemplate;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 public class SubscriptionHandshakeInterceptor implements HandshakeInterceptor {
-    private static final UriTemplate FIELD_PATH = new UriTemplate("/subscription/{device:[^/]+}/{property:[^/]+}/{field:[^/]+}");
-    private static final UriTemplate PROPERTY_PATH = new UriTemplate("/subscription/{device:[^/]+}/{property:[^/]+}");
-    private static final UriTemplate DEVICE_PATH = new UriTemplate("/subscription/{device:[^/]+}");
+    private static final UriTemplate FIELD_PATH = new UriTemplate("/{device:[^/]+}/{property:[^/]+}/{field:[^/]+}");
+    private static final UriTemplate PROPERTY_PATH = new UriTemplate("/{device:[^/]+}/{property:[^/]+}");
+    private static final UriTemplate DEVICE_PATH = new UriTemplate("/{device:[^/]+}");
     protected final RBACManager rbacManager = ContextProvider.getRbacManager();
     private final Logger logger = LoggerFactory.getLogger(SubscriptionHandshakeInterceptor.class);
 
@@ -35,57 +40,67 @@ public class SubscriptionHandshakeInterceptor implements HandshakeInterceptor {
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, Map<String, Object> attributes) throws Exception {
         Format format = Formats.forHandshake(request.getHeaders());
         if (format == null){
-            rejectClient(Formats.preferred(), request, response, ErrorCode.BAD_REQUEST, "Sec-WebSocket-Protocol must be one of " + Formats.subprotocols());
+            rejectClient(Formats.preferred(), request, response, HttpStatus.BAD_REQUEST, ErrorCode.BAD_REQUEST, "Sec-WebSocket-Protocol must be one of " + Formats.subprotocols());
             return false;
         }
         try{
             return handleNewSubscription(format, request, response, attributes);
         }catch(Exception e){
             logger.error("Error handling subscription handshake for {}", request.getURI().getPath(), e);
-            rejectClient(format, request, response, ErrorCode.code(e), ErrorCode.message(e));
+            rejectClient(format, request, response, ErrorCode.httpStatus(e), ErrorCode.code(e), ErrorCode.message(e));
             return false;
         }
     }
 
-    private boolean handleNewSubscription(Format format, ServerHttpRequest request, ServerHttpResponse response, Map<String, Object> attributes) throws TokenFormatException, AuthenticationException, CodecException, ParameterException, IOException {
+    private boolean handleNewSubscription(Format format, ServerHttpRequest request, ServerHttpResponse response, Map<String, Object> attributes) throws Exception {
         HttpServletRequest servletRequest = ((ServletServerHttpRequest) request).getServletRequest();
         HttpHeaders headers = request.getHeaders();
         HttpHeaders retHeaders = response.getHeaders();
-        String path = request.getURI().getPath().substring(servletRequest.getContextPath().length());
+        String path = ApiPaths.stripWebSocketBase(request.getURI().getPath().substring(servletRequest.getContextPath().length()));
         String selector = servletRequest.getParameter("selector");
         String authStr = headers.getFirst("Rbac");
 
-        String name;
+        String property;
+        String field = null;
         SubscriptionService subscriptionService;
-        if (FIELD_PATH.matches(path)){
+        if (path != null && FIELD_PATH.matches(path)){
             Map<String, String> vars = FIELD_PATH.match(path);
-            name = vars.get("field");
-            subscriptionService = subscribeDevice_Property_Field(selector, vars.get("device"), vars.get("property"), name, authStr);
+            property = vars.get("property");
+            field = vars.get("field");
+            subscriptionService = subscribeDevice_Property_Field(selector, vars.get("device"), property, field, authStr);
         }
-        else if (PROPERTY_PATH.matches(path)){
+        else if (path != null && PROPERTY_PATH.matches(path)){
             Map<String, String> vars = PROPERTY_PATH.match(path);
-            name = vars.get("property");
-            subscriptionService = subscribeDevice_Property(selector, vars.get("device"), name, authStr);
+            property = vars.get("property");
+            subscriptionService = subscribeDevice_Property(selector, vars.get("device"), property, authStr);
         }
-        else if (DEVICE_PATH.matches(path) && (name = format.propertyFromHeaders(headers)) != null){
-            subscriptionService = subscribeDevice_Property(selector, DEVICE_PATH.match(path).get("device"), name, authStr);
+        else if (path != null && DEVICE_PATH.matches(path) && (property = format.propertyFromHeaders(headers)) != null){
+            subscriptionService = subscribeDevice_Property(selector, DEVICE_PATH.match(path).get("device"), property, authStr);
         }
         else{
-            rejectClient(format, request, response, ErrorCode.BAD_REQUEST, "Subscription path not recognized for " + format.subprotocol() + ": " + path);
+            rejectClient(format, request, response, HttpStatus.NOT_FOUND, ErrorCode.BAD_REQUEST, "Subscription path not recognized for " + format.subprotocol() + ": " + request.getURI().getPath());
             return false;
         }
 
         subscriptionService.execute();
-
-        attributes.put("subscriptionService", subscriptionService);
-        attributes.put("format", format);
-        byte[] ipAddr = request.getRemoteAddress().getAddress().getAddress();
-        attributes.put("ipAddr", ipAddr);
-        if(authStr!=null){
-            retHeaders.set("Rbac","Cached " + subscriptionService.getRbacClient().getRbac_id());
+        try {
+            attributes.put("subscriptionService", subscriptionService);
+            attributes.put("format", format);
+            byte[] ipAddr = request.getRemoteAddress().getAddress().getAddress();
+            attributes.put("ipAddr", ipAddr);
+            if(authStr!=null){
+                retHeaders.set("Rbac","Cached " + subscriptionService.getRbacClient().getRbac_id());
+            }
+            List<String> fields = Fields.parse(servletRequest.getParameter("fields"));
+            if (fields != null){
+                attributes.put("fields", fields);
+            }
+            format.prepareSubscription(servletRequest, retHeaders, property, field, Fields.select(subscriptionService.getLatest(), fields), attributes);
+            return true;
+        } catch (Exception e) {
+            subscriptionService.stopSubscription();
+            throw e;
         }
-        format.prepareSubscription(servletRequest, retHeaders, name, subscriptionService.getLatest(), attributes);
-        return true;
     }
 
     protected SubscriptionService subscribeDevice_Property(String selector, String device, String property, String authStr)
@@ -120,8 +135,8 @@ public class SubscriptionHandshakeInterceptor implements HandshakeInterceptor {
         return selector;
     }
 
-    protected void rejectClient(Format format, ServerHttpRequest request, ServerHttpResponse response, int errorCode, String message) throws CodecException, IOException {
-        format.writeError(response, ErrorCode.httpStatus(errorCode), errorCode, "GET " + request.getURI().getPath(), message);
+    protected void rejectClient(Format format, ServerHttpRequest request, ServerHttpResponse response, HttpStatusCode status, int errorCode, String message) throws CodecException, IOException {
+        format.writeError(response, status, errorCode, "GET " + request.getURI().getPath(), message);
     }
 
     @Override

@@ -21,6 +21,7 @@ public class GetService {
     private String selectorName;
     private RBACClient rbacClient;
     private long acquisitionStamp;
+    private long cycleStamp;
     private boolean executed = false;
     private final Logger logger = LoggerFactory.getLogger(GetService.class);
 
@@ -64,6 +65,7 @@ public class GetService {
     private void japcGET() throws ParameterException {
         this.apv = parameter.getValue(selector);
         this.acquisitionStamp = apv.getHeader().getAcqStamp();
+        this.cycleStamp = apv.getHeader().getCycleStamp();
     }
 
     private void decode() {
@@ -100,6 +102,13 @@ public class GetService {
             throw new RuntimeException("GetService has not been executed yet. You cant retrieve the acquisition stamp.");
         }
         return acquisitionStamp;
+    }
+
+    public long getCycleStamp() {
+        if(!isExecuted()){
+            throw new RuntimeException("GetService has not been executed yet. You cant retrieve the cycle stamp.");
+        }
+        return cycleStamp;
     }
 
     public RBACClient getRbacClient() {

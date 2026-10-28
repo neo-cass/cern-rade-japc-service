@@ -1,5 +1,6 @@
 package cern.rade.services.japc.format;
 
+import cern.japc.core.ValueHeader;
 import cern.japc.value.ParameterValue;
 import cern.rade.services.codec.CodecException;
 import cern.rade.services.codec.json.JSONCodec;
@@ -7,14 +8,12 @@ import cern.rade.services.codec.json.JSONErrorEncoder;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketMessage;
 
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Map;
 
 public class JSONFormat extends Format {
@@ -32,23 +31,21 @@ public class JSONFormat extends Format {
     }
 
     @Override
+    public HttpMessageConverter<?> converter() {
+        return new JSONConverter(mediaType());
+    }
+
+    @Override
     protected byte[] encodeError(int code, String origin, String message) throws CodecException {
         return error(code, origin, message).getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
-    public void prepareSubscription(HttpServletRequest request, HttpHeaders responseHeaders, String name, ParameterValue latest, Map<String, Object> attributes) {
-        String fields = request.getParameter("fields");
-        if (fields != null) {
-            attributes.put("fields", List.of(fields.split(",")));
-        }
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public WebSocketMessage<?> dataFrame(ParameterValue value, Map<String, Object> attributes) throws CodecException {
-        String json = JSONCodec.encode(value, (List<String>) attributes.get("fields"));
-        return new TextMessage("{\"type\":\"data\",\"value\":" + json + "}");
+    public WebSocketMessage<?> dataFrame(ParameterValue value, ValueHeader header, Map<String, Object> attributes) throws CodecException {
+        String json = JSONCodec.encode(value);
+        return new TextMessage("{\"type\":\"data\",\"acqStamp\":" + header.getAcqStamp()
+                + ",\"cycleStamp\":" + header.getCycleStamp()
+                + ",\"value\":" + json + "}");
     }
 
     @Override

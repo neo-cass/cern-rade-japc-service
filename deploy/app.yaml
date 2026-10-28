@@ -41,6 +41,8 @@ metadata:
   name: ${APP_NAME}
   labels:
     app: ${APP_NAME}
+  annotations:
+    router.cern.ch/network-visibility: Intranet
 spec:
   to:
     kind: Service

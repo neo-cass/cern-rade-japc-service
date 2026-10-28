@@ -1,5 +1,6 @@
 package cern.rade.services.japc.format;
 
+import cern.japc.core.ValueHeader;
 import cern.japc.value.ParameterValue;
 import cern.rade.services.codec.CodecException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -7,6 +8,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.web.socket.WebSocketMessage;
 
@@ -17,6 +19,8 @@ public abstract class Format {
     public abstract MediaType mediaType();
 
     public abstract String subprotocol();
+
+    public abstract HttpMessageConverter<?> converter();
 
     protected HttpHeaders errorHeaders() throws CodecException {
         return new HttpHeaders();
@@ -42,9 +46,10 @@ public abstract class Format {
         return null;
     }
 
-    public abstract void prepareSubscription(HttpServletRequest request, HttpHeaders responseHeaders, String name, ParameterValue latest, Map<String, Object> attributes) throws CodecException;
+    public void prepareSubscription(HttpServletRequest request, HttpHeaders responseHeaders, String property, String field, ParameterValue latest, Map<String, Object> attributes) throws CodecException {
+    }
 
-    public abstract WebSocketMessage<?> dataFrame(ParameterValue value, Map<String, Object> attributes) throws CodecException;
+    public abstract WebSocketMessage<?> dataFrame(ParameterValue value, ValueHeader header, Map<String, Object> attributes) throws CodecException;
 
     public abstract WebSocketMessage<?> errorFrame(int code, String origin, String message) throws CodecException;
 }

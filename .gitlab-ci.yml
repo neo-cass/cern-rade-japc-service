@@ -50,52 +50,56 @@ build_image:
   before_script:
     - oc login $SERVER --token=$PAAS_SERVICE_TOKEN
     - oc project $PROJECT
+    - export APP_NAME=${APP_NAME:-$(echo "japc-$CI_COMMIT_REF_SLUG" | cut -c1-49 | sed 's/-*$//')}
 
-deploy_to_paas:
+.deploy:
   extends: .paas
-  variables:
-    APP_NAME: japc  # name of the ImageStream/DeploymentConfig objects created by oc new-app
   script:
-    - oc import-image $APP_NAME --all --confirm
-    - sleep 10 && oc rollout status deployment/$APP_NAME
-  # if you are using Openshift's DeploymentConfig (instead of regular Deployments), use this command:
-  # - sleep 10 && oc rollout status deploymentconfig/$APP_NAME
+    - sed -e "s|\${APP_NAME}|$APP_NAME|g" -e "s|\${IMAGE}|$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA|g" deploy/app.yaml | oc apply -f -
+    - oc rollout status deployment/$APP_NAME --timeout=5m
+    - echo "APP_URL=https://$(oc get route $APP_NAME -o jsonpath='{.spec.host}')/api/v1" > deploy.env
+  artifacts:
+    reports:
+      dotenv: deploy.env
+  environment:
+    url: $APP_URL
+
+deploy_master:
+  extends: .deploy
+  environment:
+    name: master
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
-.review:
-  extends: .paas
-  before_script:
-    - oc login $SERVER --token=$PAAS_SERVICE_TOKEN
-    - oc project $PROJECT
-    - export REVIEW_APP=$(echo "japc-$CI_COMMIT_REF_SLUG" | cut -c1-49 | sed 's/-*$//')
-
 deploy_review:
-  extends: .review
-  script:
-    - sed -e "s|\${APP_NAME}|$REVIEW_APP|g" -e "s|\${IMAGE}|$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA|g" deploy/review.yaml | oc apply -f -
-    - oc rollout status deployment/$REVIEW_APP --timeout=5m
-    - echo "REVIEW_URL=https://$(oc get route $REVIEW_APP -o jsonpath='{.spec.host}')" > review.env
-  artifacts:
-    reports:
-      dotenv: review.env
+  extends: .deploy
   environment:
     name: review/$CI_COMMIT_REF_SLUG
-    url: $REVIEW_URL
     on_stop: stop_review
     auto_stop_in: 1 week
   rules:
     - if: $CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
 
 stop_review:
-  extends: .review
+  extends: .paas
   variables:
     GIT_STRATEGY: none
   script:
-    - oc delete deployment,service,route -l app=$REVIEW_APP --ignore-not-found
+    - oc delete deployment,service,route -l app=$APP_NAME --ignore-not-found
   environment:
     name: review/$CI_COMMIT_REF_SLUG
     action: stop
   rules:
     - if: $CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+      when: manual
+
+deploy_production:
+  extends: .deploy
+  variables:
+    APP_NAME: japc
+  environment:
+    name: production
+    deployment_tier: production
+  rules:
+    - if: $CI_COMMIT_TAG
       when: manual

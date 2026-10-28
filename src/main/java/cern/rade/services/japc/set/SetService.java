@@ -27,8 +27,19 @@ public class SetService {
         this.parameterValue = parameterValue;
     }
 
+    public SetService(String selectorName, String device, String property, String field, ParameterValue parameterValue){
+        this.selectorName = selectorName;
+        this.parameterName = Parameters.buildParameterName(device, property, field);
+        this.parameterValue = parameterValue;
+    }
+
     public SetService(String selectorName, String device, String property, ParameterValue parameterValue, RBACClient rbacClient){
         this(selectorName, device, property, parameterValue);
+        this.rbacClient = rbacClient;
+    }
+
+    public SetService(String selectorName, String device, String property, String field, ParameterValue parameterValue, RBACClient rbacClient){
+        this(selectorName, device, property, field, parameterValue);
         this.rbacClient = rbacClient;
     }
 

@@ -21,6 +21,19 @@ public abstract class SetEndpoint{
         }
         return setService;
     }
+    protected SetService set(String selector, String device, String property, String field, ParameterValue data, String authStr) throws TokenFormatException {
+        if (field == null) {
+            return set(selector, device, property, data, authStr);
+        }
+        SetService setService;
+        if (authStr != null) {
+            RBACClient rbacClient = rbacManager.createClient(authStr);
+            setService = new SetService(cleanSelector(selector), device, property, field, data, rbacClient);
+        } else {
+            setService = new SetService(cleanSelector(selector), device, property, field, data);
+        }
+        return setService;
+    }
     protected String cleanSelector(String selector){
         selector = selector == null ? "" : selector;
         return selector;

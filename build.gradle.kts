@@ -29,6 +29,7 @@ dependencies {
     implementation ("cern.accsoft.security:rbac-common:PRO")
     implementation ("cern.accsoft.security:rbac-util:PRO")
     implementation ("cern.cmw:cmw-data:PRO")
+    implementation ("cern.cmw:cmw-rda3:PRO")
 
     implementation ("cern.rade.services:codec:refactor-SNAPSHOT")
     implementation ("cern.rade.services:common:refactor-SNAPSHOT")
