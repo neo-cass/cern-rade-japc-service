@@ -76,7 +76,7 @@ public class SubscriptionService implements ParameterValueListener {
 
     @Override
     public void exceptionOccured(String parameterName, String description, ParameterException exception) {
-        logger.error("ParameterException occurred in the JAPC subscription: " + description, exception);
+        logger.debug("JAPC subscription to {} reported {}: {}", parameterName, description, exception.getMessage());
         try {
             valueQueue.put(new Update(null, exception));
         } catch (InterruptedException e) {

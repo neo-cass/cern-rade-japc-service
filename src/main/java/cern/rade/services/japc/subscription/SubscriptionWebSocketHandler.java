@@ -5,6 +5,7 @@ import cern.rade.services.codec.CodecException;
 import cern.rade.services.japc.ContextProvider;
 import cern.rade.services.japc.Fields;
 import cern.rade.services.japc.error.ErrorCode;
+import cern.rade.services.japc.error.ErrorLog;
 import cern.rade.services.japc.format.Format;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,24 +44,30 @@ public class SubscriptionWebSocketHandler implements WebSocketHandler {
         sendService.submit(this::iterativelySendData);
     }
     private void iterativelySendData(){
+        boolean sendHeldValue = true;
         while(session.isOpen() && !Thread.currentThread().isInterrupted()){
+            boolean waitForUpdate = !sendHeldValue;
+            sendHeldValue = false;
             try {
-                sendData();
+                sendData(waitForUpdate);
             } catch (ParameterException e) {
-                logger.warn("JAPC error in the subscription for client with ID {}", ID, e);
+                ErrorLog.log(logger, "Subscription " + ID + " (" + origin + ")", e);
                 sendError(e);
             } catch (IOException e) {
-                logger.error("Error while sending data to the subscription client with ID {}", ID, e);
+                logger.warn("Subscription {} ({}): could not send to client: {}", ID, origin, e.getMessage());
                 close(CloseStatus.SERVER_ERROR);
             } catch (Exception e) {
-                logger.error("Fatal error in the subscription for client with ID {}", ID, e);
+                ErrorLog.log(logger, "Subscription " + ID + " (" + origin + ")", e);
                 close(ErrorCode.of(e).closeStatus(ErrorCode.message(e)));
             }
         }
     }
 
-    private void sendData() throws IOException, CodecException, ParameterException {
-        if (subscriptionService.pushLatestIntoContainer(waitTimeForNewValueFromSub)) {
+    private void sendData(boolean waitForUpdate) throws IOException, CodecException, ParameterException {
+        if (waitForUpdate && !subscriptionService.pushLatestIntoContainer(waitTimeForNewValueFromSub)) {
+            return;
+        }
+        if (subscriptionService.getLatest() != null) {
             session.sendMessage(format.dataFrame(Fields.select(subscriptionService.getLatest(), fields), subscriptionService.getLatestHeader(), session.getAttributes()));
         }
     }
@@ -69,7 +76,7 @@ public class SubscriptionWebSocketHandler implements WebSocketHandler {
         try {
             session.sendMessage(format.errorFrame(ErrorCode.of(e), origin, ErrorCode.message(e)));
         } catch (Exception sendException) {
-            logger.error("Could not send error to the subscription client with ID {}", ID, sendException);
+            logger.warn("Subscription {} ({}): could not send error to client: {}", ID, origin, sendException.getMessage());
             close(ErrorCode.of(e).closeStatus(ErrorCode.message(e)));
         }
     }
@@ -78,7 +85,7 @@ public class SubscriptionWebSocketHandler implements WebSocketHandler {
         try {
             closeSession(closeStatus);
         } catch (IOException e) {
-            logger.error("Could not close the subscription for client with ID {}", ID, e);
+            logger.warn("Subscription {} ({}): could not close: {}", ID, origin, e.getMessage());
         }
     }
 

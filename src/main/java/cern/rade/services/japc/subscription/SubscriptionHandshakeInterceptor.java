@@ -5,6 +5,7 @@ import cern.rade.services.japc.ApiPaths;
 import cern.rade.services.japc.ContextProvider;
 import cern.rade.services.japc.Fields;
 import cern.rade.services.japc.error.ErrorCode;
+import cern.rade.services.japc.error.ErrorLog;
 import cern.rade.services.japc.format.Format;
 import cern.rade.services.japc.format.Formats;
 import cern.rade.services.japc.rbac.RBACHeaders;
@@ -38,14 +39,13 @@ public class SubscriptionHandshakeInterceptor implements HandshakeInterceptor {
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, Map<String, Object> attributes) throws Exception {
         Format format = Formats.forHandshake(request.getHeaders());
         if (format == null){
-            rejectClient(Formats.preferred(), request, response, HttpStatus.BAD_REQUEST, ErrorCode.BAD_REQUEST, "Sec-WebSocket-Protocol must be one of " + Formats.subprotocols());
+            rejectClient(Formats.preferred(), request, response, HttpStatus.BAD_REQUEST, ErrorCode.BAD_REQUEST, "Sec-WebSocket-Protocol must be one of " + Formats.subprotocols(), null);
             return false;
         }
         try{
             return handleNewSubscription(format, request, response, attributes);
         }catch(Exception e){
-            logger.error("Error handling subscription handshake for {}", request.getURI().getPath(), e);
-            rejectClient(format, request, response, ErrorCode.httpStatus(e), ErrorCode.of(e), ErrorCode.message(e));
+            rejectClient(format, request, response, ErrorCode.httpStatus(e), ErrorCode.of(e), ErrorCode.message(e), e);
             return false;
         }
     }
@@ -71,7 +71,7 @@ public class SubscriptionHandshakeInterceptor implements HandshakeInterceptor {
             vars.put("property", headerProperty);
         }
         else{
-            rejectClient(format, request, response, HttpStatus.NOT_FOUND, ErrorCode.BAD_REQUEST, "Subscription path not recognized for " + format.subprotocol() + ": " + request.getURI().getPath());
+            rejectClient(format, request, response, HttpStatus.NOT_FOUND, ErrorCode.BAD_REQUEST, "Subscription path not recognized for " + format.subprotocol() + ": " + request.getURI().getPath(), null);
             return false;
         }
         String property = vars.get("property");
@@ -95,8 +95,10 @@ public class SubscriptionHandshakeInterceptor implements HandshakeInterceptor {
         }
     }
 
-    protected void rejectClient(Format format, ServerHttpRequest request, ServerHttpResponse response, HttpStatusCode status, ErrorCode errorCode, String message) throws CodecException, IOException {
-        format.writeError(response, status, errorCode, "GET " + request.getURI().getPath(), message);
+    protected void rejectClient(Format format, ServerHttpRequest request, ServerHttpResponse response, HttpStatusCode status, ErrorCode errorCode, String message, Throwable cause) throws CodecException, IOException {
+        String origin = "GET " + request.getURI().getPath();
+        ErrorLog.log(logger, "Subscription handshake " + origin, status, message, cause);
+        format.writeError(response, status, errorCode, origin, message);
     }
 
     @Override

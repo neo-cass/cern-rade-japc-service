@@ -5,6 +5,7 @@ import cern.rade.services.japc.format.Formats;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -15,11 +16,9 @@ public class ErrorHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<byte[]> handleException(Exception e, HttpServletRequest request) throws CodecException {
-        logger.error("Error handling {} {}", request.getMethod(), request.getRequestURI(), e);
-        return Formats.negotiate(request).errorResponse(
-                ErrorCode.httpStatus(e),
-                ErrorCode.of(e),
-                request.getMethod() + " " + request.getRequestURI(),
-                ErrorCode.message(e));
+        HttpStatusCode status = ErrorCode.httpStatus(e);
+        String origin = request.getMethod() + " " + request.getRequestURI();
+        ErrorLog.log(logger, origin, status, e);
+        return Formats.negotiate(request).errorResponse(status, ErrorCode.of(e), origin, ErrorCode.message(e));
     }
 }

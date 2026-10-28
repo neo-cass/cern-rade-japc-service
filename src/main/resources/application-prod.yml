@@ -5,6 +5,7 @@ logging:
     cern.cmw.directory.http.client.impl.feign.FeignDecoder: WARN
     cern.cmw.rda3.impl.transport.client.ClientDispatcher: WARN
     cern.cmw.rda3.impl.transport.zeromq.ZMQAdapter: WARN
+    cern.cmw.rda3.impl.client.subscription.SubscriptionControllerImpl: WARN
   config: "classpath:log4j2-prod.yml"
 
 service-properties:
