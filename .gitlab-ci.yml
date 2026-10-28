@@ -37,9 +37,9 @@ build_image:
   stage: buildImage
   script:
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --build-arg WAR_NAME=$WAR_NAME
+    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA --build-arg WAR_NAME=$WAR_NAME
 
-deploy_to_paas:
+.paas:
   tags:
     - k8s-default
   stage: deploy
@@ -47,11 +47,55 @@ deploy_to_paas:
   variables:
     SERVER: https://api.paas.okd.cern.ch
     PROJECT: rade-services   # name of your Openshift project
-    APP_NAME: japc  # name of the ImageStream/DeploymentConfig objects created by oc new-app
-  script:
+  before_script:
     - oc login $SERVER --token=$PAAS_SERVICE_TOKEN
     - oc project $PROJECT
+
+deploy_to_paas:
+  extends: .paas
+  variables:
+    APP_NAME: japc  # name of the ImageStream/DeploymentConfig objects created by oc new-app
+  script:
     - oc import-image $APP_NAME --all --confirm
     - sleep 10 && oc rollout status deployment/$APP_NAME
   # if you are using Openshift's DeploymentConfig (instead of regular Deployments), use this command:
   # - sleep 10 && oc rollout status deploymentconfig/$APP_NAME
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+.review:
+  extends: .paas
+  before_script:
+    - oc login $SERVER --token=$PAAS_SERVICE_TOKEN
+    - oc project $PROJECT
+    - export REVIEW_APP=$(echo "japc-$CI_COMMIT_REF_SLUG" | cut -c1-49 | sed 's/-*$//')
+
+deploy_review:
+  extends: .review
+  script:
+    - sed -e "s|\${APP_NAME}|$REVIEW_APP|g" -e "s|\${IMAGE}|$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA|g" deploy/review.yaml | oc apply -f -
+    - oc rollout status deployment/$REVIEW_APP --timeout=5m
+    - echo "REVIEW_URL=https://$(oc get route $REVIEW_APP -o jsonpath='{.spec.host}')" > review.env
+  artifacts:
+    reports:
+      dotenv: review.env
+  environment:
+    name: review/$CI_COMMIT_REF_SLUG
+    url: $REVIEW_URL
+    on_stop: stop_review
+    auto_stop_in: 1 week
+  rules:
+    - if: $CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+
+stop_review:
+  extends: .review
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - oc delete deployment,service,route -l app=$REVIEW_APP --ignore-not-found
+  environment:
+    name: review/$CI_COMMIT_REF_SLUG
+    action: stop
+  rules:
+    - if: $CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+      when: manual
