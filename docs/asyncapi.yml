@@ -1,0 +1,348 @@
+asyncapi: 3.1.0
+info:
+  title: RADE JAPC WebSocket API
+  version: v1
+  description: |
+    Subscriptions to JAPC device parameters over WebSocket. The server sends; client messages are ignored.
+
+    Connection:
+    1. Open a WebSocket to a channel address. Select the format with `Sec-WebSocket-Protocol`: `json` (default when absent) or `labview-variant`.
+    2. The handshake fails with an HTTP error response, encoded as in the [REST API](index.html), if the parameter cannot be subscribed or no first value arrives within 5 s.
+    3. The first message is the current value. Each further update is one message.
+    4. Device errors are sent as error messages and the subscription continues. Fatal errors close the connection with a close code and the error message as reason.
+
+    | Close code | Meaning |
+    |---|---|
+    | 1011 | Server error while sending |
+    | 4000 | Fatal JAPC error |
+    | 4001 | Fatal codec error |
+    | 4002 | Fatal RBAC error |
+    | 4003 | Fatal bad request |
+    | 4004 | Fatal internal error |
+
+    Liveness: the server sends a ping every 5 s. The connection closes after 10 s without traffic. Clients must answer pings.
+
+    Delivery: updates are queued per connection (100). When the queue is full the oldest update is dropped.
+
+    Specifications: [asyncapi.yml](asyncapi.yml), [openapi.yml](openapi.yml).
+  x-close-codes:
+    '1011': Server error while sending
+    '4000': Fatal JAPC error
+    '4001': Fatal codec error
+    '4002': Fatal RBAC error
+    '4003': Fatal bad request
+    '4004': Fatal internal error
+  x-ping-interval-ms: 5000
+  x-idle-timeout-ms: 10000
+  x-first-update-timeout-ms: 5000
+  x-queue:
+    size: 100
+    overflow: drop-oldest
+servers:
+  service:
+    host: '{host}'
+    protocol: wss
+    pathname: /ws/v1
+    description: /ws is an alias of /ws/v1.
+    variables:
+      host:
+        default: japc-rade-services.app.cern.ch
+        description: Route host of the deployment.
+    security:
+      - $ref: '#/components/securitySchemes/Rbac'
+channels:
+  property:
+    address: /{device}/{property}
+    title: Property
+    parameters:
+      device:
+        $ref: '#/components/parameters/device'
+      property:
+        $ref: '#/components/parameters/property'
+    messages:
+      jsonData:
+        $ref: '#/components/messages/jsonData'
+      jsonError:
+        $ref: '#/components/messages/jsonError'
+      labviewData:
+        $ref: '#/components/messages/labviewData'
+      labviewError:
+        $ref: '#/components/messages/labviewError'
+    bindings:
+      $ref: '#/components/channelBindings/withFields'
+  field:
+    address: /{device}/{property}/{field}
+    title: Field
+    parameters:
+      device:
+        $ref: '#/components/parameters/device'
+      property:
+        $ref: '#/components/parameters/property'
+      field:
+        $ref: '#/components/parameters/field'
+    messages:
+      jsonData:
+        $ref: '#/components/messages/jsonData'
+      jsonError:
+        $ref: '#/components/messages/jsonError'
+      labviewData:
+        $ref: '#/components/messages/labviewData'
+      labviewError:
+        $ref: '#/components/messages/labviewError'
+    bindings:
+      $ref: '#/components/channelBindings/withoutFields'
+  labviewDescriptor:
+    address: /{device}
+    title: LabVIEW descriptor
+    description: '`labview-variant` only. The property is the label of the cluster in `Lv-Type-Descriptor`, which is required.'
+    parameters:
+      device:
+        $ref: '#/components/parameters/device'
+    messages:
+      labviewData:
+        $ref: '#/components/messages/labviewData'
+      labviewError:
+        $ref: '#/components/messages/labviewError'
+    bindings:
+      $ref: '#/components/channelBindings/labviewDescriptor'
+operations:
+  sendProperty:
+    action: send
+    channel:
+      $ref: '#/channels/property'
+    summary: Property updates
+    security:
+      - $ref: '#/components/securitySchemes/Rbac'
+  sendField:
+    action: send
+    channel:
+      $ref: '#/channels/field'
+    summary: Field updates
+    security:
+      - $ref: '#/components/securitySchemes/Rbac'
+  sendLabviewDescriptor:
+    action: send
+    channel:
+      $ref: '#/channels/labviewDescriptor'
+    summary: Updates of the property named by the type descriptor
+    security:
+      - $ref: '#/components/securitySchemes/Rbac'
+components:
+  securitySchemes:
+    Rbac:
+      type: httpApiKey
+      in: header
+      name: Rbac
+      description: |
+        Optional RBAC credentials, as in the REST API. The handshake response contains `Rbac: Cached <id>` when supplied.
+
+        | Value | Credentials |
+        |---|---|
+        | `Explicit <base64url(username:password)>` | Login with username and password. |
+        | `Location <base64url(token)>` | Serialized RBAC token. |
+        | `Cached <id>` | Id from an earlier `Rbac` response header. |
+      x-rbac-schemes: [Explicit, Location, Cached]
+  parameters:
+    device:
+      description: Device name. Must not match `v[0-9]+`.
+      examples: [MY.DEVICE]
+    property:
+      description: Property name.
+      examples: [Acquisition]
+    field:
+      description: Field name.
+      examples: [current]
+  channelBindings:
+    withFields:
+      ws:
+        method: GET
+        query:
+          type: object
+          properties:
+            selector:
+              $ref: '#/components/schemas/selector'
+            fields:
+              $ref: '#/components/schemas/fields'
+        headers:
+          type: object
+          properties:
+            Sec-WebSocket-Protocol:
+              $ref: '#/components/schemas/subprotocol'
+            Lv-Type-Descriptor:
+              $ref: '#/components/schemas/LvTypeDescriptorOptional'
+        bindingVersion: 0.1.0
+    withoutFields:
+      ws:
+        method: GET
+        query:
+          type: object
+          properties:
+            selector:
+              $ref: '#/components/schemas/selector'
+        headers:
+          type: object
+          properties:
+            Sec-WebSocket-Protocol:
+              $ref: '#/components/schemas/subprotocol'
+            Lv-Type-Descriptor:
+              $ref: '#/components/schemas/LvTypeDescriptorOptional'
+        bindingVersion: 0.1.0
+    labviewDescriptor:
+      ws:
+        method: GET
+        query:
+          type: object
+          properties:
+            selector:
+              $ref: '#/components/schemas/selector'
+        headers:
+          type: object
+          required: [Sec-WebSocket-Protocol, Lv-Type-Descriptor]
+          properties:
+            Sec-WebSocket-Protocol:
+              type: string
+              const: labview-variant
+            Lv-Type-Descriptor:
+              $ref: '#/components/schemas/LvTypeDescriptor'
+        bindingVersion: 0.1.0
+  messages:
+    jsonData:
+      name: data
+      title: JSON data
+      contentType: application/json
+      description: Text frame. Subprotocol `json`.
+      payload:
+        type: object
+        required: [type, acqStamp, cycleStamp, value]
+        properties:
+          type:
+            type: string
+            const: data
+          acqStamp:
+            $ref: '#/components/schemas/acqStamp'
+          cycleStamp:
+            $ref: '#/components/schemas/cycleStamp'
+          value:
+            description: japc-json typed value, as in the REST API `Value` schema.
+            type: object
+            required: ['@type']
+            properties:
+              '@type':
+                type: string
+      examples:
+        - payload:
+            type: data
+            acqStamp: 1761742800000000000
+            cycleStamp: 1761742799900000000
+            value:
+              '@type': map_value
+              current:
+                '@type': double_value
+                value: 1.5
+    jsonError:
+      name: error
+      title: JSON error
+      contentType: application/json
+      description: Text frame. Subprotocol `json`. Non-fatal.
+      payload:
+        type: object
+        required: [type, status, code, source, message]
+        properties:
+          type:
+            type: string
+            const: error
+          status:
+            type: boolean
+            const: true
+          code:
+            $ref: '#/components/schemas/errorCode'
+          source:
+            type: string
+            description: '`rade-japc GET <path>`'
+          message:
+            type: string
+      examples:
+        - payload:
+            type: error
+            status: true
+            code: 5000
+            source: rade-japc GET /ws/v1/MY.DEVICE/Acquisition
+            message: Device not responding
+    labviewData:
+      name: data
+      title: LabVIEW data
+      contentType: application/labview-variant
+      description: |
+        Binary frame. Subprotocol `labview-variant`. Big-endian.
+
+        | Offset | Type | Content |
+        |---|---|---|
+        | 0 | U8 | `0x00` |
+        | 1 | I64 | Acquisition stamp, ns since 1970-01-01T00:00:00Z |
+        | 9 | I64 | Cycle stamp, ns since 1970-01-01T00:00:00Z |
+        | 17 | | LabVIEW flattened data |
+
+        The data is described by the `Lv-Type-Descriptor` request header or, when absent, by the `Lv-Type-Descriptor` handshake response header.
+      payload:
+        type: string
+        format: binary
+        x-frame-layout:
+          - {offset: 0, type: U8, value: '0x00'}
+          - {offset: 1, type: I64, value: acqStamp}
+          - {offset: 9, type: I64, value: cycleStamp}
+          - {offset: 17, type: flattened data, value: value}
+    labviewError:
+      name: error
+      title: LabVIEW error
+      contentType: application/labview-variant
+      description: |
+        Binary frame. Subprotocol `labview-variant`. Non-fatal.
+
+        | Offset | Type | Content |
+        |---|---|---|
+        | 0 | U8 | `0x01` |
+        | 1 | | Flattened error cluster: `status` Boolean, `code` I32, `source` String |
+
+        `source` is `rade-japc GET <path><ERR><message>`.
+      payload:
+        type: string
+        format: binary
+        x-frame-layout:
+          - {offset: 0, type: U8, value: '0x01'}
+          - {offset: 1, type: 'cluster {status: Boolean, code: I32, source: String}', value: error}
+  schemas:
+    selector:
+      type: string
+      description: JAPC cycle selector. Omit for non-multiplexed devices.
+      examples: [CPS.USER.ALL]
+    fields:
+      type: string
+      description: Comma-separated field names. Messages contain only these fields.
+      examples: ['current,voltage']
+    subprotocol:
+      type: string
+      enum: [json, labview-variant]
+      default: json
+      description: Message format. `400` if no offered subprotocol is supported.
+    LvTypeDescriptor:
+      type: string
+      contentEncoding: base64url
+      description: base64url, with padding, of the LabVIEW flattened type descriptor.
+    LvTypeDescriptorOptional:
+      type: string
+      contentEncoding: base64url
+      description: |
+        `labview-variant` only. Descriptor of the data frames, as in the REST API.
+        When absent, the server derives it and returns it in the `Lv-Type-Descriptor` handshake response header.
+    acqStamp:
+      type: integer
+      format: int64
+      description: Acquisition stamp in nanoseconds since 1970-01-01T00:00:00Z.
+    cycleStamp:
+      type: integer
+      format: int64
+      description: Cycle stamp in nanoseconds since 1970-01-01T00:00:00Z. `0` when not multiplexed.
+    errorCode:
+      type: integer
+      enum: [5000, 5001, 5002, 5003, 5004]
+      description: 5000 JAPC, 5001 codec, 5002 RBAC, 5003 bad request, 5004 internal.

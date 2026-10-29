@@ -74,6 +74,11 @@ tasks.named<org.springframework.boot.gradle.tasks.bundling.BootWar>("bootWar") {
     }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
+tasks.processResources {
+    from(layout.buildDirectory.dir("api-docs")) {
+        into("docs")
+    }
+}
 // requirement for building this project
 java {
     sourceCompatibility = JavaVersion.VERSION_21

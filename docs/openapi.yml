@@ -1,0 +1,454 @@
+openapi: 3.1.0
+info:
+  title: RADE JAPC REST API
+  version: v1
+  description: |
+    GET and SET of JAPC device parameters over HTTP.
+
+    Formats are selected with `Accept` (responses) and `Content-Type` (request bodies):
+
+    | Media type | Format |
+    |---|---|
+    | `application/json` | japc-json typed value. Default when `Accept` is absent or `*/*`. |
+    | `application/labview-variant` | LabVIEW flattened data, described by the `Lv-Type-Descriptor` header. |
+
+    Subscriptions: [WebSocket API](websocket.html).
+    Specifications: [openapi.yml](openapi.yml), [asyncapi.yml](asyncapi.yml).
+security:
+  - {}
+  - Rbac: []
+servers:
+  - url: /api/v1
+    description: This deployment. /api is an alias of /api/v1.
+tags:
+  - name: Parameter
+    description: Access by device, property and optional field in the path.
+  - name: LabVIEW descriptor
+    description: Access by device in the path; property and fields are taken from `Lv-Type-Descriptor`.
+paths:
+  /{device}/{property}:
+    parameters:
+      - $ref: '#/components/parameters/device'
+      - $ref: '#/components/parameters/property'
+      - $ref: '#/components/parameters/selector'
+    get:
+      tags: [Parameter]
+      operationId: getProperty
+      summary: Get a property
+      parameters:
+        - $ref: '#/components/parameters/fields'
+        - $ref: '#/components/parameters/LvTypeDescriptorOptional'
+      responses:
+        '200':
+          $ref: '#/components/responses/Value'
+        4XX:
+          $ref: '#/components/responses/Error'
+        5XX:
+          $ref: '#/components/responses/Error'
+    put:
+      tags: [Parameter]
+      operationId: setProperty
+      summary: Set a property
+      parameters:
+        - $ref: '#/components/parameters/LvTypeDescriptorBody'
+      requestBody:
+        $ref: '#/components/requestBodies/Value'
+      responses:
+        '200':
+          $ref: '#/components/responses/Set'
+        4XX:
+          $ref: '#/components/responses/Error'
+        5XX:
+          $ref: '#/components/responses/Error'
+  /{device}/{property}/{field}:
+    parameters:
+      - $ref: '#/components/parameters/device'
+      - $ref: '#/components/parameters/property'
+      - $ref: '#/components/parameters/field'
+      - $ref: '#/components/parameters/selector'
+    get:
+      tags: [Parameter]
+      operationId: getField
+      summary: Get a field
+      parameters:
+        - $ref: '#/components/parameters/LvTypeDescriptorOptional'
+      responses:
+        '200':
+          $ref: '#/components/responses/Value'
+        4XX:
+          $ref: '#/components/responses/Error'
+        5XX:
+          $ref: '#/components/responses/Error'
+    put:
+      tags: [Parameter]
+      operationId: setField
+      summary: Set a field
+      parameters:
+        - $ref: '#/components/parameters/LvTypeDescriptorBody'
+      requestBody:
+        $ref: '#/components/requestBodies/Value'
+      responses:
+        '200':
+          $ref: '#/components/responses/Set'
+        4XX:
+          $ref: '#/components/responses/Error'
+        5XX:
+          $ref: '#/components/responses/Error'
+  /{device}:
+    parameters:
+      - $ref: '#/components/parameters/device'
+      - $ref: '#/components/parameters/selector'
+      - $ref: '#/components/parameters/LvTypeDescriptorDevice'
+    get:
+      tags: [LabVIEW descriptor]
+      operationId: getByDescriptor
+      summary: Get the property named by the type descriptor
+      description: |
+        Returns `404` without `Lv-Type-Descriptor` and `406` if `Accept` does not allow `application/labview-variant`.
+      responses:
+        '200':
+          description: Value encoded with the supplied descriptor.
+          headers:
+            Acq-Stamp:
+              $ref: '#/components/headers/Acq-Stamp'
+            Cycle-Stamp:
+              $ref: '#/components/headers/Cycle-Stamp'
+            Rbac:
+              $ref: '#/components/headers/Rbac'
+          content:
+            application/labview-variant:
+              schema:
+                $ref: '#/components/schemas/LabVIEWData'
+        4XX:
+          $ref: '#/components/responses/Error'
+        5XX:
+          $ref: '#/components/responses/Error'
+    put:
+      tags: [LabVIEW descriptor]
+      operationId: setByDescriptor
+      summary: Set the property named by the type descriptor
+      description: |
+        Returns `404` without `Lv-Type-Descriptor` and `415` if `Content-Type` is not `application/labview-variant`.
+      requestBody:
+        required: true
+        content:
+          application/labview-variant:
+            schema:
+              $ref: '#/components/schemas/LabVIEWData'
+      responses:
+        '200':
+          $ref: '#/components/responses/Set'
+        4XX:
+          $ref: '#/components/responses/Error'
+        5XX:
+          $ref: '#/components/responses/Error'
+components:
+  parameters:
+    device:
+      name: device
+      in: path
+      required: true
+      description: Device name. Must not match `v[0-9]+`.
+      schema:
+        type: string
+        not:
+          pattern: '^v[0-9]+$'
+      example: MY.DEVICE
+    property:
+      name: property
+      in: path
+      required: true
+      description: Property name.
+      schema:
+        type: string
+      example: Acquisition
+    field:
+      name: field
+      in: path
+      required: true
+      description: Field name.
+      schema:
+        type: string
+      example: current
+    selector:
+      name: selector
+      in: query
+      required: false
+      description: JAPC cycle selector. Omit for non-multiplexed devices.
+      schema:
+        type: string
+      example: CPS.USER.ALL
+    fields:
+      name: fields
+      in: query
+      required: false
+      description: Comma-separated field names. The response contains only these fields. `400` if a field does not exist.
+      style: form
+      explode: false
+      schema:
+        type: array
+        items:
+          type: string
+      example: [current, voltage]
+    LvTypeDescriptorOptional:
+      name: Lv-Type-Descriptor
+      in: header
+      required: false
+      description: |
+        LabVIEW only. Descriptor to encode the response with. Must describe a cluster labelled with the property name,
+        or, for a field path, the field or a cluster labelled with the property containing only that field.
+        When absent with `Accept: application/labview-variant`, the server derives the descriptor and returns it in the response.
+      schema:
+        $ref: '#/components/schemas/LvTypeDescriptor'
+    LvTypeDescriptorBody:
+      name: Lv-Type-Descriptor
+      in: header
+      required: false
+      description: Required when `Content-Type` is `application/labview-variant`. Describes the request body.
+      schema:
+        $ref: '#/components/schemas/LvTypeDescriptor'
+    LvTypeDescriptorDevice:
+      name: Lv-Type-Descriptor
+      in: header
+      required: true
+      description: Cluster descriptor. The cluster label is the property name and the elements are the fields.
+      schema:
+        $ref: '#/components/schemas/LvTypeDescriptor'
+  headers:
+    Acq-Stamp:
+      description: Acquisition stamp in nanoseconds since 1970-01-01T00:00:00Z.
+      schema:
+        type: integer
+        format: int64
+    Cycle-Stamp:
+      description: Cycle stamp in nanoseconds since 1970-01-01T00:00:00Z. `0` when not multiplexed.
+      schema:
+        type: integer
+        format: int64
+    Rbac:
+      description: Present when the request had an `Rbac` header. Reuse the value as the `Rbac` request header.
+      schema:
+        type: string
+        pattern: '^Cached [0-9]+$'
+    Lv-Type-Descriptor:
+      description: LabVIEW only, when the request had no `Lv-Type-Descriptor`. Descriptor of the response body.
+      schema:
+        $ref: '#/components/schemas/LvTypeDescriptor'
+  requestBodies:
+    Value:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Value'
+          examples:
+            property:
+              value:
+                '@type': map_value
+                current:
+                  '@type': double_value
+                  value: 1.5
+            field:
+              value:
+                '@type': double_value
+                value: 1.5
+        application/labview-variant:
+          schema:
+            $ref: '#/components/schemas/LabVIEWData'
+  responses:
+    Value:
+      description: Parameter value.
+      headers:
+        Acq-Stamp:
+          $ref: '#/components/headers/Acq-Stamp'
+        Cycle-Stamp:
+          $ref: '#/components/headers/Cycle-Stamp'
+        Rbac:
+          $ref: '#/components/headers/Rbac'
+        Lv-Type-Descriptor:
+          $ref: '#/components/headers/Lv-Type-Descriptor'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Value'
+          examples:
+            property:
+              value:
+                '@type': map_value
+                current:
+                  '@type': double_value
+                  value: 1.5
+                samples:
+                  '@type': double_array_value
+                  value: [1.0, 2.0]
+            field:
+              value:
+                '@type': double_value
+                value: 1.5
+        application/labview-variant:
+          schema:
+            $ref: '#/components/schemas/LabVIEWData'
+    Set:
+      description: Value set. No body.
+      headers:
+        Rbac:
+          $ref: '#/components/headers/Rbac'
+    Error:
+      description: Error. See `ErrorCode` for codes and HTTP status mapping.
+      headers:
+        Lv-Type-Descriptor:
+          description: LabVIEW only. Descriptor of the error cluster.
+          schema:
+            $ref: '#/components/schemas/LvTypeDescriptor'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+        application/labview-variant:
+          schema:
+            $ref: '#/components/schemas/LabVIEWError'
+  schemas:
+    Value:
+      description: japc-json typed value. `@type` identifies the JAPC value type.
+      oneOf:
+        - $ref: '#/components/schemas/MapValue'
+        - $ref: '#/components/schemas/ScalarValue'
+        - $ref: '#/components/schemas/ArrayValue'
+        - $ref: '#/components/schemas/Array2DValue'
+      x-other-types: Other JAPC value types (enum, enum set, discrete function) use the japc-json 8.2.1 encoding and are not supported by the LabVIEW format.
+    SimpleValue:
+      oneOf:
+        - $ref: '#/components/schemas/ScalarValue'
+        - $ref: '#/components/schemas/ArrayValue'
+        - $ref: '#/components/schemas/Array2DValue'
+    MapValue:
+      description: Property value. Each other member is a field.
+      type: object
+      required: ['@type']
+      properties:
+        '@type':
+          const: map_value
+      additionalProperties:
+        $ref: '#/components/schemas/SimpleValue'
+    ScalarValue:
+      type: object
+      required: ['@type', value]
+      properties:
+        '@type':
+          enum: [boolean_value, byte_value, short_value, int_value, long_value, float_value, double_value, string_value]
+        value:
+          type: [boolean, integer, number, string]
+    ArrayValue:
+      type: object
+      required: ['@type', value]
+      properties:
+        '@type':
+          enum: [boolean_array_value, byte_array_value, short_array_value, int_array_value, long_array_value, float_array_value, double_array_value, string_array_value]
+        value:
+          type: array
+          items:
+            type: [boolean, integer, number, string]
+    Array2DValue:
+      type: object
+      required: ['@type', value, rowCount, columnCount]
+      properties:
+        '@type':
+          enum: [boolean_array_2d_value, byte_array_2d_value, short_array_2d_value, int_array_2d_value, long_array_2d_value, float_array_2d_value, double_array_2d_value, string_array_2d_value]
+        value:
+          description: Elements in row-major order.
+          type: array
+          items:
+            type: [boolean, integer, number, string]
+        rowCount:
+          type: integer
+        columnCount:
+          type: integer
+      example:
+        '@type': int_array_2d_value
+        value: [1, 2, 3, 4, 5, 6]
+        rowCount: 2
+        columnCount: 3
+    Error:
+      type: object
+      required: [status, code, source, message]
+      properties:
+        status:
+          const: true
+        code:
+          $ref: '#/components/schemas/ErrorCode'
+        source:
+          description: '`rade-japc <METHOD> <path>`'
+          type: string
+          example: rade-japc GET /api/v1/MY.DEVICE/Acquisition
+        message:
+          type: string
+    ErrorCode:
+      type: integer
+      enum: [5000, 5001, 5002, 5003, 5004]
+      x-error-codes:
+        '5000': JAPC error
+        '5001': Codec error
+        '5002': RBAC error
+        '5003': Bad request
+        '5004': Internal error
+      x-http-status:
+        '400': Invalid request, value, selector or type descriptor
+        '401': Invalid or expired RBAC credentials
+        '403': RBAC access denied
+        '404': Unknown route, device or property
+        '406': Requested media type not available
+        '415': Request media type not supported
+        '500': Internal error
+        '502': Device or middleware error
+        '504': Device timeout
+    LvTypeDescriptor:
+      description: base64url, with padding, of the LabVIEW flattened type descriptor (`Flatten To String` type string, big-endian I16 words).
+      type: string
+      contentEncoding: base64url
+      x-labview-types:
+        boolean: Boolean
+        byte: I8
+        short: I16
+        int: I32
+        long: I64
+        float: SGL
+        double: DBL
+        string: String
+        1D array: 1D Array
+        2D array: 2D Array
+        property: Cluster
+    LabVIEWData:
+      description: LabVIEW flattened data (`Flatten To String`, big-endian) matching the type descriptor.
+      type: string
+      format: binary
+      x-labview-encoding:
+        byteOrder: big-endian
+        string: I32 length, then bytes
+        array: I32 length per dimension, then elements
+        cluster: elements in descriptor order
+    LabVIEWError:
+      description: Flattened LabVIEW error cluster. `source` is `rade-japc <METHOD> <path><ERR><message>`.
+      type: string
+      format: binary
+      x-labview-cluster:
+        label: error out
+        elements:
+          - status: Boolean
+          - code: I32
+          - source: String
+  securitySchemes:
+    Rbac:
+      type: apiKey
+      in: header
+      name: Rbac
+      description: |
+        Optional RBAC credentials. Without the header the request is sent without an RBAC token.
+
+        | Value | Credentials |
+        |---|---|
+        | `Explicit <base64url(username:password)>` | Login with username and password. |
+        | `Location <base64url(token)>` | Serialized RBAC token. |
+        | `Cached <id>` | Id returned in the `Rbac` response header of an earlier request. |
+
+        Cached ids are held in memory by the serving instance and are lost on restart.
+      x-rbac-schemes: [Explicit, Location, Cached]

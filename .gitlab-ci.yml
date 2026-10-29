@@ -1,10 +1,33 @@
 variables:
   WAR_NAME: "japc-$CI_COMMIT_REF_SLUG.war"
+  REDOCLY_CLI: "@redocly/cli@2.72.1"
+  ASYNCAPI_CLI: "@asyncapi/cli@6.2.2"
+  ASYNCAPI_HTML_TEMPLATE: "@asyncapi/html-template@3.5.6"
 
 stages:
+  - buildDocs
   - buildWar
   - buildImage
   - deploy
+
+build_docs:
+  tags:
+    - k8s-default
+  image:
+    name: node:22-alpine
+  stage: buildDocs
+  variables:
+    REDOCLY_TELEMETRY: "off"
+  artifacts:
+    paths:
+      - build/api-docs
+  script:
+    - npx --yes $ASYNCAPI_CLI config analytics --disable
+    - npx --yes $REDOCLY_CLI lint docs/openapi.yml
+    - npx --yes $ASYNCAPI_CLI validate docs/asyncapi.yml
+    - npx --yes $REDOCLY_CLI build-docs docs/openapi.yml --inlineBundle -o build/api-docs/index.html
+    - npx --yes $ASYNCAPI_CLI generate fromTemplate docs/asyncapi.yml $ASYNCAPI_HTML_TEMPLATE -o build/api-docs -p singleFile=true -p outFilename=websocket.html --force-write --no-interactive
+    - cp docs/openapi.yml docs/asyncapi.yml build/api-docs/
 
 build_war:
   tags:
