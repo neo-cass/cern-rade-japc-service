@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>RADE JAPC</title>
+    <link rel="icon" href="/logos/rade.png">
+    <style>
+        :root {
+            --bg: #ffffff;
+            --fg: #1d1d1f;
+            --muted: #5f6368;
+            --line: #e3e5e8;
+            --card: #f7f8fa;
+            --accent: #0033a0;
+            --up: #1e7f3c;
+            --down: #b3261e;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #16181d;
+                --fg: #e8eaed;
+                --muted: #9aa0a6;
+                --line: #2d3139;
+                --card: #1e2128;
+                --accent: #8ab4f8;
+                --up: #81c995;
+                --down: #f28b82;
+            }
+            .logo { background: #ffffff; border-radius: 6px; padding: 4px; }
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+        main { max-width: 52rem; margin: 0 auto; padding: 2.5rem 1rem; }
+        header { display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap; }
+        header img { height: 64px; }
+        h1 { margin: 0; font-size: 1.75rem; }
+        h2 { font-size: 1.1rem; margin: 2rem 0 0.75rem; }
+        p { margin: 0.5rem 0; }
+        a { color: var(--accent); }
+        .muted { color: var(--muted); }
+        .status { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.75rem; border: 1px solid var(--line); border-radius: 999px; background: var(--card); }
+        .dot { width: 0.6rem; height: 0.6rem; border-radius: 50%; background: var(--muted); }
+        .status[data-state="up"] .dot { background: var(--up); }
+        .status[data-state="down"] .dot { background: var(--down); }
+        .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1rem; }
+        .card { border: 1px solid var(--line); border-radius: 8px; padding: 1rem; background: var(--card); }
+        .card h3 { margin: 0 0 0.25rem; font-size: 1rem; }
+        code { font-family: ui-monospace, Consolas, monospace; font-size: 0.9em; }
+        footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--line); }
+        .org { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+        .org figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 0.25rem; }
+        .org figcaption { font-size: 0.8rem; color: var(--muted); }
+        .logo { height: 48px; width: auto; }
+        .sep { color: var(--muted); }
+    </style>
+</head>
+<body>
+<main>
+    <header>
+        <img class="logo" src="/logos/rade.png" alt="RADE">
+        <div>
+            <h1>RADE JAPC service</h1>
+            <p class="muted">Part of the RADE framework</p>
+        </div>
+    </header>
+
+    <p>Access to CERN accelerator device parameters through JAPC. GET and SET over HTTP, subscriptions over WebSocket, in JSON or LabVIEW variant format.</p>
+
+    <h2>Status</h2>
+    <span class="status" id="status" data-state="unknown"><span class="dot"></span><span id="status-text">Checking…</span></span>
+
+    <h2>Documentation</h2>
+    <div class="cards">
+        <div class="card">
+            <h3><a href="/docs/rest">REST API</a></h3>
+            <p class="muted">GET and SET at <code>/api/v1</code></p>
+            <p><a href="/openapi.yaml">openapi.yaml</a></p>
+        </div>
+        <div class="card">
+            <h3><a href="/docs/websocket">WebSocket API</a></h3>
+            <p class="muted">Subscriptions at <code>/ws/v1</code></p>
+            <p><a href="/asyncapi.yaml">asyncapi.yaml</a></p>
+        </div>
+    </div>
+
+    <footer>
+        <div class="org">
+            <figure><img class="logo" src="/logos/cern.svg" alt="CERN"><figcaption>CERN</figcaption></figure>
+            <span class="sep">›</span>
+            <figure><img class="logo" src="/logos/be.png" alt="Beams Department"><figcaption>BE</figcaption></figure>
+            <span class="sep">›</span>
+            <figure><img class="logo" src="/logos/cem.jpg" alt="CEM group"><figcaption>CEM</figcaption></figure>
+            <span class="sep">›</span>
+            <figure><img class="logo" src="/logos/mta.png" alt="MTA section"><figcaption>MTA</figcaption></figure>
+        </div>
+    </footer>
+</main>
+<script>
+    (async () => {
+        const status = document.getElementById("status");
+        const text = document.getElementById("status-text");
+        try {
+            const response = await fetch("/readyz", {cache: "no-store"});
+            const body = await response.json();
+            status.dataset.state = body.status === "UP" ? "up" : "down";
+            text.textContent = body.status === "UP" ? "Operational" : "Not ready (" + body.status + ")";
+        } catch (e) {
+            status.dataset.state = "down";
+            text.textContent = "Unreachable";
+        }
+    })();
+</script>
+</body>
+</html>
