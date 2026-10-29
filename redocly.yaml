@@ -2,5 +2,3 @@ extends:
   - recommended
 rules:
   info-license: off
-openapi:
-  showExtensions: true

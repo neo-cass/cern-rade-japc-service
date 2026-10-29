@@ -3,11 +3,17 @@ spring:
     name: "rade-services-japc"
   profiles:
     active: prod
-  mvc:
-    static-path-pattern: /docs/**
   web:
     resources:
-      static-locations: classpath:/docs/
+      add-mappings: false
+
+springdoc:
+  paths-to-exclude: /**
+  swagger-ui:
+    path: /docs/rest
+    url: /openapi.yaml
+    show-extensions: true
+    show-common-extensions: true
 
 management:
   server:
@@ -28,7 +34,7 @@ logging:
 server:
   port: 8443
   mime-mappings:
-    yml: application/yaml
+    yaml: application/yaml
   ssl:
     enabled: false
   #tomcat:

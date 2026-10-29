@@ -59,6 +59,9 @@ dependencies {
     implementation ("org.springframework.boot:spring-boot-starter-actuator:$springBootVersion"){
         exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
     }
+    implementation ("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0"){
+        exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
+    }
     providedRuntime("org.springframework.boot:spring-boot-starter-tomcat-runtime:$springBootVersion")
 }
 
@@ -76,7 +79,7 @@ tasks.named<org.springframework.boot.gradle.tasks.bundling.BootWar>("bootWar") {
 }
 tasks.processResources {
     from(layout.buildDirectory.dir("api-docs")) {
-        into("docs")
+        into("api-docs")
     }
 }
 // requirement for building this project

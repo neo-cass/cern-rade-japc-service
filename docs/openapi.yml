@@ -5,15 +5,23 @@ info:
   description: |
     GET and SET of JAPC device parameters over HTTP.
 
-    Formats are selected with `Accept` (responses) and `Content-Type` (request bodies):
-
     | Media type | Format |
     |---|---|
-    | `application/json` | japc-json typed value. Default when `Accept` is absent or `*/*`. |
-    | `application/labview-variant` | LabVIEW flattened data, described by the `Lv-Type-Descriptor` header. |
+    | `application/json` | japc-json typed value (see `Value`). Default when `Accept` is absent or `*/*`. |
+    | `application/labview-variant` | LabVIEW flattened data (see `LabVIEWData`), described by the `Lv-Type-Descriptor` header (see `LvTypeDescriptor`). |
 
-    Subscriptions: [WebSocket API](websocket.html).
-    Specifications: [openapi.yml](openapi.yml), [asyncapi.yml](asyncapi.yml).
+    The response format is selected with `Accept`, the request body format with `Content-Type`.
+    Errors use the same format as the request (see `Error`).
+
+    Examples:
+    ```
+    curl 'https://<host>/api/v1/EXAMPLE.DEVICE/Acquisition?selector=CPS.USER.ALL'
+    curl 'https://<host>/api/v1/EXAMPLE.DEVICE/Acquisition?fields=current,voltage'
+    curl -X PUT -H 'Content-Type: application/json' -d '{"@type":"double_value","value":1.5}' 'https://<host>/api/v1/EXAMPLE.DEVICE/Setting/current'
+    curl -H 'Rbac: Explicit <base64url(username:password)>' 'https://<host>/api/v1/EXAMPLE.DEVICE/Acquisition'
+    ```
+
+    Subscriptions: [WebSocket API](/docs/websocket). Specifications: [/openapi.yaml](/openapi.yaml), [/asyncapi.yaml](/asyncapi.yaml).
 security:
   - {}
   - Rbac: []
@@ -24,7 +32,7 @@ tags:
   - name: Parameter
     description: Access by device, property and optional field in the path.
   - name: LabVIEW descriptor
-    description: Access by device in the path; property and fields are taken from `Lv-Type-Descriptor`.
+    description: Access by device in the path. Property and fields are taken from `Lv-Type-Descriptor`.
 paths:
   /{device}/{property}:
     parameters:
@@ -35,6 +43,11 @@ paths:
       tags: [Parameter]
       operationId: getProperty
       summary: Get a property
+      description: |
+        ```
+        curl 'https://<host>/api/v1/EXAMPLE.DEVICE/Acquisition'
+        curl -H 'Accept: application/labview-variant' -D - -o value.bin 'https://<host>/api/v1/EXAMPLE.DEVICE/Acquisition'
+        ```
       parameters:
         - $ref: '#/components/parameters/fields'
         - $ref: '#/components/parameters/LvTypeDescriptorOptional'
@@ -49,10 +62,15 @@ paths:
       tags: [Parameter]
       operationId: setProperty
       summary: Set a property
+      description: |
+        ```
+        curl -X PUT -H 'Content-Type: application/json' -d '{"@type":"map_value","current":{"@type":"double_value","value":1.5}}' 'https://<host>/api/v1/EXAMPLE.DEVICE/Setting'
+        curl -X PUT -H 'Content-Type: application/labview-variant' -H 'Lv-Type-Descriptor: <descriptor>' --data-binary @value.bin 'https://<host>/api/v1/EXAMPLE.DEVICE/Setting'
+        ```
       parameters:
         - $ref: '#/components/parameters/LvTypeDescriptorBody'
       requestBody:
-        $ref: '#/components/requestBodies/Value'
+        $ref: '#/components/requestBodies/PropertyValue'
       responses:
         '200':
           $ref: '#/components/responses/Set'
@@ -70,6 +88,10 @@ paths:
       tags: [Parameter]
       operationId: getField
       summary: Get a field
+      description: |
+        ```
+        curl 'https://<host>/api/v1/EXAMPLE.DEVICE/Acquisition/current'
+        ```
       parameters:
         - $ref: '#/components/parameters/LvTypeDescriptorOptional'
       responses:
@@ -83,10 +105,14 @@ paths:
       tags: [Parameter]
       operationId: setField
       summary: Set a field
+      description: |
+        ```
+        curl -X PUT -H 'Content-Type: application/json' -d '{"@type":"double_value","value":1.5}' 'https://<host>/api/v1/EXAMPLE.DEVICE/Setting/current'
+        ```
       parameters:
         - $ref: '#/components/parameters/LvTypeDescriptorBody'
       requestBody:
-        $ref: '#/components/requestBodies/Value'
+        $ref: '#/components/requestBodies/FieldValue'
       responses:
         '200':
           $ref: '#/components/responses/Set'
@@ -104,7 +130,10 @@ paths:
       operationId: getByDescriptor
       summary: Get the property named by the type descriptor
       description: |
-        Returns `404` without `Lv-Type-Descriptor` and `406` if `Accept` does not allow `application/labview-variant`.
+        `404` without `Lv-Type-Descriptor`. `406` if `Accept` does not allow `application/labview-variant`.
+        ```
+        curl -H 'Accept: application/labview-variant' -H 'Lv-Type-Descriptor: <descriptor>' -o value.bin 'https://<host>/api/v1/EXAMPLE.DEVICE'
+        ```
       responses:
         '200':
           description: Value encoded with the supplied descriptor.
@@ -128,7 +157,10 @@ paths:
       operationId: setByDescriptor
       summary: Set the property named by the type descriptor
       description: |
-        Returns `404` without `Lv-Type-Descriptor` and `415` if `Content-Type` is not `application/labview-variant`.
+        `404` without `Lv-Type-Descriptor`. `415` if `Content-Type` is not `application/labview-variant`.
+        ```
+        curl -X PUT -H 'Content-Type: application/labview-variant' -H 'Lv-Type-Descriptor: <descriptor>' --data-binary @value.bin 'https://<host>/api/v1/EXAMPLE.DEVICE'
+        ```
       requestBody:
         required: true
         content:
@@ -143,6 +175,22 @@ paths:
         5XX:
           $ref: '#/components/responses/Error'
 components:
+  securitySchemes:
+    Rbac:
+      type: apiKey
+      in: header
+      name: Rbac
+      description: |
+        Optional RBAC credentials. Without the header the request is sent without an RBAC token.
+
+        | Value | Credentials |
+        |---|---|
+        | `Explicit <base64url(username:password)>` | Login with username and password. |
+        | `Location <base64url(token)>` | Serialized RBAC token. |
+        | `Cached <id>` | Id returned in the `Rbac` response header of an earlier request. |
+
+        Cached ids are held in memory by the serving instance and are lost on restart.
+      x-rbac-schemes: [Explicit, Location, Cached]
   parameters:
     device:
       name: device
@@ -153,7 +201,7 @@ components:
         type: string
         not:
           pattern: '^v[0-9]+$'
-      example: MY.DEVICE
+      example: EXAMPLE.DEVICE
     property:
       name: property
       in: path
@@ -174,29 +222,27 @@ components:
       name: selector
       in: query
       required: false
-      description: JAPC cycle selector. Omit for non-multiplexed devices.
+      description: JAPC cycle selector, e.g. `CPS.USER.ALL`. Omit for non-multiplexed devices.
       schema:
         type: string
-      example: CPS.USER.ALL
     fields:
       name: fields
       in: query
       required: false
-      description: Comma-separated field names. The response contains only these fields. `400` if a field does not exist.
+      description: Comma-separated field names, e.g. `current,voltage`. The response contains only these fields. `400` if a field does not exist.
       style: form
       explode: false
       schema:
         type: array
         items:
           type: string
-      example: [current, voltage]
     LvTypeDescriptorOptional:
       name: Lv-Type-Descriptor
       in: header
       required: false
       description: |
-        LabVIEW only. Descriptor to encode the response with. Must describe a cluster labelled with the property name,
-        or, for a field path, the field or a cluster labelled with the property containing only that field.
+        LabVIEW only. Descriptor to encode the response with (see `LvTypeDescriptor`).
+        Must describe a cluster labelled with the property name or, for a field path, the field or a cluster labelled with the property containing only that field.
         When absent with `Accept: application/labview-variant`, the server derives the descriptor and returns it in the response.
       schema:
         $ref: '#/components/schemas/LvTypeDescriptor'
@@ -204,14 +250,14 @@ components:
       name: Lv-Type-Descriptor
       in: header
       required: false
-      description: Required when `Content-Type` is `application/labview-variant`. Describes the request body.
+      description: Required when `Content-Type` is `application/labview-variant`. Describes the request body (see `LvTypeDescriptor`).
       schema:
         $ref: '#/components/schemas/LvTypeDescriptor'
     LvTypeDescriptorDevice:
       name: Lv-Type-Descriptor
       in: header
       required: true
-      description: Cluster descriptor. The cluster label is the property name and the elements are the fields.
+      description: Cluster descriptor (see `LvTypeDescriptor`). The cluster label is the property name and the elements are the fields.
       schema:
         $ref: '#/components/schemas/LvTypeDescriptor'
   headers:
@@ -226,7 +272,7 @@ components:
         type: integer
         format: int64
     Rbac:
-      description: Present when the request had an `Rbac` header. Reuse the value as the `Rbac` request header.
+      description: '`Cached <id>`. Present when the request had an `Rbac` header. Reuse the value as the `Rbac` request header.'
       schema:
         type: string
         pattern: '^Cached [0-9]+$'
@@ -235,23 +281,29 @@ components:
       schema:
         $ref: '#/components/schemas/LvTypeDescriptor'
   requestBodies:
-    Value:
+    PropertyValue:
       required: true
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Value'
-          examples:
-            property:
-              value:
-                '@type': map_value
-                current:
-                  '@type': double_value
-                  value: 1.5
-            field:
-              value:
-                '@type': double_value
-                value: 1.5
+          example:
+            '@type': map_value
+            current:
+              '@type': double_value
+              value: 1.5
+        application/labview-variant:
+          schema:
+            $ref: '#/components/schemas/LabVIEWData'
+    FieldValue:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Value'
+          example:
+            '@type': double_value
+            value: 1.5
         application/labview-variant:
           schema:
             $ref: '#/components/schemas/LabVIEWData'
@@ -294,7 +346,20 @@ components:
         Rbac:
           $ref: '#/components/headers/Rbac'
     Error:
-      description: Error. See `ErrorCode` for codes and HTTP status mapping.
+      description: |
+        Error in the negotiated format (see `Error`, `LabVIEWError`).
+
+        | HTTP status | Cause |
+        |---|---|
+        | 400 | Invalid request, value, selector or type descriptor |
+        | 401 | Invalid or expired RBAC credentials |
+        | 403 | RBAC access denied |
+        | 404 | Unknown route, device or property |
+        | 406 | Requested media type not available |
+        | 415 | Request media type not supported |
+        | 500 | Internal error |
+        | 502 | Device or middleware error |
+        | 504 | Device timeout |
       headers:
         Lv-Type-Descriptor:
           description: LabVIEW only. Descriptor of the error cluster.
@@ -307,22 +372,33 @@ components:
         application/labview-variant:
           schema:
             $ref: '#/components/schemas/LabVIEWError'
+      x-http-status:
+        '400': Invalid request, value, selector or type descriptor
+        '401': Invalid or expired RBAC credentials
+        '403': RBAC access denied
+        '404': Unknown route, device or property
+        '406': Requested media type not available
+        '415': Request media type not supported
+        '500': Internal error
+        '502': Device or middleware error
+        '504': Device timeout
   schemas:
     Value:
-      description: japc-json typed value. `@type` identifies the JAPC value type.
+      description: |
+        japc-json typed value. `@type` identifies the JAPC value type.
+        Enum, enum set and discrete function values use the japc-json 8.2.1 encoding and are not supported by `application/labview-variant`.
       oneOf:
         - $ref: '#/components/schemas/MapValue'
         - $ref: '#/components/schemas/ScalarValue'
         - $ref: '#/components/schemas/ArrayValue'
         - $ref: '#/components/schemas/Array2DValue'
-      x-other-types: Other JAPC value types (enum, enum set, discrete function) use the japc-json 8.2.1 encoding and are not supported by the LabVIEW format.
     SimpleValue:
       oneOf:
         - $ref: '#/components/schemas/ScalarValue'
         - $ref: '#/components/schemas/ArrayValue'
         - $ref: '#/components/schemas/Array2DValue'
     MapValue:
-      description: Property value. Each other member is a field.
+      description: Property value. Each member other than `@type` is a field.
       type: object
       required: ['@type']
       properties:
@@ -330,6 +406,11 @@ components:
           const: map_value
       additionalProperties:
         $ref: '#/components/schemas/SimpleValue'
+      example:
+        '@type': map_value
+        current:
+          '@type': double_value
+          value: 1.5
     ScalarValue:
       type: object
       required: ['@type', value]
@@ -338,6 +419,9 @@ components:
           enum: [boolean_value, byte_value, short_value, int_value, long_value, float_value, double_value, string_value]
         value:
           type: [boolean, integer, number, string]
+      example:
+        '@type': double_value
+        value: 1.5
     ArrayValue:
       type: object
       required: ['@type', value]
@@ -348,6 +432,9 @@ components:
           type: array
           items:
             type: [boolean, integer, number, string]
+      example:
+        '@type': double_array_value
+        value: [1.0, 2.0]
     Array2DValue:
       type: object
       required: ['@type', value, rowCount, columnCount]
@@ -379,10 +466,22 @@ components:
         source:
           description: '`rade-japc <METHOD> <path>`'
           type: string
-          example: rade-japc GET /api/v1/MY.DEVICE/Acquisition
         message:
           type: string
+      example:
+        status: true
+        code: 5000
+        source: rade-japc GET /api/v1/EXAMPLE.DEVICE/Acquisition
+        message: Device not responding
     ErrorCode:
+      description: |
+        | Code | Meaning |
+        |---|---|
+        | 5000 | JAPC error |
+        | 5001 | Codec error |
+        | 5002 | RBAC error |
+        | 5003 | Bad request |
+        | 5004 | Internal error |
       type: integer
       enum: [5000, 5001, 5002, 5003, 5004]
       x-error-codes:
@@ -391,20 +490,24 @@ components:
         '5002': RBAC error
         '5003': Bad request
         '5004': Internal error
-      x-http-status:
-        '400': Invalid request, value, selector or type descriptor
-        '401': Invalid or expired RBAC credentials
-        '403': RBAC access denied
-        '404': Unknown route, device or property
-        '406': Requested media type not available
-        '415': Request media type not supported
-        '500': Internal error
-        '502': Device or middleware error
-        '504': Device timeout
     LvTypeDescriptor:
-      description: base64url, with padding, of the LabVIEW flattened type descriptor (`Flatten To String` type string, big-endian I16 words).
+      description: |
+        base64url, with padding, of the LabVIEW flattened type descriptor (`Flatten To String` type string, big-endian I16 words).
+
+        | JAPC type | LabVIEW type |
+        |---|---|
+        | boolean | Boolean |
+        | byte | I8 |
+        | short | I16 |
+        | int | I32 |
+        | long | I64 |
+        | float | SGL |
+        | double | DBL |
+        | string | String |
+        | 1D / 2D array | 1D / 2D Array |
+        | property | Cluster, labelled with the property name, elements labelled with the field names |
       type: string
-      contentEncoding: base64url
+      format: base64url
       x-labview-types:
         boolean: Boolean
         byte: I8
@@ -414,11 +517,19 @@ components:
         float: SGL
         double: DBL
         string: String
-        1D array: 1D Array
-        2D array: 2D Array
-        property: Cluster
+        array: 1D Array
+        array2d: 2D Array
+        map: Cluster
     LabVIEWData:
-      description: LabVIEW flattened data (`Flatten To String`, big-endian) matching the type descriptor.
+      description: |
+        LabVIEW flattened data (`Flatten To String`) matching the type descriptor.
+
+        | Element | Encoding |
+        |---|---|
+        | Byte order | Big-endian |
+        | String | I32 length, then bytes |
+        | Array | I32 length per dimension, then elements |
+        | Cluster | Elements in descriptor order |
       type: string
       format: binary
       x-labview-encoding:
@@ -427,28 +538,11 @@ components:
         array: I32 length per dimension, then elements
         cluster: elements in descriptor order
     LabVIEWError:
-      description: Flattened LabVIEW error cluster. `source` is `rade-japc <METHOD> <path><ERR><message>`.
+      description: |
+        Flattened LabVIEW error cluster `error out`: `status` Boolean, `code` I32 (see `ErrorCode`), `source` String.
+        `source` is `rade-japc <METHOD> <path><ERR><message>`.
       type: string
       format: binary
       x-labview-cluster:
         label: error out
-        elements:
-          - status: Boolean
-          - code: I32
-          - source: String
-  securitySchemes:
-    Rbac:
-      type: apiKey
-      in: header
-      name: Rbac
-      description: |
-        Optional RBAC credentials. Without the header the request is sent without an RBAC token.
-
-        | Value | Credentials |
-        |---|---|
-        | `Explicit <base64url(username:password)>` | Login with username and password. |
-        | `Location <base64url(token)>` | Serialized RBAC token. |
-        | `Cached <id>` | Id returned in the `Rbac` response header of an earlier request. |
-
-        Cached ids are held in memory by the serving instance and are lost on restart.
-      x-rbac-schemes: [Explicit, Location, Cached]
+        elements: [status Boolean, code I32, source String]

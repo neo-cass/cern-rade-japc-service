@@ -25,9 +25,10 @@ build_docs:
     - npx --yes $ASYNCAPI_CLI config analytics --disable
     - npx --yes $REDOCLY_CLI lint docs/openapi.yml
     - npx --yes $ASYNCAPI_CLI validate docs/asyncapi.yml
-    - npx --yes $REDOCLY_CLI build-docs docs/openapi.yml --inlineBundle -o build/api-docs/index.html
-    - npx --yes $ASYNCAPI_CLI generate fromTemplate docs/asyncapi.yml $ASYNCAPI_HTML_TEMPLATE -o build/api-docs -p singleFile=true -p outFilename=websocket.html --force-write --no-interactive
-    - cp docs/openapi.yml docs/asyncapi.yml build/api-docs/
+    - npx --yes $ASYNCAPI_CLI generate fromTemplate docs/asyncapi.yml $ASYNCAPI_HTML_TEMPLATE -o build/api-docs/websocket -p singleFile=true -p outFilename=index.html --force-write --no-interactive
+    - cp docs/index.html build/api-docs/index.html
+    - cp docs/openapi.yml build/api-docs/openapi.yaml
+    - cp docs/asyncapi.yml build/api-docs/asyncapi.yaml
 
 build_war:
   tags:

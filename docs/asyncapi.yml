@@ -7,7 +7,7 @@ info:
 
     Connection:
     1. Open a WebSocket to a channel address. Select the format with `Sec-WebSocket-Protocol`: `json` (default when absent) or `labview-variant`.
-    2. The handshake fails with an HTTP error response, encoded as in the [REST API](index.html), if the parameter cannot be subscribed or no first value arrives within 5 s.
+    2. The handshake fails with an HTTP error response, encoded as in the [REST API](/docs/rest), if the parameter cannot be subscribed or no first value arrives within 5 s.
     3. The first message is the current value. Each further update is one message.
     4. Device errors are sent as error messages and the subscription continues. Fatal errors close the connection with a close code and the error message as reason.
 
@@ -24,7 +24,23 @@ info:
 
     Delivery: updates are queued per connection (100). When the queue is full the oldest update is dropped.
 
-    Specifications: [asyncapi.yml](asyncapi.yml), [openapi.yml](openapi.yml).
+    Examples:
+    ```
+    wscat -s json -c 'wss://<host>/ws/v1/EXAMPLE.DEVICE/Acquisition?selector=CPS.USER.ALL'
+    wscat -s json -H 'Rbac: Explicit <base64url(username:password)>' -c 'wss://<host>/ws/v1/EXAMPLE.DEVICE/Acquisition'
+    ```
+    ```python
+    import asyncio, json, websockets
+
+    async def main():
+        async with websockets.connect("wss://<host>/ws/v1/EXAMPLE.DEVICE/Acquisition", subprotocols=["json"]) as ws:
+            async for message in ws:
+                print(json.loads(message))
+
+    asyncio.run(main())
+    ```
+
+    REST: [/docs/rest](/docs/rest). Specifications: [/asyncapi.yaml](/asyncapi.yaml), [/openapi.yaml](/openapi.yaml).
   x-close-codes:
     '1011': Server error while sending
     '4000': Fatal JAPC error
@@ -145,7 +161,7 @@ components:
   parameters:
     device:
       description: Device name. Must not match `v[0-9]+`.
-      examples: [MY.DEVICE]
+      examples: [EXAMPLE.DEVICE]
     property:
       description: Property name.
       examples: [Acquisition]
@@ -266,7 +282,7 @@ components:
             type: error
             status: true
             code: 5000
-            source: rade-japc GET /ws/v1/MY.DEVICE/Acquisition
+            source: rade-japc GET /ws/v1/EXAMPLE.DEVICE/Acquisition
             message: Device not responding
     labviewData:
       name: data
@@ -326,11 +342,11 @@ components:
       description: Message format. `400` if no offered subprotocol is supported.
     LvTypeDescriptor:
       type: string
-      contentEncoding: base64url
+      format: base64url
       description: base64url, with padding, of the LabVIEW flattened type descriptor.
     LvTypeDescriptorOptional:
       type: string
-      contentEncoding: base64url
+      format: base64url
       description: |
         `labview-variant` only. Descriptor of the data frames, as in the REST API.
         When absent, the server derives it and returns it in the `Lv-Type-Descriptor` handshake response header.
