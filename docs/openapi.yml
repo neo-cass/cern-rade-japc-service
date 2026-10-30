@@ -349,17 +349,23 @@ components:
       description: |
         Error in the negotiated format (see `Error`, `LabVIEWError`).
 
-        | HTTP status | Cause |
-        |---|---|
-        | 400 | Invalid request, value, selector or type descriptor |
-        | 401 | Invalid or expired RBAC credentials |
-        | 403 | RBAC access denied |
-        | 404 | Unknown route, device or property |
-        | 406 | Requested media type not available |
-        | 415 | Request media type not supported |
-        | 500 | Internal error |
-        | 502 | Device or middleware error |
-        | 504 | Device timeout |
+        `code` is the same in the JSON body and in the LabVIEW error cluster.
+
+        | HTTP status | `code` | Cause |
+        |---|---|---|
+        | 400 | 5000 | Value or selector rejected by the device (invalid argument, invalid request, bad setting value) |
+        | 400 | 5001 | Body or `Lv-Type-Descriptor` cannot be decoded |
+        | 400 | 5003 | Malformed request, `Lv-Type-Descriptor` does not match the path, unknown field in `fields` |
+        | 401 | 5002 | Invalid `Rbac` header, failed login, expired token or unknown cached id |
+        | 403 | 5002 | RBAC access denied |
+        | 404 | 5000 | Device or property not found |
+        | 404 | 5003 | Unknown route |
+        | 406 | 5003 | `Accept` not supported by the route |
+        | 415 | 5003 | `Content-Type` not supported by the route |
+        | 500 | 5001 | Value cannot be encoded in the requested format |
+        | 500 | 5004 | Internal error |
+        | 502 | 5000 | Device or middleware error |
+        | 504 | 5000 | Device timeout |
       headers:
         Lv-Type-Descriptor:
           description: LabVIEW only. Descriptor of the error cluster.
@@ -372,16 +378,16 @@ components:
         application/labview-variant:
           schema:
             $ref: '#/components/schemas/LabVIEWError'
-      x-http-status:
-        '400': Invalid request, value, selector or type descriptor
-        '401': Invalid or expired RBAC credentials
-        '403': RBAC access denied
-        '404': Unknown route, device or property
-        '406': Requested media type not available
-        '415': Request media type not supported
-        '500': Internal error
-        '502': Device or middleware error
-        '504': Device timeout
+      x-http-status-codes:
+        '400': [5000, 5001, 5003]
+        '401': [5002]
+        '403': [5002]
+        '404': [5000, 5003]
+        '406': [5003]
+        '415': [5003]
+        '500': [5001, 5004]
+        '502': [5000]
+        '504': [5000]
   schemas:
     Value:
       description: |
@@ -475,13 +481,13 @@ components:
         message: Device not responding
     ErrorCode:
       description: |
-        | Code | Meaning |
-        |---|---|
-        | 5000 | JAPC error |
-        | 5001 | Codec error |
-        | 5002 | RBAC error |
-        | 5003 | Bad request |
-        | 5004 | Internal error |
+        | Code | Meaning | HTTP status | WebSocket close code |
+        |---|---|---|---|
+        | 5000 | JAPC error | 400, 404, 502, 504 | 4000 |
+        | 5001 | Codec error | 400, 500 | 4001 |
+        | 5002 | RBAC error | 401, 403 | 4002 |
+        | 5003 | Bad request | 400, 404, 406, 415 | 4003 |
+        | 5004 | Internal error | 500 | 4004 |
       type: integer
       enum: [5000, 5001, 5002, 5003, 5004]
       x-error-codes:

@@ -9,4 +9,5 @@ test-scripts/python/venv
 *logs*
 test-scripts/python/.idea
 *.war
-
+*.env
+ADMIN__SSO_METRICS_PLAN.md

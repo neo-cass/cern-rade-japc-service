@@ -110,9 +110,14 @@ public class SubscriptionService implements ParameterValueListener {
     public void execute() throws ParameterException {
         init();
         subscribe();
-        long timeout = ContextProvider.getServiceProperties().getFirstUpdateTimeout();
-        if (!awaitUpdate(timeout)) {
-            throw new ParameterException("No first update from " + parameterName + " within " + timeout + " ms", new TimeoutException());
+        try {
+            long timeout = ContextProvider.getServiceProperties().getFirstUpdateTimeout();
+            if (!awaitUpdate(timeout)) {
+                throw new ParameterException("No first update from " + parameterName + " within " + timeout + " ms", new TimeoutException());
+            }
+        } catch (ParameterException | RuntimeException e) {
+            stopSubscription();
+            throw e;
         }
         this.executed = true;
     }

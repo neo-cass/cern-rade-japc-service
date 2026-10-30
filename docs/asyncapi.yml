@@ -11,14 +11,16 @@ info:
     3. The first message is the current value. Each further update is one message.
     4. Device errors are sent as error messages and the subscription continues. Fatal errors close the connection with a close code and the error message as reason.
 
-    | Close code | Meaning |
-    |---|---|
-    | 1011 | Server error while sending |
-    | 4000 | Fatal JAPC error |
-    | 4001 | Fatal codec error |
-    | 4002 | Fatal RBAC error |
-    | 4003 | Fatal bad request |
-    | 4004 | Fatal internal error |
+    | Close code | Error `code` | Meaning |
+    |---|---|---|
+    | 1011 | | Server error while sending |
+    | 4000 | 5000 | Fatal JAPC error |
+    | 4001 | 5001 | Fatal codec error |
+    | 4002 | 5002 | Fatal RBAC error |
+    | 4003 | 5003 | Fatal bad request |
+    | 4004 | 5004 | Fatal internal error |
+
+    Handshake failures return the HTTP status and error `code` listed in the [REST API](/docs/rest) `Error` response.
 
     Liveness: the server sends a ping every 5 s. The connection closes after 10 s without traffic. Clients must answer pings.
 
