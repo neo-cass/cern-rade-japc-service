@@ -14,7 +14,9 @@ configurations.configureEach {
     resolutionStrategy.cacheChangingModulesFor(0, "seconds")
 }
 
-val springBootVersion = org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES.substringAfterLast(':')
+extra["junit-jupiter.version"] = "5.11.0"
+
+val springBootVersion =org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES.substringAfterLast(':')
 val log4j2Version = dependencyManagement.importedProperties["log4j2.version"]
 
 dependencies {
@@ -63,6 +65,17 @@ dependencies {
         exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
     }
     providedRuntime("org.springframework.boot:spring-boot-starter-tomcat-runtime:$springBootVersion")
+
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+tasks.test {
+    useJUnitPlatform()
+    testLogging {
+        events("passed", "failed", "skipped")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
 }
 
 

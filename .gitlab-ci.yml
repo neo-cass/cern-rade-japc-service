@@ -3,12 +3,15 @@ variables:
   REDOCLY_CLI: "@redocly/cli@2.72.1"
   ASYNCAPI_CLI: "@asyncapi/cli@6.2.2"
   ASYNCAPI_HTML_TEMPLATE: "@asyncapi/html-template@3.5.6"
+  CMW_TOOLS_IMAGE: "gitlab-registry.cern.ch/rade/rade-core/continuous-integration/cmw-tools:latest"
 
 stages:
   - buildDocs
   - buildWar
+  - testWar
   - buildImage
   - deploy
+  - testDeployed
 
 build_docs:
   tags:
@@ -30,27 +33,81 @@ build_docs:
     - cp docs/openapi.yml build/api-docs/openapi.yaml
     - cp docs/asyncapi.yml build/api-docs/asyncapi.yaml
 
-build_war:
+.gradle_job:
   tags:
     - k8s-default
   image:
     name: eclipse-temurin:21-alpine
-  artifacts:
-    name: "$WAR_NAME"
-    paths:
-      - "./build/libs/$WAR_NAME"
   before_script:
     - GRADLE_USER_HOME="$(pwd)/.gradle"
     - export GRADLE_USER_HOME
     - chmod +x ./gradlew
-  stage: buildWar
-  script:
     - apk update && apk add wget
     - wget -O root.crt "https://ca.cern.ch/cafiles/certificates/CERN%20Certification%20Authority.crt"
     - wget -O auth.crt "https://ca.cern.ch/cafiles/certificates/CERN%20Certification%20Authority(1).crt"
     - keytool -cacerts -keypass changeit -alias root.crt -storepass changeit -noprompt -importcert -file root.crt
     - keytool -cacerts -keypass changeit -alias auth.crt -storepass changeit -noprompt -importcert -file auth.crt
+
+build_war:
+  extends: .gradle_job
+  artifacts:
+    name: "$WAR_NAME"
+    paths:
+      - "./build/libs/$WAR_NAME"
+  stage: buildWar
+  script:
     - ./gradlew -PwarName=$WAR_NAME bootWar
+
+.endpoint_tests:
+  extends: .gradle_job
+  artifacts:
+    when: always
+    paths:
+      - build/reports/tests
+    reports:
+      junit: build/test-results/test/*.xml
+
+test_war:
+  extends: .endpoint_tests
+  stage: testWar
+  needs: [build_war]
+  services:
+    - name: gitlab-registry.cern.ch/acc-co/cmw/cmw-core/cmw-directory-private
+      alias: cmw-directory-private
+      command: ['--cmw.directory.server.devices.seed={"RADE.TEST": "RadeTestServer", "RADE.TEST.RBAC": "RadeTestRbacServer"}']
+    - name: $CMW_TOOLS_IMAGE
+      alias: rda3-data-server
+      entrypoint: ["bash", "-c"]
+      command: ["until (echo > /dev/tcp/cmw-directory-private/7021) 2>/dev/null; do sleep 1; done; Rda3DataServer -server rda3 -log /tmp & Rda3DataServer -server RadeTestServer -log /tmp & exec Rda3DataServer -server RadeTestRbacServer -rbac -log /tmp"]
+  variables:
+    CMW_DIRECTORY_ENV: PRIVATE
+    APP_URL: http://localhost:8443/api/v1
+    SUB_URL: ws://localhost:8443/ws/v1
+  script:
+    - java -Dcmw.directory.env=PRIVATE -jar build/libs/$WAR_NAME > japc.log 2>&1 &
+    - timeout 180 sh -c 'until wget -q -O /dev/null http://localhost:8081/actuator/health/readiness; do sleep 2; done'
+    - ./gradlew test
+  after_script:
+    - tail -n 200 japc.log
+
+test_deployed:
+  extends: .endpoint_tests
+  stage: testDeployed
+  needs:
+    - job: deploy_review
+      optional: true
+    - job: deploy_master
+      optional: true
+  services:
+    - name: $CMW_TOOLS_IMAGE
+      alias: rda3-data-server
+      entrypoint: ["bash", "-c"]
+      command: ["Rda3DataServer -server RadeTestServer -log /tmp & exec Rda3DataServer -server RadeTestRbacServer -rbac -log /tmp"]
+  script:
+    - sleep 10
+    - ./gradlew test
+  rules:
+    - if: $CI_COMMIT_BRANCH
 
 build_image:
   tags:
@@ -81,7 +138,9 @@ build_image:
   script:
     - sed -e "s|\${APP_NAME}|$APP_NAME|g" -e "s|\${IMAGE}|$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA|g" deploy/app.yaml | oc apply -f -
     - oc rollout status deployment/$APP_NAME --timeout=5m
-    - echo "APP_URL=https://$(oc get route $APP_NAME -o jsonpath='{.spec.host}')/api/v1" > deploy.env
+    - HOST=$(oc get route $APP_NAME -o jsonpath='{.spec.host}')
+    - echo "APP_URL=https://$HOST/api/v1" > deploy.env
+    - echo "SUB_URL=wss://$HOST/ws/v1" >> deploy.env
   artifacts:
     reports:
       dotenv: deploy.env
