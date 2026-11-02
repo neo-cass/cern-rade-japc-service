@@ -17,7 +17,7 @@ build_docs:
   tags:
     - k8s-default
   image:
-    name: node:22-alpine
+    name: registry.cern.ch/docker.io/library/node:22-alpine
   stage: buildDocs
   variables:
     REDOCLY_TELEMETRY: "off"
@@ -37,7 +37,7 @@ build_docs:
   tags:
     - k8s-default
   image:
-    name: eclipse-temurin:21-alpine
+    name: registry.cern.ch/docker.io/library/eclipse-temurin:21-alpine
   before_script:
     - GRADLE_USER_HOME="$(pwd)/.gradle"
     - export GRADLE_USER_HOME

@@ -1,4 +1,4 @@
-FROM eclipse-temurin:21-alpine
+FROM registry.cern.ch/docker.io/library/eclipse-temurin:21-alpine
 ARG WAR_NAME="japc-1.0.0.war"
 ENV WAR_NAME=${WAR_NAME}
 WORKDIR /japc
