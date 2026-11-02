@@ -32,28 +32,28 @@ class EndpointTest {
 
     @Test
     void set() throws Exception {
-        assertEquals(200, set(OPEN_DEVICE, "Set", 1, null).statusCode());
+        assertStatus(200, set(OPEN_DEVICE, "Set", 1, null));
 
-        assertEquals(403, set(RBAC_DEVICE, "Set", 2, null).statusCode());
+        assertStatus(403, set(RBAC_DEVICE, "Set", 2, null));
         HttpResponse<String> explicit = set(RBAC_DEVICE, "Set", 3, EXPLICIT);
-        assertEquals(200, explicit.statusCode());
-        assertEquals(200, set(RBAC_DEVICE, "Set", 4, cached(explicit)).statusCode());
+        assertStatus(200, explicit);
+        assertStatus(200, set(RBAC_DEVICE, "Set", 4, cached(explicit)));
     }
 
     @Test
     void get() throws Exception {
-        set(OPEN_DEVICE, "Get", 1, null);
-        assertEquals(1, number(get(OPEN_DEVICE, "Get", null).body()));
+        assertStatus(200, set(OPEN_DEVICE, "Get", 1, null));
+        assertEquals(1, number(value(get(OPEN_DEVICE, "Get", null))));
 
         String cached = cached(set(RBAC_DEVICE, "Get", 2, EXPLICIT));
-        assertEquals(403, get(RBAC_DEVICE, "Get", null).statusCode());
-        assertEquals(2, number(get(RBAC_DEVICE, "Get", EXPLICIT).body()));
-        assertEquals(2, number(get(RBAC_DEVICE, "Get", cached).body()));
+        assertStatus(403, get(RBAC_DEVICE, "Get", null));
+        assertEquals(2, number(value(get(RBAC_DEVICE, "Get", EXPLICIT))));
+        assertEquals(2, number(value(get(RBAC_DEVICE, "Get", cached))));
     }
 
     @Test
     void subscribe() throws Exception {
-        set(OPEN_DEVICE, "Subscribe", 1, null);
+        assertStatus(200, set(OPEN_DEVICE, "Subscribe", 1, null));
         assertEquals(1, number(firstUpdate(OPEN_DEVICE, "Subscribe", null)));
 
         String cached = cached(set(RBAC_DEVICE, "Subscribe", 2, EXPLICIT));
@@ -81,8 +81,17 @@ class EndpointTest {
         return CLIENT.send(request.timeout(Duration.ofSeconds(30)).build(), HttpResponse.BodyHandlers.ofString());
     }
 
+    private static void assertStatus(int expected, HttpResponse<String> response) {
+        assertEquals(expected, response.statusCode(), response.body());
+    }
+
+    private static String value(HttpResponse<String> response) {
+        assertStatus(200, response);
+        return response.body();
+    }
+
     private static String cached(HttpResponse<String> response) {
-        assertEquals(200, response.statusCode(), response.body());
+        assertStatus(200, response);
         return response.headers().firstValue("Rbac").orElseThrow();
     }
 

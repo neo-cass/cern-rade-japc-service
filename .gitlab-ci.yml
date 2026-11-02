@@ -98,13 +98,7 @@ test_deployed:
       optional: true
     - job: deploy_master
       optional: true
-  services:
-    - name: $CMW_TOOLS_IMAGE
-      alias: rda3-data-server
-      entrypoint: ["bash", "-c"]
-      command: ["Rda3DataServer -server RadeTestServer -log /tmp & exec Rda3DataServer -server RadeTestRbacServer -rbac -log /tmp"]
   script:
-    - sleep 10
     - ./gradlew test
   rules:
     - if: $CI_COMMIT_BRANCH
