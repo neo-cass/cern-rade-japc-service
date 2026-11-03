@@ -4,6 +4,7 @@ variables:
   ASYNCAPI_CLI: "@asyncapi/cli@6.2.2"
   ASYNCAPI_HTML_TEMPLATE: "@asyncapi/html-template@3.5.6"
   CMW_TOOLS_IMAGE: "gitlab-registry.cern.ch/rade/rade-core/continuous-integration/cmw-tools:latest"
+  ROUTE_BRANCH: "refactor"   # branch whose deployment https://rade-services-japc.web.cern.ch serves
 
 stages:
   - buildDocs
@@ -150,13 +151,15 @@ deploy_master:
 
 publish_route:
   extends: .paas
-  needs: [deploy_master]
-  variables:
-    ROUTE_TARGET: japc-master   # Service behind https://rade-services-japc.web.cern.ch
+  needs:
+    - job: deploy_review
+      optional: true
+    - job: deploy_master
+      optional: true
   script:
-    - sed -e "s|\${ROUTE_TARGET}|$ROUTE_TARGET|g" deploy/route.yaml | oc apply -f -
+    - sed -e "s|\${ROUTE_TARGET}|$APP_NAME|g" deploy/route.yaml | oc apply -f -
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == $ROUTE_BRANCH
 
 deploy_review:
   extends: .deploy
