@@ -1,13 +1,12 @@
 package cern.rade.services.japc;
 
-import cern.rade.services.japc.rbac.RBACManager;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 /**
- * This class provides the application context to every class in this project. It also provided the singleton bean reference to the sub and rbac manager
- * Also provides the ServiceProperties class which contains the properties from application.yml
+ * This class provides the application context to classes that are not Spring beans.
+ * It provides the ServiceProperties class which contains the properties from application.yml
  */
 @Component
 public class ContextProvider implements ApplicationContextAware {
@@ -16,9 +15,6 @@ public class ContextProvider implements ApplicationContextAware {
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         ContextProvider.applicationContext = applicationContext;
-    }
-    public static RBACManager getRbacManager(){
-        return applicationContext.getBean(RBACManager.class);
     }
     public static ServiceProperties getServiceProperties(){
         return applicationContext.getBean(ServiceProperties.class);

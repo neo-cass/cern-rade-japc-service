@@ -20,7 +20,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
-public class SubscriptionManager implements WebSocketHandler, SubProtocolCapable, BeanFactoryAware, Closeable {
+public class SubscriptionManager implements WebSocketHandler, SubProtocolCapable, BeanFactoryAware, Closeable, SubscriptionRegistry {
+    private static final CloseStatus CLOSED_BY_ADMIN = CloseStatus.NORMAL.withReason("Closed by admin");
     private final long pingToClientFrequency = ContextProvider.getServiceProperties().getPingToClientFrequency();
     private ConcurrentHashMap<WebSocketSession, SubscriptionWebSocketHandler> handlers;
     private ScheduledExecutorService pingSchedulerService;
@@ -73,6 +74,27 @@ public class SubscriptionManager implements WebSocketHandler, SubProtocolCapable
         clearSubscriptionHandlers();
         pingService.shutdown();
         pingSchedulerService.shutdown();
+    }
+
+    //SubscriptionRegistry methods
+    @Override
+    public List<SubscriptionInfo> subscriptions() {
+        return handlers.values().stream().map(SubscriptionWebSocketHandler::info).toList();
+    }
+
+    @Override
+    public boolean closeSubscription(String id) {
+        for (SubscriptionWebSocketHandler handler : handlers.values()) {
+            if (handler.getId().equals(id)) {
+                try {
+                    handler.closeSession(CLOSED_BY_ADMIN);
+                } catch (IOException e) {
+                    logger.warn("Could not close subscription with ID {}", id, e);
+                }
+                return true;
+            }
+        }
+        return false;
     }
 
     //WebSocketHandler methods

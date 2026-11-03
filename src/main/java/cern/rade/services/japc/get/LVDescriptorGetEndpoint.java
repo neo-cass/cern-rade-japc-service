@@ -6,9 +6,6 @@ import cern.rade.services.common.containers.labview.LVTypeDescriptor;
 import cern.rade.services.japc.ApiPaths;
 import cern.rade.services.japc.format.LabVIEWFormat;
 import cern.rade.services.japc.format.LabVIEWValue;
-import cern.rade.services.japc.rbac.RBACHeaders;
-import cern.rbac.client.authentication.AuthenticationException;
-import cern.rbac.common.TokenFormatException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,11 +18,10 @@ public class LVDescriptorGetEndpoint extends GetEndpoint {
             @PathVariable(value = "property", required = false) String property,
             @PathVariable(value = "field", required = false) String field,
             @RequestParam(value = "selector", required = false) String selector,
-            @RequestHeader(LabVIEWFormat.TYPE_DESCRIPTOR_HEADER) String type_descriptor,
-            @RequestHeader(value = RBACHeaders.HEADER, required = false) String authStr)
-            throws ParameterException, CodecException, TokenFormatException, AuthenticationException {
+            @RequestHeader(LabVIEWFormat.TYPE_DESCRIPTOR_HEADER) String type_descriptor)
+            throws ParameterException, CodecException {
         LVTypeDescriptor lvTypeDescriptor = LabVIEWFormat.matchDescriptor(LabVIEWFormat.typeDescriptorFromHeader(type_descriptor), property, field);
-        GetService getService = getService(selector, device, property == null ? lvTypeDescriptor.getName() : property, field, authStr);
+        GetService getService = getService(selector, device, property == null ? lvTypeDescriptor.getName() : property, field);
         getService.execute();
         return ResponseEntity
                 .ok()

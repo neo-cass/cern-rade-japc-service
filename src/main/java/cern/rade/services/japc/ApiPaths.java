@@ -5,6 +5,8 @@ public final class ApiPaths {
     public static final String API_V1 = "/api/v1";
     public static final String WS = "/ws";
     public static final String WS_V1 = "/ws/v1";
+    public static final String ADMIN = "/admin";
+    public static final String ADMIN_API = ADMIN + "/api";
     public static final String DEVICE = "/{device:(?!v[0-9]+$).+}";
     public static final String DEVICE_PROPERTY = DEVICE + "/{property}";
     public static final String DEVICE_PROPERTY_FIELD = DEVICE_PROPERTY + "/{field}";

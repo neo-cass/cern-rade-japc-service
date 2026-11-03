@@ -5,13 +5,7 @@ import cern.japc.core.factory.ParameterFactory;
 import cern.japc.core.factory.SelectorFactory;
 import cern.japc.value.ParameterValue;
 import cern.rade.services.japc.ParameterNames;
-import cern.rade.services.japc.rbac.RBACClient;
-import cern.rbac.client.authentication.AuthenticationException;
-import cern.rbac.common.RbaToken;
-
-import cern.rbac.util.holder.MiddleTierRbaTokenHolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import cern.rade.services.japc.rbac.RbacSession;
 
 public class GetService {
     private ParameterValue data;
@@ -20,16 +14,15 @@ public class GetService {
     private AcquiredParameterValue apv;
     private String parameterName;
     private String selectorName;
-    private RBACClient rbacClient;
+    private RbacSession rbacSession;
     private long acquisitionStamp;
     private long cycleStamp;
     private boolean executed = false;
-    private final Logger logger = LoggerFactory.getLogger(GetService.class);
 
-    public GetService(String selectorName, String device, String property, String field, RBACClient rbacClient){
+    public GetService(String selectorName, String device, String property, String field, RbacSession rbacSession){
         this.parameterName = ParameterNames.parameter(device, property, field);
         this.selectorName = ParameterNames.selector(selectorName);
-        this.rbacClient = rbacClient;
+        this.rbacSession = rbacSession;
     }
 
     private void init() throws ParameterException {
@@ -37,30 +30,14 @@ public class GetService {
         this.selector = SelectorFactory.newSelector(selectorName);
     }
 
-    private void get() throws ParameterException, AuthenticationException {
-        if (rbacClient==null){
-            japcGET();
-        }
-        else{
-            japcGET_SECURE();
-        }
-    }
-
-    private void japcGET() throws ParameterException {
-        this.apv = parameter.getValue(selector);
+    private void get() throws ParameterException {
+        this.apv = RbacSession.callAs(rbacSession, () -> parameter.getValue(selector));
         this.acquisitionStamp = apv.getHeader().getAcqStamp();
         this.cycleStamp = apv.getHeader().getCycleStamp();
     }
 
     private void decode() {
         data = apv.getValue();
-    }
-
-    private void japcGET_SECURE() throws ParameterException, AuthenticationException {
-        RbaToken token = rbacClient.getApplicationToken();
-        MiddleTierRbaTokenHolder.set(token);
-        japcGET();
-        MiddleTierRbaTokenHolder.clear();
     }
 
     public void execute() throws ParameterException {
@@ -95,8 +72,7 @@ public class GetService {
         return cycleStamp;
     }
 
-    public RBACClient getRbacClient() {
-        return rbacClient;
+    public RbacSession getRbacSession() {
+        return rbacSession;
     }
 }
-

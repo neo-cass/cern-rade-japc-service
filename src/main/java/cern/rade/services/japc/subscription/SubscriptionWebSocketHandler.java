@@ -7,12 +7,14 @@ import cern.rade.services.japc.Fields;
 import cern.rade.services.japc.error.ErrorCode;
 import cern.rade.services.japc.error.ErrorLog;
 import cern.rade.services.japc.format.Format;
+import cern.rade.services.japc.stats.Client;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorator;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -120,5 +122,12 @@ public class SubscriptionWebSocketHandler implements WebSocketHandler {
 
     protected String getId() {
         return ID;
+    }
+
+    protected SubscriptionInfo info() {
+        Client client = (Client) session.getAttributes().get(SessionAttributes.CLIENT);
+        return new SubscriptionInfo(ID, subscriptionService.getParameterName(), subscriptionService.getSelectorName(),
+                format.subprotocol(), client.user(), client.address(),
+                (Instant) session.getAttributes().get(SessionAttributes.OPENED_AT));
     }
 }

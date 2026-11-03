@@ -6,9 +6,7 @@ import cern.japc.core.factory.SelectorFactory;
 import cern.japc.value.ParameterValue;
 import cern.rade.services.japc.ContextProvider;
 import cern.rade.services.japc.ParameterNames;
-import cern.rade.services.japc.rbac.RBACClient;
-import cern.rbac.client.authentication.AuthenticationException;
-import cern.rbac.util.holder.MiddleTierRbaTokenHolder;
+import cern.rade.services.japc.rbac.RbacSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,42 +20,27 @@ public class SubscriptionService implements ParameterValueListener {
     private String selectorName;
     private Parameter parameter;
     private Selector selector;
-    private RBACClient rbacClient;
+    private RbacSession rbacSession;
     private volatile Latest latest;
     private SubscriptionHandle sh;
     private LinkedBlockingQueue<Update> valueQueue;
     private boolean executed = false;
     private final Logger logger = LoggerFactory.getLogger(SubscriptionService.class);
-    public SubscriptionService(String selectorName, String device, String property, String field, RBACClient rbacClient){
+    public SubscriptionService(String selectorName, String device, String property, String field, RbacSession rbacSession){
         this.parameterName = ParameterNames.parameter(device, property, field);
         this.selectorName = ParameterNames.selector(selectorName);
-        this.rbacClient = rbacClient;
+        this.rbacSession = rbacSession;
     }
 
-    public void init() throws ParameterRuntimeException, ParameterException, AuthenticationException {
+    public void init() throws ParameterRuntimeException, ParameterException {
         this.parameter = ParameterFactory.newInstance().newParameter(parameterName);
         this.selector = SelectorFactory.newSelector(selectorName);
         this.sh = parameter.createSubscription(selector, this);
         this.valueQueue = new LinkedBlockingQueue<>(ContextProvider.getServiceProperties().getSubQueueSize());
     }
 
-    private void subscribe() throws ParameterException, AuthenticationException {
-        if(rbacClient == null){
-            startNormalSubscription();
-        }
-        else{
-            startSecureSubscription();
-        }
-    }
-
-    private void startNormalSubscription() throws ParameterException{
-        sh.startMonitoring();
-    }
-
-    private void startSecureSubscription() throws ParameterException, AuthenticationException{
-        MiddleTierRbaTokenHolder.set(rbacClient.getApplicationToken());
-        startNormalSubscription();
-        MiddleTierRbaTokenHolder.clear();
+    private void subscribe() throws ParameterException {
+        RbacSession.runAs(rbacSession, sh::startMonitoring);
     }
 
     public void stopSubscription() {
@@ -135,8 +118,16 @@ public class SubscriptionService implements ParameterValueListener {
         return sh.isMonitoring();
     }
 
-    public RBACClient getRbacClient() {
-        return rbacClient;
+    public RbacSession getRbacSession() {
+        return rbacSession;
+    }
+
+    public String getParameterName() {
+        return parameterName;
+    }
+
+    public String getSelectorName() {
+        return selectorName;
     }
 
     public record Latest(ParameterValue value, ValueHeader header) {

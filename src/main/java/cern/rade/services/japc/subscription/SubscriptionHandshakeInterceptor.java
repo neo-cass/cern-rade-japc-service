@@ -2,14 +2,16 @@ package cern.rade.services.japc.subscription;
 
 import cern.rade.services.codec.CodecException;
 import cern.rade.services.japc.ApiPaths;
-import cern.rade.services.japc.ContextProvider;
 import cern.rade.services.japc.Fields;
 import cern.rade.services.japc.error.ErrorCode;
 import cern.rade.services.japc.error.ErrorLog;
 import cern.rade.services.japc.format.Format;
 import cern.rade.services.japc.format.Formats;
-import cern.rade.services.japc.rbac.RBACHeaders;
-import cern.rade.services.japc.rbac.RBACManager;
+import cern.rade.services.japc.rbac.RbacHeaders;
+import cern.rade.services.japc.security.RbacAuthentication;
+import cern.rade.services.japc.stats.Client;
+import cern.rade.services.japc.stats.ClientStats;
+import cern.rade.services.japc.stats.Operation;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +26,7 @@ import org.springframework.web.socket.server.HandshakeInterceptor;
 import org.springframework.web.util.UriTemplate;
 
 import java.io.IOException;
+import java.time.Clock;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,8 +35,14 @@ public class SubscriptionHandshakeInterceptor implements HandshakeInterceptor {
     private static final UriTemplate FIELD_PATH = new UriTemplate("/{device:[^/]+}/{property:[^/]+}/{field:[^/]+}");
     private static final UriTemplate PROPERTY_PATH = new UriTemplate("/{device:[^/]+}/{property:[^/]+}");
     private static final UriTemplate DEVICE_PATH = new UriTemplate("/{device:[^/]+}");
-    protected final RBACManager rbacManager = ContextProvider.getRbacManager();
+    private final ClientStats clientStats;
+    private final Clock clock;
     private final Logger logger = LoggerFactory.getLogger(SubscriptionHandshakeInterceptor.class);
+
+    public SubscriptionHandshakeInterceptor(ClientStats clientStats, Clock clock) {
+        this.clientStats = clientStats;
+        this.clock = clock;
+    }
 
     @Override
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, Map<String, Object> attributes) throws Exception {
@@ -56,7 +65,6 @@ public class SubscriptionHandshakeInterceptor implements HandshakeInterceptor {
         HttpHeaders retHeaders = response.getHeaders();
         String path = ApiPaths.stripWebSocketBase(request.getURI().getPath().substring(servletRequest.getContextPath().length()));
         String selector = servletRequest.getParameter("selector");
-        String authStr = headers.getFirst(RBACHeaders.HEADER);
 
         String headerProperty = path != null && DEVICE_PATH.matches(path) ? format.propertyFromHeaders(headers) : null;
         Map<String, String> vars;
@@ -77,12 +85,16 @@ public class SubscriptionHandshakeInterceptor implements HandshakeInterceptor {
         String property = vars.get("property");
         String field = vars.get("field");
 
-        SubscriptionService subscriptionService = new SubscriptionService(selector, vars.get("device"), property, field, rbacManager.optionalClient(authStr));
+        SubscriptionService subscriptionService = new SubscriptionService(selector, vars.get("device"), property, field, RbacAuthentication.current().orElse(null));
+        Client client = Client.of(servletRequest);
+        clientStats.record(client, Operation.SUBSCRIBE);
         subscriptionService.execute();
         try {
             attributes.put(SessionAttributes.SUBSCRIPTION_SERVICE, subscriptionService);
             attributes.put(SessionAttributes.FORMAT, format);
-            RBACHeaders.setCached(retHeaders, subscriptionService.getRbacClient());
+            attributes.put(SessionAttributes.CLIENT, client);
+            attributes.put(SessionAttributes.OPENED_AT, clock.instant());
+            RbacHeaders.setCached(retHeaders, subscriptionService.getRbacSession());
             List<String> fields = Fields.parse(servletRequest.getParameter("fields"));
             if (fields != null){
                 attributes.put(SessionAttributes.FIELDS, fields);

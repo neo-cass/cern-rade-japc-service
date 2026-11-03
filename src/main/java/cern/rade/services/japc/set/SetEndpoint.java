@@ -1,24 +1,19 @@
 package cern.rade.services.japc.set;
 
 import cern.japc.value.ParameterValue;
-import cern.rade.services.japc.ContextProvider;
-import cern.rade.services.japc.rbac.RBACHeaders;
-import cern.rade.services.japc.rbac.RBACManager;
-import cern.rbac.client.authentication.AuthenticationException;
-import cern.rbac.common.TokenFormatException;
+import cern.rade.services.japc.rbac.RbacHeaders;
+import cern.rade.services.japc.security.RbacAuthentication;
 import org.springframework.http.HttpHeaders;
 
-public abstract class SetEndpoint{
-    private final RBACManager rbacManager = ContextProvider.getRbacManager();
+public abstract class SetEndpoint {
 
-    protected SetService setService(String selector, String device, String property, String field, ParameterValue data, String authStr)
-            throws TokenFormatException, AuthenticationException {
-        return new SetService(selector, device, property, field, data, rbacManager.optionalClient(authStr));
+    protected SetService setService(String selector, String device, String property, String field, ParameterValue data) {
+        return new SetService(selector, device, property, field, data, RbacAuthentication.current().orElse(null));
     }
 
     protected HttpHeaders responseHeaders(SetService setService) {
         HttpHeaders headers = new HttpHeaders();
-        RBACHeaders.setCached(headers, setService.getRbacClient());
+        RbacHeaders.setCached(headers, setService.getRbacSession());
         return headers;
     }
 }

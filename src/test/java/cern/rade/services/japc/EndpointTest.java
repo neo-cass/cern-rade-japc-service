@@ -10,14 +10,18 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.WebSocket;
+import java.net.http.WebSocketHandshakeException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @EnabledIfEnvironmentVariable(named = "APP_URL", matches = ".+")
@@ -28,13 +32,13 @@ class EndpointTest {
     private static final String RBAC_DEVICE = "RADE.TEST.RBAC";
     private static final String EXPLICIT = "Explicit " + Base64.getUrlEncoder()
             .encodeToString(("pma:" + System.getenv("PMA_PASSWORD")).getBytes(StandardCharsets.ISO_8859_1));
+    private static final String UNKNOWN_CACHED = "Cached " + UUID.randomUUID();
+    private static final String INVALID_KERBEROS = "Kerberos " + Base64.getUrlEncoder().encodeToString("not a ticket".getBytes(StandardCharsets.US_ASCII));
     private static final HttpClient CLIENT = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
 
     @Test
     void set() throws Exception {
-        assertStatus(200, set(OPEN_DEVICE, "Set", 1, null));
-
-        assertStatus(403, set(RBAC_DEVICE, "Set", 2, null));
+        assertStatus(200, set(OPEN_DEVICE, "Set", 1, EXPLICIT));
         HttpResponse<String> explicit = set(RBAC_DEVICE, "Set", 3, EXPLICIT);
         assertStatus(200, explicit);
         assertStatus(200, set(RBAC_DEVICE, "Set", 4, cached(explicit)));
@@ -42,24 +46,44 @@ class EndpointTest {
 
     @Test
     void get() throws Exception {
-        assertStatus(200, set(OPEN_DEVICE, "Get", 1, null));
-        assertEquals(1, number(value(get(OPEN_DEVICE, "Get", null))));
+        String cached = cached(set(OPEN_DEVICE, "Get", 1, EXPLICIT));
+        assertEquals(1, number(value(get(OPEN_DEVICE, "Get", cached))));
 
-        String cached = cached(set(RBAC_DEVICE, "Get", 2, EXPLICIT));
-        assertStatus(403, get(RBAC_DEVICE, "Get", null));
+        set(RBAC_DEVICE, "Get", 2, cached);
         assertEquals(2, number(value(get(RBAC_DEVICE, "Get", EXPLICIT))));
         assertEquals(2, number(value(get(RBAC_DEVICE, "Get", cached))));
     }
 
     @Test
     void subscribe() throws Exception {
-        assertStatus(200, set(OPEN_DEVICE, "Subscribe", 1, null));
-        assertEquals(1, number(firstUpdate(OPEN_DEVICE, "Subscribe", null)));
+        String cached = cached(set(OPEN_DEVICE, "Subscribe", 1, EXPLICIT));
+        assertEquals(1, number(firstUpdate(OPEN_DEVICE, "Subscribe", cached)));
 
-        String cached = cached(set(RBAC_DEVICE, "Subscribe", 2, EXPLICIT));
-        assertThrows(Exception.class, () -> firstUpdate(RBAC_DEVICE, "Subscribe", null));
+        set(RBAC_DEVICE, "Subscribe", 2, cached);
         assertEquals(2, number(firstUpdate(RBAC_DEVICE, "Subscribe", EXPLICIT)));
         assertEquals(2, number(firstUpdate(RBAC_DEVICE, "Subscribe", cached)));
+    }
+
+    @Test
+    void rejectsMissingOrInvalidLogin() throws Exception {
+        for (String rbac : new String[]{null, UNKNOWN_CACHED, INVALID_KERBEROS, "Unknown abc"}) {
+            assertStatus(401, get(OPEN_DEVICE, "Get", rbac));
+            assertStatus(401, set(OPEN_DEVICE, "Set", 1, rbac));
+        }
+        ExecutionException handshake = assertThrows(ExecutionException.class, () -> firstUpdate(OPEN_DEVICE, "Subscribe", null));
+        assertEquals(401, assertInstanceOf(WebSocketHandshakeException.class, handshake.getCause()).getResponse().statusCode());
+    }
+
+    @Test
+    void adminApiNeedsLogin() throws Exception {
+        assertStatus(401, admin("/info", null));
+        assertStatus(200, admin("/info", EXPLICIT));
+        assertStatus(200, admin("/sessions", EXPLICIT));
+    }
+
+    private static HttpResponse<String> admin(String path, String rbac) throws Exception {
+        String adminApiUrl = APP_URL.replaceFirst("/api/v1$", "/admin/api");
+        return send(HttpRequest.newBuilder(URI.create(adminApiUrl + path)).GET(), rbac);
     }
 
     private static HttpResponse<String> set(String device, String property, double number, String rbac) throws Exception {

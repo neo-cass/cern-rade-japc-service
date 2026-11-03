@@ -1,16 +1,13 @@
 package cern.rade.services.japc.set;
 
-import cern.japc.core.*;
+import cern.japc.core.Parameter;
+import cern.japc.core.ParameterException;
+import cern.japc.core.Selector;
 import cern.japc.core.factory.ParameterFactory;
 import cern.japc.core.factory.SelectorFactory;
 import cern.japc.value.ParameterValue;
 import cern.rade.services.japc.ParameterNames;
-import cern.rade.services.japc.rbac.RBACClient;
-import cern.rbac.client.authentication.AuthenticationException;
-import cern.rbac.common.RbaToken;
-import cern.rbac.util.holder.MiddleTierRbaTokenHolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import cern.rade.services.japc.rbac.RbacSession;
 
 public class SetService {
     private Parameter parameter;
@@ -18,15 +15,14 @@ public class SetService {
     private String parameterName;
     private String selectorName;
     private final ParameterValue parameterValue;
-    private RBACClient rbacClient;
+    private RbacSession rbacSession;
     private boolean isExecuted = false;
-    private final Logger logger = LoggerFactory.getLogger(SetService.class);
 
-    public SetService(String selectorName, String device, String property, String field, ParameterValue parameterValue, RBACClient rbacClient){
+    public SetService(String selectorName, String device, String property, String field, ParameterValue parameterValue, RbacSession rbacSession){
         this.selectorName = ParameterNames.selector(selectorName);
         this.parameterName = ParameterNames.parameter(device, property, field);
         this.parameterValue = parameterValue;
-        this.rbacClient = rbacClient;
+        this.rbacSession = rbacSession;
     }
 
     private void init() throws ParameterException {
@@ -34,27 +30,11 @@ public class SetService {
         this.selector = SelectorFactory.newSelector(selectorName);
     }
 
-    private void set() throws ParameterException, AuthenticationException {
-        if(rbacClient==null){
-            japcSET();
-        }
-        else{
-            japcSET_SECURE();
-        }
+    private void set() throws ParameterException {
+        RbacSession.runAs(rbacSession, () -> parameter.setValue(selector, parameterValue));
     }
 
-    private void japcSET() throws ParameterException {
-        parameter.setValue(selector, parameterValue);
-    }
-
-    private void japcSET_SECURE() throws ParameterException, AuthenticationException {
-        RbaToken token = rbacClient.getApplicationToken();
-        MiddleTierRbaTokenHolder.set(token);
-        japcSET();
-        MiddleTierRbaTokenHolder.clear();
-    }
-
-    public void execute() throws ParameterException, AuthenticationException{
+    public void execute() throws ParameterException {
         init();
         set();
         this.isExecuted = true;
@@ -64,8 +44,7 @@ public class SetService {
         return isExecuted;
     }
 
-    public RBACClient getRbacClient() {
-        return rbacClient;
+    public RbacSession getRbacSession() {
+        return rbacSession;
     }
 }
-

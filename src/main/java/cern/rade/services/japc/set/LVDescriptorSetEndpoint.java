@@ -4,9 +4,6 @@ import cern.japc.core.ParameterException;
 import cern.rade.services.japc.ApiPaths;
 import cern.rade.services.japc.format.LabVIEWFormat;
 import cern.rade.services.japc.format.LabVIEWValue;
-import cern.rade.services.japc.rbac.RBACHeaders;
-import cern.rbac.client.authentication.AuthenticationException;
-import cern.rbac.common.TokenFormatException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,11 +16,10 @@ public class LVDescriptorSetEndpoint extends SetEndpoint {
             @PathVariable(value = "property", required = false) String property,
             @PathVariable(value = "field", required = false) String field,
             @RequestParam(value = "selector", required = false) String selector,
-            @RequestHeader(value = RBACHeaders.HEADER, required = false) String authStr,
             @RequestBody LabVIEWValue body)
-            throws ParameterException, TokenFormatException, AuthenticationException {
+            throws ParameterException {
         LabVIEWValue value = LabVIEWFormat.matchValue(body, property, field);
-        SetService setService = setService(selector, device, property == null ? value.descriptor().getName() : property, field, value.value(), authStr);
+        SetService setService = setService(selector, device, property == null ? value.descriptor().getName() : property, field, value.value());
         setService.execute();
         return ResponseEntity
                 .ok()

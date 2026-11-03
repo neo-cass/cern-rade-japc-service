@@ -36,6 +36,11 @@ logging:
 
 server:
   port: 8443
+  # behind the OpenShift router: use its X-Forwarded-* headers for https redirects and client addresses
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      persistent: false
   mime-mappings:
     yaml: application/yaml
   ssl:

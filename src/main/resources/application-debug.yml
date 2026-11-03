@@ -9,3 +9,6 @@ service-properties:
   subQueueSize: 100
   logstashHost: "localhost"
   logstashPort: 30000
+  rbac:
+    required-role: "RADE-ADMIN"
+    admin-role: "RADE-ADMIN"

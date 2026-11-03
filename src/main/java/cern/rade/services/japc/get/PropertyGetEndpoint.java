@@ -4,9 +4,6 @@ import cern.japc.core.ParameterException;
 import cern.rade.services.japc.ApiPaths;
 import cern.rade.services.japc.Fields;
 import cern.rade.services.japc.format.NamedValue;
-import cern.rade.services.japc.rbac.RBACHeaders;
-import cern.rbac.client.authentication.AuthenticationException;
-import cern.rbac.common.TokenFormatException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,10 +18,9 @@ public class PropertyGetEndpoint extends GetEndpoint {
             @PathVariable("property") String property,
             @PathVariable(value = "field", required = false) String field,
             @RequestParam(value = "selector", required = false) String selector,
-            @RequestParam(value = "fields", required = false) List<String> fields,
-            @RequestHeader(value = RBACHeaders.HEADER, required = false) String authStr)
-            throws ParameterException, TokenFormatException, AuthenticationException {
-        GetService getService = getService(selector, device, property, field, authStr);
+            @RequestParam(value = "fields", required = false) List<String> fields)
+            throws ParameterException {
+        GetService getService = getService(selector, device, property, field);
         getService.execute();
         return ResponseEntity
                 .ok()
