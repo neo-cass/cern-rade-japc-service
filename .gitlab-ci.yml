@@ -148,6 +148,16 @@ deploy_master:
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
+publish_route:
+  extends: .paas
+  needs: [deploy_master]
+  variables:
+    ROUTE_TARGET: japc-master   # Service behind https://rade-services-japc.web.cern.ch
+  script:
+    - sed -e "s|\${ROUTE_TARGET}|$ROUTE_TARGET|g" deploy/route.yaml | oc apply -f -
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
 deploy_review:
   extends: .deploy
   environment:
