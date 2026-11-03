@@ -1,0 +1,14 @@
+# CERN SSO login for the admin panel. Activated in OpenShift (SPRING_PROFILES_ACTIVE=prod,sso),
+# with the credentials of the rade-services-japc-admin-panel application from the rade-services-japc-admin-sso secret.
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          cern:
+            client-id: ${SSO_CLIENT_ID}
+            client-secret: ${SSO_CLIENT_SECRET}
+            scope: openid,profile,email
+        provider:
+          cern:
+            issuer-uri: https://auth.cern.ch/auth/realms/cern

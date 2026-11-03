@@ -26,6 +26,18 @@ spec:
           env:
             - name: JAVA_TOOL_OPTIONS
               value: "-XX:MaxRAMPercentage=75"
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod,sso"
+            - name: SSO_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: rade-services-japc-admin-sso
+                  key: SSO_CLIENT_ID
+            - name: SSO_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: rade-services-japc-admin-sso
+                  key: SSO_CLIENT_SECRET
           resources:
             requests:
               cpu: 250m
