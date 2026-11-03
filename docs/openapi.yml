@@ -15,16 +15,19 @@ info:
 
     Examples:
     ```
-    curl 'https://<host>/api/v1/EXAMPLE.DEVICE/Acquisition?selector=CPS.USER.ALL'
-    curl 'https://<host>/api/v1/EXAMPLE.DEVICE/Acquisition?fields=current,voltage'
-    curl -X PUT -H 'Content-Type: application/json' -d '{"@type":"double_value","value":1.5}' 'https://<host>/api/v1/EXAMPLE.DEVICE/Setting/current'
+    curl -H 'Rbac: Cached <id>' 'https://<host>/api/v1/EXAMPLE.DEVICE/Acquisition?selector=CPS.USER.ALL'
+    curl -H 'Rbac: Cached <id>' 'https://<host>/api/v1/EXAMPLE.DEVICE/Acquisition?fields=current,voltage'
+    curl -H 'Rbac: Cached <id>' -X PUT -H 'Content-Type: application/json' -d '{"@type":"double_value","value":1.5}' 'https://<host>/api/v1/EXAMPLE.DEVICE/Setting/current'
     curl -H 'Rbac: Explicit <base64url(username:password)>' 'https://<host>/api/v1/EXAMPLE.DEVICE/Acquisition'
+    curl -H 'Rbac: Cached <id>' 'https://<host>/api/v1/EXAMPLE.DEVICE/Acquisition'
     ```
+
+    Every request needs an RBAC login (see the `Rbac` security scheme) whose token has the service's required RBAC role.
 
     Subscriptions: [WebSocket API](/docs/websocket). Specifications: [/openapi.yaml](/openapi.yaml), [/asyncapi.yaml](/asyncapi.yaml).
 security:
-  - {}
   - Rbac: []
+  - RbacToken: []
 servers:
   - url: /api/v1
     description: This deployment. /api is an alias of /api/v1.
@@ -33,6 +36,10 @@ tags:
     description: Access by device, property and optional field in the path.
   - name: LabVIEW descriptor
     description: Access by device in the path. Property and fields are taken from `Lv-Type-Descriptor`.
+  - name: Admin
+    description: |
+      Admin API at `/admin/api`, used by the [admin panel](/admin). Needs the admin RBAC role, from the `Rbac` header
+      or from the panel's CERN SSO login. JSON only.
 paths:
   /{device}/{property}:
     parameters:
@@ -45,8 +52,8 @@ paths:
       summary: Get a property
       description: |
         ```
-        curl 'https://<host>/api/v1/EXAMPLE.DEVICE/Acquisition'
-        curl -H 'Accept: application/labview-variant' -D - -o value.bin 'https://<host>/api/v1/EXAMPLE.DEVICE/Acquisition'
+        curl -H 'Rbac: Cached <id>' 'https://<host>/api/v1/EXAMPLE.DEVICE/Acquisition'
+        curl -H 'Rbac: Cached <id>' -H 'Accept: application/labview-variant' -D - -o value.bin 'https://<host>/api/v1/EXAMPLE.DEVICE/Acquisition'
         ```
       parameters:
         - $ref: '#/components/parameters/fields'
@@ -64,8 +71,8 @@ paths:
       summary: Set a property
       description: |
         ```
-        curl -X PUT -H 'Content-Type: application/json' -d '{"@type":"map_value","current":{"@type":"double_value","value":1.5}}' 'https://<host>/api/v1/EXAMPLE.DEVICE/Setting'
-        curl -X PUT -H 'Content-Type: application/labview-variant' -H 'Lv-Type-Descriptor: <descriptor>' --data-binary @value.bin 'https://<host>/api/v1/EXAMPLE.DEVICE/Setting'
+        curl -H 'Rbac: Cached <id>' -X PUT -H 'Content-Type: application/json' -d '{"@type":"map_value","current":{"@type":"double_value","value":1.5}}' 'https://<host>/api/v1/EXAMPLE.DEVICE/Setting'
+        curl -H 'Rbac: Cached <id>' -X PUT -H 'Content-Type: application/labview-variant' -H 'Lv-Type-Descriptor: <descriptor>' --data-binary @value.bin 'https://<host>/api/v1/EXAMPLE.DEVICE/Setting'
         ```
       parameters:
         - $ref: '#/components/parameters/LvTypeDescriptorBody'
@@ -90,7 +97,7 @@ paths:
       summary: Get a field
       description: |
         ```
-        curl 'https://<host>/api/v1/EXAMPLE.DEVICE/Acquisition/current'
+        curl -H 'Rbac: Cached <id>' 'https://<host>/api/v1/EXAMPLE.DEVICE/Acquisition/current'
         ```
       parameters:
         - $ref: '#/components/parameters/LvTypeDescriptorOptional'
@@ -107,7 +114,7 @@ paths:
       summary: Set a field
       description: |
         ```
-        curl -X PUT -H 'Content-Type: application/json' -d '{"@type":"double_value","value":1.5}' 'https://<host>/api/v1/EXAMPLE.DEVICE/Setting/current'
+        curl -H 'Rbac: Cached <id>' -X PUT -H 'Content-Type: application/json' -d '{"@type":"double_value","value":1.5}' 'https://<host>/api/v1/EXAMPLE.DEVICE/Setting/current'
         ```
       parameters:
         - $ref: '#/components/parameters/LvTypeDescriptorBody'
@@ -132,7 +139,7 @@ paths:
       description: |
         `404` without `Lv-Type-Descriptor`. `406` if `Accept` does not allow `application/labview-variant`.
         ```
-        curl -H 'Accept: application/labview-variant' -H 'Lv-Type-Descriptor: <descriptor>' -o value.bin 'https://<host>/api/v1/EXAMPLE.DEVICE'
+        curl -H 'Rbac: Cached <id>' -H 'Accept: application/labview-variant' -H 'Lv-Type-Descriptor: <descriptor>' -o value.bin 'https://<host>/api/v1/EXAMPLE.DEVICE'
         ```
       responses:
         '200':
@@ -159,7 +166,7 @@ paths:
       description: |
         `404` without `Lv-Type-Descriptor`. `415` if `Content-Type` is not `application/labview-variant`.
         ```
-        curl -X PUT -H 'Content-Type: application/labview-variant' -H 'Lv-Type-Descriptor: <descriptor>' --data-binary @value.bin 'https://<host>/api/v1/EXAMPLE.DEVICE'
+        curl -H 'Rbac: Cached <id>' -X PUT -H 'Content-Type: application/labview-variant' -H 'Lv-Type-Descriptor: <descriptor>' --data-binary @value.bin 'https://<host>/api/v1/EXAMPLE.DEVICE'
         ```
       requestBody:
         required: true
@@ -174,6 +181,131 @@ paths:
           $ref: '#/components/responses/Error'
         5XX:
           $ref: '#/components/responses/Error'
+  /me:
+    servers: &admin
+      - url: /admin/api
+    get:
+      tags: [Admin]
+      operationId: adminMe
+      summary: The logged-in admin
+      responses:
+        '200':
+          description: User, login type and RBAC roles.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminMe'
+        4XX:
+          $ref: '#/components/responses/AdminError'
+  /info:
+    servers: *admin
+    get:
+      tags: [Admin]
+      operationId: adminInfo
+      summary: Version, uptime and RBAC settings
+      responses:
+        '200':
+          description: Service information.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminServiceInfo'
+        4XX:
+          $ref: '#/components/responses/AdminError'
+  /sessions:
+    servers: *admin
+    get:
+      tags: [Admin]
+      operationId: adminSessions
+      summary: Cached RBAC sessions
+      responses:
+        '200':
+          description: Sessions, most recently used first. The secret cached ids are not included.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminSession'
+        4XX:
+          $ref: '#/components/responses/AdminError'
+    delete:
+      tags: [Admin]
+      operationId: adminRevokeAllSessions
+      summary: Revoke all cached sessions
+      responses:
+        '204':
+          description: Revoked. Clients must log in again.
+        4XX:
+          $ref: '#/components/responses/AdminError'
+  /sessions/{handle}:
+    servers: *admin
+    delete:
+      tags: [Admin]
+      operationId: adminRevokeSession
+      summary: Revoke one cached session
+      parameters:
+        - name: handle
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Revoked. Its cached id now gets 401.
+        4XX:
+          $ref: '#/components/responses/AdminError'
+  /subscriptions:
+    servers: *admin
+    get:
+      tags: [Admin]
+      operationId: adminSubscriptions
+      summary: Open subscriptions
+      responses:
+        '200':
+          description: Subscriptions, most recent first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminSubscription'
+        4XX:
+          $ref: '#/components/responses/AdminError'
+  /subscriptions/{id}:
+    servers: *admin
+    delete:
+      tags: [Admin]
+      operationId: adminCloseSubscription
+      summary: Close a subscription
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Closed with WebSocket status 1000 "Closed by admin".
+        4XX:
+          $ref: '#/components/responses/AdminError'
+  /clients:
+    servers: *admin
+    get:
+      tags: [Admin]
+      operationId: adminClients
+      summary: Request rates per client
+      responses:
+        '200':
+          description: Per RBAC user and address, most recently seen first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminClientRate'
+        4XX:
+          $ref: '#/components/responses/AdminError'
 components:
   securitySchemes:
     Rbac:
@@ -181,16 +313,25 @@ components:
       in: header
       name: Rbac
       description: |
-        Optional RBAC credentials. Without the header the request is sent without an RBAC token.
+        RBAC credentials. Required: without them the service answers 401, and without the required RBAC role 403.
 
         | Value | Credentials |
         |---|---|
         | `Explicit <base64url(username:password)>` | Login with username and password. |
-        | `Location <base64url(token)>` | Serialized RBAC token. |
+        | `Kerberos <base64url(ticket)>` | Kerberos service ticket (GSS-API AP-REQ) for the RBAC server, `RBAC/rbac-pro-lb.cern.ch@CERN.CH` in PRO. Not a ticket for this service. |
+        | `Location <base64url(token)>` | Serialized RBAC token obtained by the client, e.g. by location login. Used until it expires, never renewed. |
         | `Cached <id>` | Id returned in the `Rbac` response header of an earlier request. |
 
-        Cached ids are held in memory by the serving instance and are lost on restart.
-      x-rbac-schemes: [Explicit, Location, Cached]
+        Explicit and Kerberos logins are renewed by the service for up to a year, so their cached id keeps working;
+        a cached id unused for 24 hours is dropped. Cached ids are held in memory by the serving instance and are lost on restart.
+      x-rbac-schemes: [Explicit, Kerberos, Location, Cached]
+    RbacToken:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: |
+        `rbac-token <base64(token)>`, the format of rbac-util's `RbacAuthenticationFilter` and `FeignRbacInterceptor`
+        (`RbaToken#toHttpHeader`). Used until it expires; no `Rbac` response header.
   parameters:
     device:
       name: device
@@ -272,10 +413,11 @@ components:
         type: integer
         format: int64
     Rbac:
-      description: '`Cached <id>`. Present when the request had an `Rbac` header. Reuse the value as the `Rbac` request header.'
+      description: '`Cached <id>`. Present when the request used the `Rbac` header. Reuse the value as the `Rbac` request header. The id is a secret, like a password.'
       schema:
         type: string
-        pattern: '^Cached [0-9]+$'
+        pattern: '^Cached [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+      example: Cached 3f2b8c1e-5d7a-4c2e-9b1f-0a6d4e8c2f71
     Lv-Type-Descriptor:
       description: LabVIEW only, when the request had no `Lv-Type-Descriptor`. Descriptor of the response body.
       schema:
@@ -345,6 +487,12 @@ components:
       headers:
         Rbac:
           $ref: '#/components/headers/Rbac'
+    AdminError:
+      description: '401 without an RBAC login, 403 without the admin role, 404 for an unknown session or subscription.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
     Error:
       description: |
         Error in the negotiated format (see `Error`, `LabVIEWError`).
@@ -356,8 +504,8 @@ components:
         | 400 | 5000 | Value or selector rejected by the device (invalid argument, invalid request, bad setting value) |
         | 400 | 5001 | Body or `Lv-Type-Descriptor` cannot be decoded |
         | 400 | 5003 | Malformed request, `Lv-Type-Descriptor` does not match the path, unknown field in `fields` |
-        | 401 | 5002 | Invalid `Rbac` header, failed login, expired token or unknown cached id |
-        | 403 | 5002 | RBAC access denied |
+        | 401 | 5002 | No RBAC login, invalid `Rbac` header, failed login, expired token or unknown cached id |
+        | 403 | 5002 | Token lacks the service's required RBAC role, or RBAC access to the device denied |
         | 404 | 5000 | Device or property not found |
         | 404 | 5003 | Unknown route |
         | 406 | 5003 | `Accept` not supported by the route |
@@ -552,3 +700,62 @@ components:
       x-labview-cluster:
         label: error out
         elements: [status Boolean, code I32, source String]
+    AdminMe:
+      type: object
+      properties:
+        user: {type: string}
+        loginType: {$ref: '#/components/schemas/LoginType'}
+        roles: {type: array, items: {type: string}}
+    AdminServiceInfo:
+      type: object
+      properties:
+        version: {type: string}
+        startedAt: {type: string, format: date-time}
+        uptime: {type: string, description: ISO-8601 duration}
+        rbacEnvironment: {type: string, example: PRO}
+        requiredRole: {type: string}
+        adminRole: {type: string}
+        tokenLifetime: {type: string, description: ISO-8601 duration, example: PT12H}
+        sessionLifetime: {type: string, description: ISO-8601 duration, example: PT8760H}
+        sessionIdleTimeout: {type: string, description: ISO-8601 duration, example: PT24H}
+        sessions: {type: integer}
+        subscriptions: {type: integer}
+    AdminSession:
+      type: object
+      properties:
+        handle: {type: string, description: Public id for revoking. Not the cached id.}
+        user: {type: string}
+        loginType: {$ref: '#/components/schemas/LoginType'}
+        roles: {type: array, items: {type: string}}
+        location: {type: [string, 'null']}
+        created: {type: string, format: date-time}
+        lastUsed: {type: string, format: date-time}
+        tokenExpiry: {type: string, format: date-time}
+        sessionExpiry: {type: string, format: date-time}
+    AdminSubscription:
+      type: object
+      properties:
+        id: {type: string}
+        parameter: {type: string}
+        selector: {type: string}
+        format: {type: string, enum: [json, labview-variant]}
+        user: {type: string}
+        address: {type: string}
+        openedAt: {type: string, format: date-time}
+    AdminClientRate:
+      type: object
+      properties:
+        user: {type: string}
+        address: {type: string}
+        lastSeen: {type: string, format: date-time}
+        operations:
+          type: object
+          description: Keys GET, SET, SUBSCRIBE.
+          additionalProperties:
+            type: object
+            properties:
+              lastMinute: {type: integer}
+              total: {type: integer}
+    LoginType:
+      type: string
+      enum: [EXPLICIT, KERBEROS, OAUTH, LOCATION, TOKEN]
