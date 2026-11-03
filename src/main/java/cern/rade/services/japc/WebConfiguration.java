@@ -13,13 +13,16 @@ public class WebConfiguration implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/openapi.yaml", "/asyncapi.yaml", "/docs/**").addResourceLocations(API_DOCS);
-        registry.addResourceHandler("/index.html").addResourceLocations(WEB);
+        registry.addResourceHandler("/index.html", "/common.css").addResourceLocations(WEB);
         registry.addResourceHandler("/logos/**").addResourceLocations(WEB + "logos/");
+        registry.addResourceHandler(ApiPaths.ADMIN + "/*.*").addResourceLocations(WEB + "admin/");
     }
 
     @Override
     public void addViewControllers(ViewControllerRegistry registry) {
         registry.addViewController("/").setViewName("forward:/index.html");
+        registry.addViewController(ApiPaths.ADMIN).setViewName("forward:" + ApiPaths.ADMIN + "/index.html");
+        registry.addViewController(ApiPaths.ADMIN + "/").setViewName("forward:" + ApiPaths.ADMIN + "/index.html");
         registry.addViewController("/docs").setViewName("forward:/docs/index.html");
         registry.addViewController("/docs/websocket").setViewName("forward:/docs/websocket/index.html");
     }

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>RADE JAPC admin</title>
+    <link rel="icon" href="/logos/rade.png">
+    <link rel="stylesheet" href="/common.css">
+    <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+<main class="wide">
+    <header>
+        <img class="logo" src="/logos/rade.png" alt="RADE">
+        <div class="title">
+            <h1>RADE JAPC admin</h1>
+            <p class="muted">Signed in as <strong id="me">…</strong> <span id="me-roles" class="muted"></span></p>
+        </div>
+        <form method="post" action="/logout">
+            <button type="submit">Log out</button>
+        </form>
+    </header>
+
+    <nav class="tabs" role="tablist">
+        <button role="tab" data-tab="info" aria-selected="true">Service</button>
+        <button role="tab" data-tab="sessions">RBAC sessions</button>
+        <button role="tab" data-tab="subscriptions">Subscriptions</button>
+        <button role="tab" data-tab="clients">Client rates</button>
+    </nav>
+
+    <p id="error" class="error" hidden></p>
+
+    <section data-panel="info">
+        <dl id="info" class="info"></dl>
+    </section>
+
+    <section data-panel="sessions" hidden>
+        <div class="toolbar">
+            <span class="muted">Cached logins reused with <code>Rbac: Cached</code>. Revoking one makes its client log in again.</span>
+            <button data-action="revoke-all">Revoke all</button>
+        </div>
+        <table id="sessions"></table>
+    </section>
+
+    <section data-panel="subscriptions" hidden>
+        <table id="subscriptions"></table>
+    </section>
+
+    <section data-panel="clients" hidden>
+        <p class="muted">Requests in the last minute and since the service started, per RBAC user and address.</p>
+        <table id="clients"></table>
+    </section>
+
+    <p class="muted refreshed">Refreshed <span id="refreshed">never</span> · every 5 s</p>
+</main>
+<script src="/admin/admin.js"></script>
+</body>
+</html>
