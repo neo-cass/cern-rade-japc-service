@@ -61,6 +61,12 @@ dependencies {
     implementation ("org.springframework.boot:spring-boot-starter-actuator:$springBootVersion"){
         exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
     }
+    implementation ("org.springframework.boot:spring-boot-starter-security:$springBootVersion"){
+        exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
+    }
+    implementation ("org.springframework.boot:spring-boot-starter-oauth2-client:$springBootVersion"){
+        exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
+    }
     implementation ("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0"){
         exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
     }
@@ -83,6 +89,10 @@ tasks.test {
 ////    implementation(files("/home/ncass/Workspace/rade-codec/java-codec/build/libs/codec-1.0.3.jar"))
 //    implementation(files("C:\\Users\\ncass\\workspace\\common\\build\\libs\\common-test.jar"))
 //    implementation(files("C:\\Users\\ncass\\workspace\\rade-codec\\java-codec\\build\\libs\\codec-1.0.3.jar"))
+springBoot {
+    buildInfo()
+}
+
 tasks.named<org.springframework.boot.gradle.tasks.bundling.BootWar>("bootWar") {
     val warName = project.findProperty("warName")
     if(warName!=null){
