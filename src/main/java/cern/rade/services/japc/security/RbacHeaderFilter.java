@@ -5,6 +5,8 @@ import cern.rade.services.japc.rbac.LoginType;
 import cern.rade.services.japc.rbac.RbacHeaders;
 import cern.rade.services.japc.rbac.RbacSession;
 import cern.rade.services.japc.rbac.RbacSessionFactory;
+import cern.rade.services.japc.rbac.RbacSessionRegistry;
+import cern.rade.services.japc.rbac.login.RbacCredentials;
 import cern.rade.services.japc.rbac.login.RbacLoginService;
 import cern.rbac.client.authentication.AuthenticationException;
 import jakarta.servlet.FilterChain;
@@ -20,38 +22,66 @@ import java.util.Optional;
 
 /**
  * Authenticates requests carrying {@code Rbac: <scheme> <value>} or {@code Authorization: rbac-token <Base64>}.
- * Requests without either pass through unauthenticated; rejected credentials get a 401.
+ * Requests without either pass through unauthenticated; rejected credentials get a 401. A session logged in for a
+ * request whose response did not hand out its cached id (missing role, failed request, ...) is dropped afterwards.
  */
 public class RbacHeaderFilter extends OncePerRequestFilter {
     private final RbacLoginService loginService;
     private final RbacTokenSupport tokenSupport;
     private final RbacSessionFactory sessions;
+    private final RbacSessionRegistry registry;
 
-    public RbacHeaderFilter(RbacLoginService loginService, RbacTokenSupport tokenSupport, RbacSessionFactory sessions) {
+    public RbacHeaderFilter(RbacLoginService loginService, RbacTokenSupport tokenSupport, RbacSessionFactory sessions,
+                            RbacSessionRegistry registry) {
         this.loginService = loginService;
         this.tokenSupport = tokenSupport;
         this.sessions = sessions;
+        this.registry = registry;
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
+        Login login;
+        RbacAuthentication authentication;
         try {
-            session(request).ifPresent(session -> SecurityContextHolder.getContext()
-                    .setAuthentication(new RbacAuthentication(session, tokenSupport.authorities(session))));
+            login = login(request);
+            authentication = login == null ? null : new RbacAuthentication(login.session(), tokenSupport.authorities(login.session()));
         } catch (AuthenticationException e) {
             SecurityContextHolder.clearContext();
             SecurityErrorWriter.write(request, response, HttpStatus.UNAUTHORIZED, ErrorCode.message(e));
             return;
         }
-        chain.doFilter(request, response);
+        if (login == null) {
+            chain.doFilter(request, response);
+            return;
+        }
+        try {
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            chain.doFilter(request, response);
+        } finally {
+            if (login.fresh()) {
+                registry.releaseIfUnissued(login.session());
+            }
+        }
     }
 
-    private Optional<RbacSession> session(HttpServletRequest request) {
+    /**
+     * @return the login of this request, or null if it carries no RBAC credentials
+     */
+    private Login login(HttpServletRequest request) {
         String header = request.getHeader(RbacHeaders.HEADER);
         if (header != null) {
-            return Optional.of(loginService.login(header));
+            RbacCredentials credentials = RbacCredentials.parse(header);
+            return new Login(loginService.login(credentials), !RbacHeaders.CACHED.equals(credentials.scheme()));
         }
-        return tokenSupport.extract(request).map(token -> sessions.fromToken(LoginType.TOKEN, token));
+        Optional<RbacSession> token = tokenSupport.extract(request).map(rbaToken -> sessions.fromToken(LoginType.TOKEN, rbaToken));
+        return token.map(session -> new Login(session, false)).orElse(null);
+    }
+
+    /**
+     * @param fresh true if the session was created for this request rather than reused from the cache
+     */
+    private record Login(RbacSession session, boolean fresh) {
     }
 }

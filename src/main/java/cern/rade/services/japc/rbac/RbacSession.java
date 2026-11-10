@@ -32,6 +32,8 @@ public class RbacSession {
     private final Instant created;
     private volatile RbaToken token;
     private volatile Instant lastUsed;
+    private volatile boolean revoked;
+    private volatile boolean issued;
 
     /**
      * Renews the application token from the master token.
@@ -90,6 +92,9 @@ public class RbacSession {
      * @throws AuthenticationException if the session can no longer be renewed
      */
     public synchronized RbaToken applicationToken() {
+        if (revoked) {
+            throw new AuthenticationException("RBAC session was revoked. Please log in again");
+        }
         lastUsed = clock.instant();
         if (token.isValid()) {
             return token;
@@ -103,6 +108,28 @@ public class RbacSession {
 
     public boolean isExpired() {
         return !token.isValid() && !renewable();
+    }
+
+    /**
+     * False once revoked or expired: whoever holds the session, a cached id or a browser login, must log in again.
+     */
+    public boolean isActive() {
+        return !revoked && !isExpired();
+    }
+
+    void revoke() {
+        revoked = true;
+    }
+
+    /**
+     * Records that the client was given the cached id, so the session must be kept for it.
+     */
+    void markIssued() {
+        issued = true;
+    }
+
+    public boolean issued() {
+        return issued;
     }
 
     /**

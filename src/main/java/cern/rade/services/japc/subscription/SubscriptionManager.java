@@ -3,6 +3,8 @@ package cern.rade.services.japc.subscription;
 
 import cern.rade.services.japc.ContextProvider;
 import cern.rade.services.japc.format.Formats;
+import jakarta.websocket.Session;
+import org.apache.tomcat.websocket.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
@@ -12,6 +14,7 @@ import org.springframework.web.socket.SubProtocolCapable;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.WebSocketMessage;
 import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.adapter.NativeWebSocketSession;
 import org.springframework.web.socket.handler.BeanCreatingHandlerProvider;
 import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorator;
 
@@ -22,7 +25,9 @@ import java.util.Map;
 import java.util.concurrent.*;
 public class SubscriptionManager implements WebSocketHandler, SubProtocolCapable, BeanFactoryAware, Closeable, SubscriptionRegistry {
     private static final CloseStatus CLOSED_BY_ADMIN = CloseStatus.NORMAL.withReason("Closed by admin");
+    private static final CloseStatus PING_FAILED = CloseStatus.SESSION_NOT_RELIABLE.withReason("Could not ping client");
     private final long pingToClientFrequency = ContextProvider.getServiceProperties().getPingToClientFrequency();
+    private final long readIdleTimeout = ContextProvider.getServiceProperties().getSocketIdleTimeout();
     private ConcurrentHashMap<WebSocketSession, SubscriptionWebSocketHandler> handlers;
     private ScheduledExecutorService pingSchedulerService;
     private ExecutorService pingService;
@@ -50,18 +55,31 @@ public class SubscriptionManager implements WebSocketHandler, SubProtocolCapable
         pingSchedulerService.scheduleAtFixedRate(this::pingSockets,0, pingToClientFrequency, TimeUnit.MILLISECONDS);
     }
 
-    public void pingSocket(SubscriptionWebSocketHandler handler){
+    public void pingSockets(){
+        handlers.forEach((session, handler) -> pingService.submit(() -> keepAlive(session, handler)));
+    }
+
+    /**
+     * Pings the client, and removes the subscription if the ping cannot be sent. Clients that stop answering are closed
+     * by Tomcat's read idle timeout (see {@link #afterConnectionEstablished}).
+     */
+    private void keepAlive(WebSocketSession session, SubscriptionWebSocketHandler handler) {
         try {
             handler.ping();
         } catch (IOException e) {
-            logger.error("Error pinging client with ID {}", handler.getId(), e);
+            removeDead(session, handler, PING_FAILED);
         }
     }
-    public void pingSockets(){
-        handlers.forEach((session, handler) -> submitToPingService(handler));
-    }
-    public void submitToPingService(SubscriptionWebSocketHandler handler){
-        pingService.submit(() -> pingSocket(handler));
+
+    private void removeDead(WebSocketSession session, SubscriptionWebSocketHandler handler, CloseStatus status) {
+        logger.warn("Subscription {}: {}, closing it", handler.getId(), status.getReason());
+        try {
+            handler.closeSession(status);
+        } catch (IOException | IllegalStateException e) {
+            logger.debug("Subscription {}: close failed: {}", handler.getId(), e.getMessage());
+        }
+        handler.release(status);
+        destroyHandler(session);
     }
     public void clearSubscriptionHandlers() throws IOException{
         for (Map.Entry<WebSocketSession, SubscriptionWebSocketHandler> entry : handlers.entrySet()) {
@@ -103,22 +121,33 @@ public class SubscriptionManager implements WebSocketHandler, SubProtocolCapable
     }
 
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+        closeWhenClientGoesSilent(session);
         SubscriptionWebSocketHandler handler = this.provider.getHandler();
         this.handlers.put(session, handler);
         handler.afterConnectionEstablished(new ConcurrentWebSocketSessionDecorator(session, 32768, 32768));
     }
 
+    // A handler can already be gone when its dead connection was removed by keepAlive, so these ignore unknown sessions.
     public void handleMessage(WebSocketSession session, WebSocketMessage<?> message) throws Exception {
-        this.getHandler(session).handleMessage(session, message);
+        WebSocketHandler handler = this.handlers.get(session);
+        if (handler != null) {
+            handler.handleMessage(session, message);
+        }
     }
 
     public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
-        this.getHandler(session).handleTransportError(session, exception);
+        WebSocketHandler handler = this.handlers.get(session);
+        if (handler != null) {
+            handler.handleTransportError(session, exception);
+        }
     }
 
     public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) throws Exception {
+        WebSocketHandler handler = this.handlers.get(session);
         try {
-            this.getHandler(session).afterConnectionClosed(session, closeStatus);
+            if (handler != null) {
+                handler.afterConnectionClosed(session, closeStatus);
+            }
         } finally {
             this.destroyHandler(session);
         }
@@ -128,12 +157,16 @@ public class SubscriptionManager implements WebSocketHandler, SubProtocolCapable
         return this.supportsPartialMessages;
     }
 
-    private WebSocketHandler getHandler(WebSocketSession session) {
-        SubscriptionWebSocketHandler handler = this.handlers.get(session);
-        if (handler == null) {
-            throw new IllegalStateException("WebSocketHandler not found for " + session);
-        } else {
-            return handler;
+    /**
+     * Tomcat's session idle timeout only fires when nothing is read *and* nothing is written, and our pings are writes,
+     * so it never fires. Its read idle timeout closes the session when the client sends nothing, pongs included.
+     */
+    private void closeWhenClientGoesSilent(WebSocketSession session) {
+        if (session instanceof NativeWebSocketSession nativeSession) {
+            Session tomcatSession = nativeSession.getNativeSession(Session.class);
+            if (tomcatSession != null) {
+                tomcatSession.getUserProperties().put(Constants.READ_IDLE_TIMEOUT_MS, readIdleTimeout);
+            }
         }
     }
 

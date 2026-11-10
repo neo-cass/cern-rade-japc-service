@@ -1,6 +1,7 @@
 package cern.rade.services.japc.security;
 
 import cern.rade.services.japc.rbac.RbacSession;
+import cern.rade.services.japc.security.sso.RbacOidcUser;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -25,7 +26,13 @@ public class RbacAuthentication extends AbstractAuthenticationToken {
      * The RBAC session of the current request, however the client logged in.
      */
     public static Optional<RbacSession> current() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return of(SecurityContextHolder.getContext().getAuthentication());
+    }
+
+    /**
+     * The RBAC session behind an authentication, however the client logged in.
+     */
+    public static Optional<RbacSession> of(Authentication authentication) {
         if (authentication == null) {
             return Optional.empty();
         }
@@ -33,8 +40,8 @@ public class RbacAuthentication extends AbstractAuthenticationToken {
         if (principal instanceof RbacSession session) {
             return Optional.of(session);
         }
-        if (principal instanceof RbacPrincipal rbacPrincipal) {
-            return Optional.of(rbacPrincipal.rbacSession());
+        if (principal instanceof RbacOidcUser ssoUser) {
+            return Optional.of(ssoUser.rbacSession());
         }
         return Optional.empty();
     }

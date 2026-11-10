@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SubscriptionWebSocketHandler implements WebSocketHandler {
     private final Logger logger = LoggerFactory.getLogger(SubscriptionWebSocketHandler.class);
@@ -29,6 +30,7 @@ public class SubscriptionWebSocketHandler implements WebSocketHandler {
     protected String origin;
     protected List<String> fields;
     private final ExecutorService sendService = Executors.newSingleThreadExecutor();
+    private final AtomicBoolean released = new AtomicBoolean();
 
     @Override
     @SuppressWarnings("unchecked")
@@ -101,9 +103,19 @@ public class SubscriptionWebSocketHandler implements WebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) throws Exception {
-        sendService.shutdown();
-        subscriptionService.stopSubscription();
-        logger.info("Subscription with ID {} has been closed with reason {}", ID, closeStatus.getReason());
+        release(closeStatus);
+    }
+
+    /**
+     * Stops the JAPC subscription and the sending thread. Safe to call more than once, e.g. when a dead connection is
+     * cleaned up before, or without, the container reporting it closed.
+     */
+    protected void release(CloseStatus closeStatus) {
+        if (released.compareAndSet(false, true)) {
+            sendService.shutdownNow();
+            subscriptionService.stopSubscription();
+            logger.info("Subscription with ID {} has been closed with reason {}", ID, closeStatus.getReason());
+        }
     }
 
     @Override

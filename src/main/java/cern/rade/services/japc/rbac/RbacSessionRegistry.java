@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 
 /**
  * The cached sessions clients reuse with {@code Rbac: Cached <id>}.
@@ -38,23 +39,43 @@ public class RbacSessionRegistry {
     }
 
     public boolean revoke(String handle) {
-        return sessions.values().removeIf(session -> session.handle().equals(handle));
+        return revokeIf(session -> session.handle().equals(handle)) > 0;
+    }
+
+    public void revoke(RbacSession session) {
+        sessions.remove(session.id());
+        session.revoke();
+    }
+
+    /**
+     * Drops a session created for a request whose client never received its cached id, e.g. a login without the
+     * required role, a failed request or an admin API call. Nothing can reuse it.
+     */
+    public void releaseIfUnissued(RbacSession session) {
+        if (!session.issued()) {
+            revoke(session);
+        }
     }
 
     public int revokeAll() {
-        int count = sessions.size();
-        sessions.clear();
-        return count;
+        return revokeIf(session -> true);
     }
 
     @Scheduled(fixedDelayString = "PT5M", initialDelayString = "PT5M")
     public void removeStale() {
-        int before = sessions.size();
-        sessions.values().removeIf(this::isStale);
-        int removed = before - sessions.size();
+        int removed = revokeIf(this::isStale);
         if (removed > 0) {
             logger.info("Removed {} expired or idle RBAC sessions", removed);
         }
+    }
+
+    /**
+     * Removes and revokes the matching sessions, so browser logins holding them end too.
+     */
+    private int revokeIf(Predicate<RbacSession> condition) {
+        List<RbacSession> matching = sessions.values().stream().filter(condition).toList();
+        matching.forEach(this::revoke);
+        return matching.size();
     }
 
     boolean isStale(RbacSession session) {

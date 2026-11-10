@@ -91,6 +91,7 @@ public class SubscriptionHandshakeInterceptor implements HandshakeInterceptor {
         subscriptionService.execute();
         try {
             attributes.put(SessionAttributes.SUBSCRIPTION_SERVICE, subscriptionService);
+            servletRequest.setAttribute(SessionAttributes.SUBSCRIPTION_SERVICE, subscriptionService);
             attributes.put(SessionAttributes.FORMAT, format);
             attributes.put(SessionAttributes.CLIENT, client);
             attributes.put(SessionAttributes.OPENED_AT, clock.instant());
@@ -115,6 +116,11 @@ public class SubscriptionHandshakeInterceptor implements HandshakeInterceptor {
 
     @Override
     public void afterHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, Exception exception) {
-
+        // The JAPC subscription starts in beforeHandshake; if the upgrade then fails, no handler will ever stop it.
+        if (exception != null && request instanceof ServletServerHttpRequest servletRequest
+                && servletRequest.getServletRequest().getAttribute(SessionAttributes.SUBSCRIPTION_SERVICE) instanceof SubscriptionService subscriptionService) {
+            logger.warn("Subscription handshake {} failed after subscribing: {}", request.getURI().getPath(), exception.getMessage());
+            subscriptionService.stopSubscription();
+        }
     }
 }

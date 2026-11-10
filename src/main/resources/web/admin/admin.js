@@ -61,7 +61,7 @@ function duration(iso) {
     }
     const [hours, minutes, seconds] = match.slice(1).map(part => Math.floor(Number(part || 0)));
     const days = Math.floor(hours / 24);
-    return [days && days + "d", hours % 24 && (hours % 24) + "h", minutes && minutes + "m", !days && seconds + "s"]
+    return [days && days + "d", hours % 24 && (hours % 24) + "h", minutes && minutes + "m", seconds && seconds + "s"]
         .filter(Boolean).join(" ") || "0s";
 }
 

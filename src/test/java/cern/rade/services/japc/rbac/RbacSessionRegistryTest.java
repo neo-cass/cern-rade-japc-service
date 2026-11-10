@@ -1,13 +1,16 @@
 package cern.rade.services.japc.rbac;
 
+import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.RbaToken;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpHeaders;
 
 import java.time.Clock;
 import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RbacSessionRegistryTest {
@@ -21,6 +24,25 @@ class RbacSessionRegistryTest {
         assertFalse(registry.revoke(session.id()));
         assertTrue(registry.revoke(session.handle()));
         assertTrue(registry.find(session.id()).isEmpty());
+    }
+
+    @Test
+    void revokedSessionRefusesTokensEvenWhenStillReferenced() {
+        RbacSession session = registry.register(sessions.fromToken(LoginType.OAUTH, RbaToken.EMPTY_TOKEN));
+        registry.revokeAll();
+        assertFalse(session.isActive());
+        assertThrows(AuthenticationException.class, session::applicationToken);
+    }
+
+    @Test
+    void keepsOnlySessionsWhoseCachedIdWasSent() {
+        RbacSession sent = registry.register(sessions.fromToken(LoginType.EXPLICIT, RbaToken.EMPTY_TOKEN));
+        RbacSession notSent = registry.register(sessions.fromToken(LoginType.EXPLICIT, RbaToken.EMPTY_TOKEN));
+        RbacHeaders.setCached(new HttpHeaders(), sent);
+        registry.releaseIfUnissued(sent);
+        registry.releaseIfUnissued(notSent);
+        assertTrue(registry.find(sent.id()).isPresent());
+        assertTrue(registry.find(notSent.id()).isEmpty());
     }
 
     @Test

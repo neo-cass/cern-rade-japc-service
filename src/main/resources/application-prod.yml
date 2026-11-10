@@ -17,6 +17,6 @@ service-properties:
   logstashHost: "cs-ccr-rade4.cern.ch"
   logstashPort: 30000
   rbac:
-    required-role: "RADE-ADMIN"
+    required-role: "RADE-SERVICES-JAPC-USER"
     admin-role: "RADE-ADMIN"
     # Defaults are the RBAC maxima: token-lifetime 12h, session-lifetime 365d. session-idle-timeout defaults to 24h.

@@ -15,6 +15,8 @@ info:
     |---|---|---|
     | 1000 | | Closed by an admin (reason `Closed by admin`) |
     | 1011 | | Server error while sending |
+    | 1001 | | Client sent nothing, not even a pong, for 10 s |
+    | 4500 | | Client could not be pinged (reason `Could not ping client`) |
     | 4000 | 5000 | Fatal JAPC error |
     | 4001 | 5001 | Fatal codec error |
     | 4002 | 5002 | Fatal RBAC error |
@@ -23,7 +25,7 @@ info:
 
     Handshake failures return the HTTP status and error `code` listed in the [REST API](/docs/rest) `Error` response.
 
-    Liveness: the server sends a ping every 5 s. The connection closes after 10 s without traffic. Clients must answer pings.
+    Liveness: the server sends a ping every 5 s. Clients must answer pings: a connection from which nothing, not even a pong, arrives for 10 s is closed (1001) and its subscription stopped.
 
     Delivery: updates are queued per connection (100). When the queue is full the oldest update is dropped.
 
@@ -49,6 +51,8 @@ info:
   x-close-codes:
     '1000': Closed by admin
     '1011': Server error while sending
+    '1001': Client sent nothing, not even a pong, for 10 s
+    '4500': Client could not be pinged
     '4000': Fatal JAPC error
     '4001': Fatal codec error
     '4002': Fatal RBAC error

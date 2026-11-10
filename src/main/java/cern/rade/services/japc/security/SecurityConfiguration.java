@@ -4,8 +4,10 @@ import cern.rade.services.japc.ApiPaths;
 import cern.rade.services.japc.rbac.RbacHeaders;
 import cern.rade.services.japc.rbac.RbacProperties;
 import cern.rade.services.japc.rbac.RbacSessionFactory;
+import cern.rade.services.japc.rbac.RbacSessionRegistry;
 import cern.rade.services.japc.rbac.gateway.RbacGateway;
 import cern.rade.services.japc.rbac.login.RbacLoginService;
+import cern.rade.services.japc.security.sso.RbacOidcUserService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
@@ -16,8 +18,11 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInitiatedLogoutSuccessHandler;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
+import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
 /**
@@ -35,11 +40,14 @@ public class SecurityConfiguration {
 
     private final RbacLoginService loginService;
     private final RbacSessionFactory sessions;
+    private final RbacSessionRegistry registry;
     private final RbacProperties properties;
 
-    public SecurityConfiguration(RbacLoginService loginService, RbacSessionFactory sessions, RbacProperties properties) {
+    public SecurityConfiguration(RbacLoginService loginService, RbacSessionFactory sessions,
+                                 RbacSessionRegistry registry, RbacProperties properties) {
         this.loginService = loginService;
         this.sessions = sessions;
+        this.registry = registry;
         this.properties = properties;
     }
 
@@ -53,17 +61,21 @@ public class SecurityConfiguration {
 
     @Bean
     @Order(1)
-    public SecurityFilterChain adminFilterChain(HttpSecurity http, RbacTokenSupport tokenSupport,
-                                                ObjectProvider<AdminLoginCustomizer> adminLogins) throws Exception {
+    public SecurityFilterChain adminFilterChain(HttpSecurity http, RbacTokenSupport tokenSupport, RbacGateway gateway,
+                                                ObjectProvider<ClientRegistrationRepository> ssoRegistrations) throws Exception {
         String role = properties.adminRole();
         http.securityMatcher(ApiPaths.ADMIN, ApiPaths.ADMIN + "/**", "/oauth2/**", "/login/**", "/logout")
+                .addFilterAfter(new InactiveSessionFilter(), SecurityContextHolderFilter.class)
                 .addFilterBefore(rbacHeaderFilter(tokenSupport), AnonymousAuthenticationFilter.class)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .csrf(csrf -> csrf.spa()
                         .ignoringRequestMatchers(SecurityConfiguration::carriesRbacCredentials)
                         .ignoringRequestMatchers("/logout"))
-                .logout(logout -> logout.logoutSuccessUrl("/"))
+                .logout(logout -> logout
+                        .addLogoutHandler((request, response, authentication) ->
+                                RbacAuthentication.of(authentication).ifPresent(registry::revoke))
+                        .logoutSuccessUrl("/"))
                 .exceptionHandling(exceptions -> exceptions
                         .defaultAuthenticationEntryPointFor(SecurityErrorWriter.unauthorized(LOGIN_REQUIRED),
                                 PathPatternRequestMatcher.withDefaults().matcher(ApiPaths.ADMIN_API + "/**"))
@@ -71,10 +83,21 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(requests -> requests
                         .requestMatchers(LOGIN_PATHS).permitAll()
                         .anyRequest().hasAuthority(RbacTokenSupport.roleAuthority(role)));
-        for (AdminLoginCustomizer adminLogin : adminLogins) {
-            adminLogin.customize(http);
+        ClientRegistrationRepository registrations = ssoRegistrations.getIfAvailable();
+        if (registrations != null) {
+            addSsoLogin(http, registrations, new RbacOidcUserService(gateway, loginService, tokenSupport));
         }
         return http.build();
+    }
+
+    /**
+     * CERN SSO login for the admin panel. Only when the {@code sso} profile configures the client
+     * ({@code application-sso.yml}): local runs and CI tests have no SSO credentials.
+     */
+    private static void addSsoLogin(HttpSecurity http, ClientRegistrationRepository registrations,
+                                    RbacOidcUserService userService) throws Exception {
+        http.oauth2Login(login -> login.userInfoEndpoint(userInfo -> userInfo.oidcUserService(userService)))
+                .logout(logout -> logout.logoutSuccessHandler(new OidcClientInitiatedLogoutSuccessHandler(registrations)));
     }
 
     @Bean
@@ -103,7 +126,7 @@ public class SecurityConfiguration {
      * Not a bean: Spring Boot would also register a filter bean for every request, outside the chains.
      */
     private RbacHeaderFilter rbacHeaderFilter(RbacTokenSupport tokenSupport) {
-        return new RbacHeaderFilter(loginService, tokenSupport, sessions);
+        return new RbacHeaderFilter(loginService, tokenSupport, sessions, registry);
     }
 
     /**

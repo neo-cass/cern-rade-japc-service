@@ -15,6 +15,7 @@ public final class RbacHeaders {
     public static void setCached(HttpHeaders headers, RbacSession session) {
         if (session != null && session.loginType().cached()) {
             headers.set(HEADER, CACHED + " " + session.id());
+            session.markIssued();
         }
     }
 }
