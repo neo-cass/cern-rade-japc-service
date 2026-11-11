@@ -17,6 +17,8 @@ import java.util.Objects;
  * @param tokenLifetime      lifetime requested for application tokens; also the delay before a removed role takes effect
  * @param sessionLifetime    lifetime requested for master tokens, i.e. how long a cached session can be renewed
  * @param sessionIdleTimeout cached sessions unused for this long are dropped; zero disables it
+ * @param sessionsPerUser    most cached sessions one user may hold, least recently used ones are revoked beyond it;
+ *                           zero disables the limit
  */
 @ConfigurationProperties(prefix = "service-properties.rbac")
 public record RbacProperties(
@@ -24,7 +26,8 @@ public record RbacProperties(
         String adminRole,
         @DefaultValue("12h") Duration tokenLifetime,
         @DefaultValue("365d") Duration sessionLifetime,
-        @DefaultValue("24h") Duration sessionIdleTimeout) {
+        @DefaultValue("24h") Duration sessionIdleTimeout,
+        @DefaultValue("20") int sessionsPerUser) {
 
     public static final Duration MAX_TOKEN_LIFETIME = Duration.ofHours(12);
     public static final Duration MAX_SESSION_LIFETIME = Duration.ofDays(365);
@@ -39,6 +42,10 @@ public record RbacProperties(
 
     public boolean idleTimeoutEnabled() {
         return !sessionIdleTimeout.isZero();
+    }
+
+    public boolean sessionLimitEnabled() {
+        return sessionsPerUser > 0;
     }
 
     private static Duration capped(String name, Duration requested, Duration maximum) {

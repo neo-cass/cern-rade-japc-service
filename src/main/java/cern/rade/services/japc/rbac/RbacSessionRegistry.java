@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import java.time.Clock;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -25,8 +26,14 @@ public class RbacSessionRegistry {
         this.clock = clock;
     }
 
-    public RbacSession register(RbacSession session) {
+    /**
+     * Caches a session. A user may hold several (one per browser, LabVIEW client, script...); above
+     * {@code sessions-per-user} their least recently used ones are revoked, so a client that logs in on every request
+     * instead of reusing its cached id cannot pile up sessions.
+     */
+    public synchronized RbacSession register(RbacSession session) {
         sessions.put(session.id(), session);
+        enforceSessionLimit(session);
         return session;
     }
 
@@ -74,6 +81,22 @@ public class RbacSessionRegistry {
         int removed = revokeIf(this::isStale);
         if (removed > 0) {
             logger.info("Removed {} expired or idle RBAC sessions", removed);
+        }
+    }
+
+    private void enforceSessionLimit(RbacSession newest) {
+        if (!properties.sessionLimitEnabled()) {
+            return;
+        }
+        List<RbacSession> others = sessionsOf(newest.user()).stream()
+                .filter(session -> session != newest)
+                .sorted(Comparator.comparing(RbacSession::lastUsed))
+                .toList();
+        int excess = others.size() + 1 - properties.sessionsPerUser();
+        if (excess > 0) {
+            others.subList(0, excess).forEach(this::revoke);
+            logger.warn("User {} exceeded {} RBAC sessions, revoked the {} least recently used. A client is probably logging in"
+                    + " on every request instead of reusing Rbac: Cached", newest.user(), properties.sessionsPerUser(), excess);
         }
     }
 

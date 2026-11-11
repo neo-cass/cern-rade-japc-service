@@ -127,6 +127,7 @@ async function loadInfo() {
         ["Token lifetime", duration(info.tokenLifetime)],
         ["Session lifetime", duration(info.sessionLifetime)],
         ["Session idle timeout", duration(info.sessionIdleTimeout)],
+        ["Sessions per user", info.sessionsPerUser > 0 ? info.sessionsPerUser : "unlimited"],
         ["Cached sessions", info.sessions],
         ["Open subscriptions", info.subscriptions],
     ];

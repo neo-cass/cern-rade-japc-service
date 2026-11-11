@@ -52,7 +52,8 @@ public class AdminService {
         return new ServiceInfoView(version, startedAt, Duration.between(startedAt, clock.instant()).toString(),
                 gateway.environment(), properties.requiredRole(), properties.adminRole(),
                 properties.tokenLifetime().toString(), properties.sessionLifetime().toString(),
-                properties.sessionIdleTimeout().toString(), sessions.list().size(), subscriptions.subscriptions().size());
+                properties.sessionIdleTimeout().toString(), properties.sessionsPerUser(), sessions.list().size(),
+                subscriptions.subscriptions().size());
     }
 
     /**

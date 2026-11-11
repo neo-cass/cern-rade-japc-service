@@ -19,4 +19,5 @@ service-properties:
   rbac:
     required-role: "RADE-SERVICES-JAPC-USER"
     admin-role: "RADE-ADMIN"
-    # Defaults are the RBAC maxima: token-lifetime 12h, session-lifetime 365d. session-idle-timeout defaults to 24h.
+    # Defaults are the RBAC maxima: token-lifetime 12h, session-lifetime 365d. session-idle-timeout defaults to 24h,
+    # sessions-per-user to 20 (0 = unlimited).

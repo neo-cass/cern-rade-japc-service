@@ -7,5 +7,5 @@ import java.time.Instant;
  */
 public record ServiceInfoView(String version, Instant startedAt, String uptime, String rbacEnvironment,
                               String requiredRole, String adminRole, String tokenLifetime, String sessionLifetime,
-                              String sessionIdleTimeout, int sessions, int subscriptions) {
+                              String sessionIdleTimeout, int sessionsPerUser, int sessions, int subscriptions) {
 }

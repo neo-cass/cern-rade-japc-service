@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RbacLoginServiceTest {
-    private final RbacProperties properties = new RbacProperties("USER", "ADMIN", Duration.ofHours(1), Duration.ofDays(1), Duration.ZERO);
+    private final RbacProperties properties = new RbacProperties("USER", "ADMIN", Duration.ofHours(1), Duration.ofDays(1), Duration.ZERO, 0);
     private final RbacSessionFactory sessions = new RbacSessionFactory(null, properties, Clock.systemUTC());
     private final RbacSessionRegistry registry = new RbacSessionRegistry(properties, Clock.systemUTC());
 

@@ -735,6 +735,7 @@ components:
         tokenLifetime: {type: string, description: ISO-8601 duration, example: PT12H}
         sessionLifetime: {type: string, description: ISO-8601 duration, example: PT8760H}
         sessionIdleTimeout: {type: string, description: ISO-8601 duration, example: PT24H}
+        sessionsPerUser: {type: integer, description: Most cached sessions per user; 0 means unlimited}
         sessions: {type: integer}
         subscriptions: {type: integer}
     AdminSession:

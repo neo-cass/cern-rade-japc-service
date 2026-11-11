@@ -9,6 +9,8 @@ import org.springframework.http.HttpHeaders;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Comparator;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -16,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RbacSessionRegistryTest {
-    private final RbacProperties properties = new RbacProperties("USER", "ADMIN", Duration.ofHours(1), Duration.ofDays(1), Duration.ZERO);
+    private final RbacProperties properties = new RbacProperties("USER", "ADMIN", Duration.ofHours(1), Duration.ofDays(1), Duration.ZERO, 0);
     private final RbacSessionFactory sessions = new RbacSessionFactory(null, properties, Clock.systemUTC());
     private final RbacSessionRegistry registry = new RbacSessionRegistry(properties, Clock.systemUTC());
 
@@ -53,6 +55,25 @@ class RbacSessionRegistryTest {
         registry.register(sessions.fromToken(LoginType.KERBEROS, RbaToken.EMPTY_TOKEN, ClientContext.UNKNOWN));
         assertEquals(2, registry.revokeAll());
         assertTrue(registry.list().isEmpty());
+    }
+
+    @Test
+    void revokesLeastRecentlyUsedSessionsAboveTheUserLimit() {
+        MutableClock clock = new MutableClock(Instant.parse("2026-11-10T12:00:00Z"));
+        RbacSessionRegistry limited = new RbacSessionRegistry(
+                new RbacProperties("USER", "ADMIN", Duration.ofHours(1), Duration.ofDays(1), Duration.ZERO, 2), clock);
+        RbacSession oldest = limited.register(sessionOf("alice", clock));
+        clock.advance(Duration.ofMinutes(1));
+        RbacSession middle = limited.register(sessionOf("alice", clock));
+        clock.advance(Duration.ofMinutes(1));
+        RbacSession other = limited.register(sessionOf("bob", clock));
+        RbacSession newest = limited.register(sessionOf("alice", clock));
+
+        assertTrue(limited.find(oldest.id()).isEmpty());
+        assertFalse(oldest.isActive());
+        assertEquals(List.of(middle, newest), limited.sessionsOf("alice").stream()
+                .sorted(Comparator.comparing(RbacSession::lastUsed)).toList());
+        assertTrue(limited.find(other.id()).isPresent());
     }
 
     @Test
