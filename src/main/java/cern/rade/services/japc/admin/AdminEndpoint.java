@@ -50,6 +50,11 @@ public class AdminEndpoint {
         return noContentOrNotFound(adminService.revokeSession(handle));
     }
 
+    @DeleteMapping("/users/{user}/sessions")
+    public ResponseEntity<Void> revokeUserSessions(@PathVariable("user") String user) {
+        return noContentOrNotFound(adminService.revokeUserSessions(user) > 0);
+    }
+
     @DeleteMapping("/sessions")
     public ResponseEntity<Void> revokeAllSessions() {
         adminService.revokeAllSessions();

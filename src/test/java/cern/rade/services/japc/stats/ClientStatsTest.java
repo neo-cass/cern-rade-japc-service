@@ -1,12 +1,10 @@
 package cern.rade.services.japc.stats;
 
+import cern.rade.services.japc.MutableClock;
 import org.junit.jupiter.api.Test;
 
-import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -48,32 +46,5 @@ class ClientStatsTest {
         stats.record(CLIENT, Operation.GET);
         stats.record(new Client("other", "10.0.0.2"), Operation.SET);
         assertEquals(2, stats.rates().size());
-    }
-
-    private static final class MutableClock extends Clock {
-        private Instant now;
-
-        MutableClock(Instant now) {
-            this.now = now;
-        }
-
-        void advance(Duration duration) {
-            now = now.plus(duration);
-        }
-
-        @Override
-        public ZoneId getZone() {
-            return ZoneOffset.UTC;
-        }
-
-        @Override
-        public Clock withZone(ZoneId zone) {
-            return this;
-        }
-
-        @Override
-        public Instant instant() {
-            return now;
-        }
     }
 }

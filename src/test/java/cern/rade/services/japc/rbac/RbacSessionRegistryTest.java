@@ -1,5 +1,6 @@
 package cern.rade.services.japc.rbac;
 
+import cern.rade.services.japc.MutableClock;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.RbaToken;
 import org.junit.jupiter.api.Test;
@@ -7,6 +8,7 @@ import org.springframework.http.HttpHeaders;
 
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -54,9 +56,33 @@ class RbacSessionRegistryTest {
     }
 
     @Test
+    void revokesAllSessionsOfOneUser() {
+        MutableClock clock = new MutableClock(Instant.parse("2026-11-10T12:00:00Z"));
+        RbacSession alice1 = registry.register(sessionOf("alice", clock));
+        RbacSession alice2 = registry.register(sessionOf("alice", clock));
+        RbacSession bob = registry.register(sessionOf("bob", clock));
+        assertEquals(2, registry.revokeUser("alice"));
+        assertTrue(registry.find(alice1.id()).isEmpty());
+        assertTrue(registry.find(alice2.id()).isEmpty());
+        assertTrue(registry.find(bob.id()).isPresent());
+    }
+
+    @Test
     void sessionIdsAreUnguessableUuids() {
         RbacSession session = sessions.fromToken(LoginType.EXPLICIT, RbaToken.EMPTY_TOKEN, ClientContext.UNKNOWN);
         assertEquals(36, session.id().length());
         assertFalse(session.id().contains(session.handle()));
+    }
+
+    /**
+     * A session for a user without a real signed token, which tests cannot create.
+     */
+    private static RbacSession sessionOf(String user, Clock clock) {
+        return new RbacSession(LoginType.EXPLICIT, RbaToken.EMPTY_TOKEN, null, null, ClientContext.UNKNOWN, clock) {
+            @Override
+            public String user() {
+                return user;
+            }
+        };
     }
 }

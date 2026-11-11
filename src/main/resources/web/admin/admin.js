@@ -67,11 +67,23 @@ function duration(iso) {
 
 /**
  * columns: [{label, value: row => string | Node, number: boolean}]
+ * group (optional): {key: row => string, header: (key, rows) => Node[]}; rows must arrive sorted by key, and each
+ * group starts with a full-width header row.
  */
-function renderTable(table, columns, rows, emptyText) {
+function renderTable(table, columns, rows, emptyText, group) {
     const head = element("tr");
     columns.forEach(column => head.append(element("th", column.label)));
-    const body = rows.map(row => {
+    const body = [];
+    rows.forEach((row, index) => {
+        if (group && (index === 0 || group.key(rows[index - 1]) !== group.key(row))) {
+            const key = group.key(row);
+            const td = element("td", null, "group");
+            td.colSpan = columns.length;
+            td.append(...group.header(key, rows.filter(other => group.key(other) === key)));
+            const tr = element("tr");
+            tr.append(td);
+            body.push(tr);
+        }
         const tr = element("tr");
         columns.forEach(column => {
             const value = column.value(row);
@@ -79,7 +91,7 @@ function renderTable(table, columns, rows, emptyText) {
             td.append(value instanceof Node ? value : String(value ?? "–"));
             tr.append(td);
         });
-        return tr;
+        body.push(tr);
     });
     if (rows.length === 0) {
         const td = element("td", emptyText, "empty");
@@ -124,15 +136,21 @@ async function loadInfo() {
 async function loadSessions() {
     const sessions = await request("GET", "/sessions");
     renderTable(document.getElementById("sessions"), [
-        {label: "User", value: session => session.user},
         {label: "Login", value: session => session.loginType.toLowerCase()},
-        {label: "Roles", value: session => session.roles.join(", ")},
         {label: "Address", value: session => session.address},
         {label: "Client", value: session => session.userAgent},
+        {label: "Roles", value: session => session.roles.join(", ")},
         {label: "Last used", value: session => time(session.lastUsed)},
         {label: "Expires", value: session => time(session.sessionExpiry)},
         {label: "", value: session => button("Revoke", () => act("DELETE", "/sessions/" + encodeURIComponent(session.handle)), "danger")},
-    ], sessions, "No cached sessions");
+    ], sessions, "No cached sessions", {
+        key: session => session.user,
+        header: (user, userSessions) => [
+            element("strong", user),
+            element("span", " · " + userSessions.length + (userSessions.length === 1 ? " session " : " sessions "), "muted"),
+            button("Revoke all for " + user, () => act("DELETE", "/users/" + encodeURIComponent(user) + "/sessions"), "danger"),
+        ],
+    });
 }
 
 async function loadSubscriptions() {

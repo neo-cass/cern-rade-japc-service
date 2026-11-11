@@ -220,7 +220,7 @@ paths:
       summary: Cached RBAC sessions
       responses:
         '200':
-          description: Sessions, most recently used first. The secret cached ids are not included.
+          description: Sessions sorted by user, each user's most recently used first. The secret cached ids are not included.
           content:
             application/json:
               schema:
@@ -236,6 +236,23 @@ paths:
       responses:
         '204':
           description: Revoked. Clients must log in again.
+        4XX:
+          $ref: '#/components/responses/AdminError'
+  /users/{user}/sessions:
+    servers: *admin
+    delete:
+      tags: [Admin]
+      operationId: adminRevokeUserSessions
+      summary: Revoke all cached sessions of one user
+      parameters:
+        - name: user
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Revoked. All of the user's clients must log in again.
         4XX:
           $ref: '#/components/responses/AdminError'
   /sessions/{handle}:

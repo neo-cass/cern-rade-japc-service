@@ -38,8 +38,16 @@ public class RbacSessionRegistry {
         return List.copyOf(sessions.values());
     }
 
+    public List<RbacSession> sessionsOf(String user) {
+        return sessions.values().stream().filter(session -> session.user().equals(user)).toList();
+    }
+
     public boolean revoke(String handle) {
         return revokeIf(session -> session.handle().equals(handle)) > 0;
+    }
+
+    public int revokeUser(String user) {
+        return revokeIf(session -> session.user().equals(user));
     }
 
     public void revoke(RbacSession session) {

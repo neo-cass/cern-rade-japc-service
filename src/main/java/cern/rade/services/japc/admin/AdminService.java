@@ -55,15 +55,22 @@ public class AdminService {
                 properties.sessionIdleTimeout().toString(), sessions.list().size(), subscriptions.subscriptions().size());
     }
 
+    /**
+     * Sessions grouped by user, each user's most recently used first.
+     */
     public List<SessionView> sessions() {
         return sessions.list().stream()
                 .map(SessionView::of)
-                .sorted(Comparator.comparing(SessionView::lastUsed).reversed())
+                .sorted(Comparator.comparing(SessionView::user).thenComparing(SessionView::lastUsed, Comparator.reverseOrder()))
                 .toList();
     }
 
     public boolean revokeSession(String handle) {
         return sessions.revoke(handle);
+    }
+
+    public int revokeUserSessions(String user) {
+        return sessions.revokeUser(user);
     }
 
     public int revokeAllSessions() {
