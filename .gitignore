@@ -11,3 +11,5 @@ test-scripts/python/.idea
 *.war
 *.env
 ADMIN__SSO_METRICS_PLAN.md
+subscription_error_replay/
+METRICS_AND_MUTABLE_CLOCK.md
