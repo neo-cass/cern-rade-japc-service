@@ -1,5 +1,6 @@
 package cern.rade.services.japc.security.sso;
 
+import cern.rade.services.japc.rbac.ClientContext;
 import cern.rade.services.japc.rbac.RbacSession;
 import cern.rade.services.japc.rbac.gateway.RbacGateway;
 import cern.rade.services.japc.rbac.login.OauthLogin;
@@ -13,6 +14,8 @@ import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 /**
  * After the CERN SSO login, exchanges the user's token for one the RBAC server accepts and logs in to RBAC with it,
@@ -37,10 +40,19 @@ public class RbacOidcUserService implements OAuth2UserService<OidcUserRequest, O
         try {
             String rbacToken = gateway.exchangeForRbac(registration.getClientId(), registration.getClientSecret(),
                     request.getAccessToken().getTokenValue());
-            RbacSession session = loginService.login(new RbacCredentials(OauthLogin.SCHEME, rbacToken));
+            RbacSession session = loginService.login(new RbacCredentials(OauthLogin.SCHEME, rbacToken, currentClient()));
             return new RbacOidcUser(user, session, tokenSupport.authorities(session));
         } catch (RuntimeException e) {
             throw new OAuth2AuthenticationException(new OAuth2Error("rbac_login_failed", "RBAC login failed: " + e.getMessage(), null), e);
         }
+    }
+
+    /**
+     * The browser finishing the login; Spring calls this service on the login callback request.
+     */
+    private static ClientContext currentClient() {
+        return RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes
+                ? ClientContext.of(attributes.getRequest())
+                : ClientContext.UNKNOWN;
     }
 }

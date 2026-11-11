@@ -28,6 +28,7 @@ public class RbacSession {
     private final LoginType loginType;
     private final MasterToken master;
     private final TokenRenewer renewer;
+    private final ClientContext client;
     private final Clock clock;
     private final Instant created;
     private volatile RbaToken token;
@@ -53,11 +54,13 @@ public class RbacSession {
         void run() throws E;
     }
 
-    RbacSession(LoginType loginType, RbaToken token, MasterToken master, TokenRenewer renewer, Clock clock) {
+    RbacSession(LoginType loginType, RbaToken token, MasterToken master, TokenRenewer renewer, ClientContext client,
+                Clock clock) {
         this.loginType = loginType;
         this.token = token;
         this.master = master;
         this.renewer = renewer;
+        this.client = client;
         this.clock = clock;
         this.created = clock.instant();
         this.lastUsed = created;
@@ -148,6 +151,13 @@ public class RbacSession {
 
     public LoginType loginType() {
         return loginType;
+    }
+
+    /**
+     * The client that logged in.
+     */
+    public ClientContext client() {
+        return client;
     }
 
     public String user() {

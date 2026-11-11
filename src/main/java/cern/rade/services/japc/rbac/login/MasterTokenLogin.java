@@ -35,7 +35,7 @@ public abstract class MasterTokenLogin implements RbacLogin {
 
     @Override
     public final RbacSession login(RbacCredentials credentials) {
-        return sessions.fromMaster(loginType, obtainMaster(credentials, properties.sessionLifetime()));
+        return sessions.fromMaster(loginType, obtainMaster(credentials, properties.sessionLifetime()), credentials.client());
     }
 
     protected abstract MasterToken obtainMaster(RbacCredentials credentials, Duration lifetime);

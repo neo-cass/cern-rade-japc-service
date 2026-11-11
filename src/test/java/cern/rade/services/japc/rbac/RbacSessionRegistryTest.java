@@ -20,7 +20,7 @@ class RbacSessionRegistryTest {
 
     @Test
     void revokesByPublicHandleNotSecretId() {
-        RbacSession session = registry.register(sessions.fromToken(LoginType.EXPLICIT, RbaToken.EMPTY_TOKEN));
+        RbacSession session = registry.register(sessions.fromToken(LoginType.EXPLICIT, RbaToken.EMPTY_TOKEN, ClientContext.UNKNOWN));
         assertFalse(registry.revoke(session.id()));
         assertTrue(registry.revoke(session.handle()));
         assertTrue(registry.find(session.id()).isEmpty());
@@ -28,7 +28,7 @@ class RbacSessionRegistryTest {
 
     @Test
     void revokedSessionRefusesTokensEvenWhenStillReferenced() {
-        RbacSession session = registry.register(sessions.fromToken(LoginType.OAUTH, RbaToken.EMPTY_TOKEN));
+        RbacSession session = registry.register(sessions.fromToken(LoginType.OAUTH, RbaToken.EMPTY_TOKEN, ClientContext.UNKNOWN));
         registry.revokeAll();
         assertFalse(session.isActive());
         assertThrows(AuthenticationException.class, session::applicationToken);
@@ -36,8 +36,8 @@ class RbacSessionRegistryTest {
 
     @Test
     void keepsOnlySessionsWhoseCachedIdWasSent() {
-        RbacSession sent = registry.register(sessions.fromToken(LoginType.EXPLICIT, RbaToken.EMPTY_TOKEN));
-        RbacSession notSent = registry.register(sessions.fromToken(LoginType.EXPLICIT, RbaToken.EMPTY_TOKEN));
+        RbacSession sent = registry.register(sessions.fromToken(LoginType.EXPLICIT, RbaToken.EMPTY_TOKEN, ClientContext.UNKNOWN));
+        RbacSession notSent = registry.register(sessions.fromToken(LoginType.EXPLICIT, RbaToken.EMPTY_TOKEN, ClientContext.UNKNOWN));
         RbacHeaders.setCached(new HttpHeaders(), sent);
         registry.releaseIfUnissued(sent);
         registry.releaseIfUnissued(notSent);
@@ -47,15 +47,15 @@ class RbacSessionRegistryTest {
 
     @Test
     void revokesAll() {
-        registry.register(sessions.fromToken(LoginType.EXPLICIT, RbaToken.EMPTY_TOKEN));
-        registry.register(sessions.fromToken(LoginType.KERBEROS, RbaToken.EMPTY_TOKEN));
+        registry.register(sessions.fromToken(LoginType.EXPLICIT, RbaToken.EMPTY_TOKEN, ClientContext.UNKNOWN));
+        registry.register(sessions.fromToken(LoginType.KERBEROS, RbaToken.EMPTY_TOKEN, ClientContext.UNKNOWN));
         assertEquals(2, registry.revokeAll());
         assertTrue(registry.list().isEmpty());
     }
 
     @Test
     void sessionIdsAreUnguessableUuids() {
-        RbacSession session = sessions.fromToken(LoginType.EXPLICIT, RbaToken.EMPTY_TOKEN);
+        RbacSession session = sessions.fromToken(LoginType.EXPLICIT, RbaToken.EMPTY_TOKEN, ClientContext.UNKNOWN);
         assertEquals(36, session.id().length());
         assertFalse(session.id().contains(session.handle()));
     }

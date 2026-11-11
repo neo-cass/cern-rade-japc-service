@@ -23,15 +23,15 @@ public class RbacSessionFactory {
     /**
      * A renewable session for a master token obtained by this service.
      */
-    public RbacSession fromMaster(LoginType loginType, MasterToken master) {
+    public RbacSession fromMaster(LoginType loginType, MasterToken master, ClientContext client) {
         RbacSession.TokenRenewer renewer = token -> gateway.renew(token, properties.tokenLifetime());
-        return new RbacSession(loginType, renewer.renew(master), master, renewer, clock);
+        return new RbacSession(loginType, renewer.renew(master), master, renewer, client, clock);
     }
 
     /**
      * A session for a token the client obtained itself; it is used until it expires.
      */
-    public RbacSession fromToken(LoginType loginType, RbaToken token) {
-        return new RbacSession(loginType, token, null, null, clock);
+    public RbacSession fromToken(LoginType loginType, RbaToken token, ClientContext client) {
+        return new RbacSession(loginType, token, null, null, client, clock);
     }
 }

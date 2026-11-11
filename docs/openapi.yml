@@ -728,6 +728,8 @@ components:
         loginType: {$ref: '#/components/schemas/LoginType'}
         roles: {type: array, items: {type: string}}
         location: {type: [string, 'null']}
+        address: {type: [string, 'null'], description: Address the client logged in from}
+        userAgent: {type: [string, 'null'], description: User-Agent of the client that logged in}
         created: {type: string, format: date-time}
         lastUsed: {type: string, format: date-time}
         tokenExpiry: {type: string, format: date-time}

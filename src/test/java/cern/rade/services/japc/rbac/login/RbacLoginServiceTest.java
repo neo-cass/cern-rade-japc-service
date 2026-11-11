@@ -1,5 +1,6 @@
 package cern.rade.services.japc.rbac.login;
 
+import cern.rade.services.japc.rbac.ClientContext;
 import cern.rade.services.japc.rbac.LoginType;
 import cern.rade.services.japc.rbac.RbacProperties;
 import cern.rade.services.japc.rbac.RbacSession;
@@ -67,7 +68,7 @@ class RbacLoginServiceTest {
 
             @Override
             public RbacSession login(RbacCredentials credentials) {
-                return sessions.fromToken(loginType, RbaToken.EMPTY_TOKEN);
+                return sessions.fromToken(loginType, RbaToken.EMPTY_TOKEN, ClientContext.UNKNOWN);
             }
         };
     }

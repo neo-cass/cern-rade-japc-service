@@ -31,6 +31,6 @@ public class LocationLogin implements RbacLogin {
         if (!token.isValid()) {
             throw new AuthenticationException("RBAC token has expired. Please log in again");
         }
-        return sessions.fromToken(LoginType.LOCATION, token);
+        return sessions.fromToken(LoginType.LOCATION, token, credentials.client());
     }
 }

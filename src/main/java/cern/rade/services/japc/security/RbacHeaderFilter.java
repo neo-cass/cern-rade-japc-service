@@ -1,6 +1,7 @@
 package cern.rade.services.japc.security;
 
 import cern.rade.services.japc.error.ErrorCode;
+import cern.rade.services.japc.rbac.ClientContext;
 import cern.rade.services.japc.rbac.LoginType;
 import cern.rade.services.japc.rbac.RbacHeaders;
 import cern.rade.services.japc.rbac.RbacSession;
@@ -71,11 +72,12 @@ public class RbacHeaderFilter extends OncePerRequestFilter {
      */
     private Login login(HttpServletRequest request) {
         String header = request.getHeader(RbacHeaders.HEADER);
+        ClientContext client = ClientContext.of(request);
         if (header != null) {
-            RbacCredentials credentials = RbacCredentials.parse(header);
+            RbacCredentials credentials = RbacCredentials.parse(header, client);
             return new Login(loginService.login(credentials), !RbacHeaders.CACHED.equals(credentials.scheme()));
         }
-        Optional<RbacSession> token = tokenSupport.extract(request).map(rbaToken -> sessions.fromToken(LoginType.TOKEN, rbaToken));
+        Optional<RbacSession> token = tokenSupport.extract(request).map(rbaToken -> sessions.fromToken(LoginType.TOKEN, rbaToken, client));
         return token.map(session -> new Login(session, false)).orElse(null);
     }
 
