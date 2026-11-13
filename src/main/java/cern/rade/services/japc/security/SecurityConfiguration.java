@@ -3,7 +3,6 @@ package cern.rade.services.japc.security;
 import cern.rade.services.japc.ApiPaths;
 import cern.rade.services.japc.rbac.RbacHeaders;
 import cern.rade.services.japc.rbac.RbacProperties;
-import cern.rade.services.japc.rbac.RbacSessionFactory;
 import cern.rade.services.japc.rbac.RbacSessionRegistry;
 import cern.rade.services.japc.rbac.gateway.RbacGateway;
 import cern.rade.services.japc.rbac.login.RbacLoginService;
@@ -13,7 +12,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
-import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -24,10 +23,14 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
+
+import java.util.stream.Stream;
 
 /**
- * Two filter chains: the admin panel and admin API (browser session or {@code Rbac} header, admin role), and
- * everything else (stateless, {@code Rbac} header, user role for the API and subscriptions).
+ * Two filter chains: the admin panel and admin API (browser session or {@code Rbac: Cached}/{@code Token} header,
+ * admin role), and everything else (stateless, {@code Rbac} header, user role for the API and subscriptions, user or
+ * admin role for {@code /rbac/session}, the only place where a client logs in with credentials).
  */
 @Configuration
 @EnableWebSecurity
@@ -36,17 +39,15 @@ public class SecurityConfiguration {
             "/", "/index.html", "/common.css", "/favicon.ico", "/logos/**", "/docs", "/docs/**", "/v3/api-docs/**",
             "/openapi.yaml", "/asyncapi.yaml", "/error", "/readyz", "/actuator/health/**"};
     private static final String[] LOGIN_PATHS = {"/oauth2/**", "/login/**"};
-    private static final String LOGIN_REQUIRED = "RBAC login required: send an Rbac header (Explicit, Kerberos, Location or Cached)";
+    private static final String LOGIN_REQUIRED = "RBAC login required: log in with PUT " + ApiPaths.RBAC_SESSION
+            + " (Rbac: Explicit, Kerberos or Oauth), then send Rbac: Cached <id>, or send Rbac: Token <token>";
 
     private final RbacLoginService loginService;
-    private final RbacSessionFactory sessions;
     private final RbacSessionRegistry registry;
     private final RbacProperties properties;
 
-    public SecurityConfiguration(RbacLoginService loginService, RbacSessionFactory sessions,
-                                 RbacSessionRegistry registry, RbacProperties properties) {
+    public SecurityConfiguration(RbacLoginService loginService, RbacSessionRegistry registry, RbacProperties properties) {
         this.loginService = loginService;
-        this.sessions = sessions;
         this.registry = registry;
         this.properties = properties;
     }
@@ -55,8 +56,8 @@ public class SecurityConfiguration {
      * The only place to change when rbac-util ships a jakarta {@code RbacAuthenticationService}.
      */
     @Bean
-    public RbacTokenSupport rbacTokenSupport(RbacGateway gateway) {
-        return new LocalRbacTokenSupport(gateway);
+    public RbacTokenSupport rbacTokenSupport() {
+        return new LocalRbacTokenSupport();
     }
 
     @Bean
@@ -66,7 +67,8 @@ public class SecurityConfiguration {
         String role = properties.adminRole();
         http.securityMatcher(ApiPaths.ADMIN, ApiPaths.ADMIN + "/**", "/oauth2/**", "/login/**", "/logout")
                 .addFilterAfter(new InactiveSessionFilter(), SecurityContextHolderFilter.class)
-                .addFilterBefore(rbacHeaderFilter(tokenSupport), AnonymousAuthenticationFilter.class)
+                // no login with credentials here: the panel logs in with CERN SSO, API clients use /rbac/session
+                .addFilterBefore(rbacHeaderFilter(tokenSupport, request -> false), AnonymousAuthenticationFilter.class)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .csrf(csrf -> csrf.spa()
@@ -104,8 +106,9 @@ public class SecurityConfiguration {
     @Order(2)
     public SecurityFilterChain apiFilterChain(HttpSecurity http, RbacTokenSupport tokenSupport) throws Exception {
         String role = properties.requiredRole();
+        RequestMatcher loginRequest = PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.PUT, ApiPaths.RBAC_SESSION);
         return http
-                .addFilterBefore(rbacHeaderFilter(tokenSupport), AnonymousAuthenticationFilter.class)
+                .addFilterBefore(rbacHeaderFilter(tokenSupport, loginRequest), AnonymousAuthenticationFilter.class)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .logout(AbstractHttpConfigurer::disable)
@@ -118,22 +121,31 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(requests -> requests
                         .requestMatchers(PUBLIC_PATHS).permitAll()
                         .requestMatchers(ApiPaths.API + "/**", ApiPaths.WS + "/**").hasAuthority(RbacTokenSupport.roleAuthority(role))
+                        .requestMatchers(ApiPaths.RBAC + "/**").hasAnyAuthority(userOrAdminAuthorities())
                         .anyRequest().denyAll())
                 .build();
     }
 
     /**
+     * Distinct, because both roles may be configured to the same one and Spring rejects duplicate authorities.
+     */
+    private String[] userOrAdminAuthorities() {
+        return Stream.of(properties.requiredRole(), properties.adminRole()).distinct()
+                .map(RbacTokenSupport::roleAuthority).toArray(String[]::new);
+    }
+
+    /**
      * Not a bean: Spring Boot would also register a filter bean for every request, outside the chains.
      */
-    private RbacHeaderFilter rbacHeaderFilter(RbacTokenSupport tokenSupport) {
-        return new RbacHeaderFilter(loginService, tokenSupport, sessions, registry);
+    private RbacHeaderFilter rbacHeaderFilter(RbacTokenSupport tokenSupport, RequestMatcher loginRequest) {
+        return new RbacHeaderFilter(loginService, tokenSupport, registry, loginRequest);
     }
 
     /**
      * Header credentials cannot be sent cross-site without CORS, so such requests need no CSRF token.
      */
     private static boolean carriesRbacCredentials(HttpServletRequest request) {
-        return request.getHeader(RbacHeaders.HEADER) != null || request.getHeader(HttpHeaders.AUTHORIZATION) != null;
+        return request.getHeader(RbacHeaders.HEADER) != null;
     }
 
     private static String roleRequired(String role) {

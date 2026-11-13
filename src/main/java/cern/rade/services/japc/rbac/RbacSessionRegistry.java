@@ -28,7 +28,7 @@ public class RbacSessionRegistry {
 
     /**
      * Caches a session. A user may hold several (one per browser, LabVIEW client, script...); above
-     * {@code sessions-per-user} their least recently used ones are revoked, so a client that logs in on every request
+     * {@code sessions-per-user} their least recently used ones are revoked, so a client that logs in repeatedly
      * instead of reusing its cached id cannot pile up sessions.
      */
     public synchronized RbacSession register(RbacSession session) {
@@ -63,8 +63,8 @@ public class RbacSessionRegistry {
     }
 
     /**
-     * Drops a session created for a request whose client never received its cached id, e.g. a login without the
-     * required role, a failed request or an admin API call. Nothing can reuse it.
+     * Drops a session created by a login request whose client never received its cached id, e.g. a login without the
+     * required role. Nothing can reuse it.
      */
     public void releaseIfUnissued(RbacSession session) {
         if (!session.issued()) {
@@ -95,8 +95,8 @@ public class RbacSessionRegistry {
         int excess = others.size() + 1 - properties.sessionsPerUser();
         if (excess > 0) {
             others.subList(0, excess).forEach(this::revoke);
-            logger.warn("User {} exceeded {} RBAC sessions, revoked the {} least recently used. A client is probably logging in"
-                    + " on every request instead of reusing Rbac: Cached", newest.user(), properties.sessionsPerUser(), excess);
+            logger.warn("User {} exceeded {} RBAC sessions, revoked the {} least recently used. A client is probably calling"
+                    + " PUT /rbac/session repeatedly instead of reusing its Rbac: Cached id", newest.user(), properties.sessionsPerUser(), excess);
         }
     }
 

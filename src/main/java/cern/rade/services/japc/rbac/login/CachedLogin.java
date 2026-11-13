@@ -21,6 +21,11 @@ public class CachedLogin implements RbacLogin {
     }
 
     @Override
+    public boolean performsLogin() {
+        return false;
+    }
+
+    @Override
     public RbacSession login(RbacCredentials credentials) {
         return registry.find(credentials.value())
                 .orElseThrow(() -> new AuthenticationException("No RBAC session for this cached id. Please log in again"));

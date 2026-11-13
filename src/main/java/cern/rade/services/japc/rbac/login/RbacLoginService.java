@@ -21,6 +21,15 @@ public class RbacLoginService {
         this.registry = registry;
     }
 
+    /**
+     * @return true if the scheme exists and logs in with credentials rather than presenting a cached session or token
+     * @see RbacLogin#performsLogin()
+     */
+    public boolean performsLogin(String scheme) {
+        RbacLogin login = logins.get(scheme);
+        return login != null && login.performsLogin();
+    }
+
     public RbacSession login(String header) {
         return login(RbacCredentials.parse(header));
     }

@@ -10,7 +10,8 @@ public final class RbacHeaders {
     }
 
     /**
-     * Tells the client how to reuse its session: {@code Rbac: Cached <id>}.
+     * Tells the client how to reuse its session: {@code Rbac: Cached <id>}, and marks the session issued so it is kept.
+     * Sessions that are not cached, such as {@code Token} ones, have no id to hand out and get no header.
      */
     public static void setCached(HttpHeaders headers, RbacSession session) {
         if (session != null && session.loginType().cached()) {

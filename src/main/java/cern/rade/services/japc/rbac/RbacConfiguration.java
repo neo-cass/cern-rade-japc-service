@@ -4,10 +4,10 @@ import cern.rade.services.japc.rbac.gateway.RbacGateway;
 import cern.rade.services.japc.rbac.login.CachedLogin;
 import cern.rade.services.japc.rbac.login.ExplicitLogin;
 import cern.rade.services.japc.rbac.login.KerberosLogin;
-import cern.rade.services.japc.rbac.login.LocationLogin;
 import cern.rade.services.japc.rbac.login.OauthLogin;
 import cern.rade.services.japc.rbac.login.RbacLogin;
 import cern.rade.services.japc.rbac.login.RbacLoginService;
+import cern.rade.services.japc.rbac.login.TokenLogin;
 import cern.rbac.client.ClientConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -56,8 +56,8 @@ public class RbacConfiguration {
     }
 
     @Bean
-    public LocationLogin locationLogin(RbacGateway gateway, RbacSessionFactory sessions) {
-        return new LocationLogin(gateway, sessions);
+    public TokenLogin tokenLogin(RbacGateway gateway, RbacSessionFactory sessions) {
+        return new TokenLogin(gateway, sessions);
     }
 
     @Bean

@@ -50,6 +50,25 @@ class RbacSessionRegistryTest {
     }
 
     @Test
+    void revokesTheSessionOfTheCaller() {
+        RbacSession own = registry.register(sessions.fromToken(LoginType.EXPLICIT, RbaToken.EMPTY_TOKEN, ClientContext.UNKNOWN));
+        RbacSession other = registry.register(sessions.fromToken(LoginType.EXPLICIT, RbaToken.EMPTY_TOKEN, ClientContext.UNKNOWN));
+        registry.revoke(own);
+        assertTrue(registry.find(own.id()).isEmpty());
+        assertFalse(own.isActive());
+        assertTrue(registry.find(other.id()).isPresent());
+    }
+
+    @Test
+    void doesNotIssueIdsOfUncachedSessions() {
+        RbacSession token = sessions.fromToken(LoginType.TOKEN, RbaToken.EMPTY_TOKEN, ClientContext.UNKNOWN);
+        HttpHeaders headers = new HttpHeaders();
+        RbacHeaders.setCached(headers, token);
+        assertTrue(headers.isEmpty());
+        assertFalse(token.issued());
+    }
+
+    @Test
     void revokesAll() {
         registry.register(sessions.fromToken(LoginType.EXPLICIT, RbaToken.EMPTY_TOKEN, ClientContext.UNKNOWN));
         registry.register(sessions.fromToken(LoginType.KERBEROS, RbaToken.EMPTY_TOKEN, ClientContext.UNKNOWN));

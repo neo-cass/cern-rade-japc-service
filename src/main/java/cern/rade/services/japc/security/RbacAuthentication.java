@@ -11,7 +11,7 @@ import java.util.Collection;
 import java.util.Optional;
 
 /**
- * A request authenticated with the {@code Rbac} or {@code Authorization: rbac-token} header.
+ * A request authenticated with the {@code Rbac} header.
  */
 public class RbacAuthentication extends AbstractAuthenticationToken {
     private final transient RbacSession session;

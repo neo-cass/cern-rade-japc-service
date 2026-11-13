@@ -8,7 +8,6 @@ public enum LoginType {
     EXPLICIT(true),
     KERBEROS(true),
     OAUTH(true),
-    LOCATION(true),
     TOKEN(false);
 
     private final boolean cached;

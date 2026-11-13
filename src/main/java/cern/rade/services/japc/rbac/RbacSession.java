@@ -17,8 +17,8 @@ import java.util.stream.Collectors;
 
 /**
  * An authenticated RBAC client of this service. It holds the application token used for JAPC calls and, when this
- * service performed the login, the master token used to renew it. Location and pass-through tokens were issued to the
- * client's machine, so RBAC refuses to renew them here: they are used until they expire.
+ * service performed the login, the master token used to renew it. Tokens the client presents itself were issued to
+ * its machine, so RBAC refuses to renew them here: they are used until they expire.
  */
 public class RbacSession {
     private static final SecureRandom RANDOM = new SecureRandom();

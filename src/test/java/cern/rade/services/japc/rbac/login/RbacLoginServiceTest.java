@@ -15,6 +15,7 @@ import java.time.Duration;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -33,10 +34,26 @@ class RbacLoginServiceTest {
     }
 
     @Test
-    void doesNotCachePassThroughTokens() {
+    void doesNotCacheTokens() {
         RbacLoginService service = new RbacLoginService(List.of(fixedLogin("Token", LoginType.TOKEN)), registry);
         RbacSession session = service.login("Token abc");
         assertTrue(registry.find(session.id()).isEmpty());
+    }
+
+    @Test
+    void onlyCredentialSchemesPerformALogin() {
+        RbacLoginService service = new RbacLoginService(List.of(fixedLogin("Explicit", LoginType.EXPLICIT),
+                new CachedLogin(registry), new TokenLogin(null, null)), registry);
+        assertTrue(service.performsLogin("Explicit"));
+        assertFalse(service.performsLogin("Cached"));
+        assertFalse(service.performsLogin("Token"));
+        assertFalse(service.performsLogin("Unknown"));
+    }
+
+    @Test
+    void locationIsNotAScheme() {
+        RbacLoginService service = new RbacLoginService(List.of(new TokenLogin(null, null)), registry);
+        assertThrows(AuthenticationException.class, () -> service.login("Location abc"));
     }
 
     @Test
