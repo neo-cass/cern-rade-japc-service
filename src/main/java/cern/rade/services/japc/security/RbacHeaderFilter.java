@@ -22,10 +22,9 @@ import java.io.IOException;
 
 /**
  * Authenticates requests carrying {@code Rbac: <scheme> <value>}. Requests without the header pass through
- * unauthenticated; rejected credentials get a 401. Schemes that log in with credentials (Explicit, Kerberos, Oauth) are
- * only accepted on the login request, {@code PUT /rbac/session}; everywhere else the header must present an existing
- * session or token ({@code Cached}, {@code Token}). A session logged in for a request whose response did not hand out
- * its cached id (missing role, ...) is dropped afterwards.
+ * unauthenticated; rejected credentials get a 401. Login schemes (Explicit, Kerberos, Oauth, Token) are only accepted on
+ * the login request, {@code PUT /rbac/session}; everywhere else the header must be {@code Cached <id>}. A session logged
+ * in for a request whose response did not hand out its cached id (missing role, ...) is dropped afterwards.
  */
 public class RbacHeaderFilter extends OncePerRequestFilter {
     private final RbacLoginService loginService;

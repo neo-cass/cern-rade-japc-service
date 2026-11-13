@@ -22,7 +22,7 @@ public class RbacLoginService {
     }
 
     /**
-     * @return true if the scheme exists and logs in with credentials rather than presenting a cached session or token
+     * @return true if the scheme exists and logs in (credentials or a token) rather than presenting a cached session
      * @see RbacLogin#performsLogin()
      */
     public boolean performsLogin(String scheme) {
@@ -41,6 +41,6 @@ public class RbacLoginService {
                     + ". Expected one of " + logins.keySet());
         }
         RbacSession session = login.login(credentials);
-        return session.loginType().cached() ? registry.register(session) : session;
+        return registry.register(session);
     }
 }

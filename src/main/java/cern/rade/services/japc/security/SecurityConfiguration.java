@@ -28,9 +28,9 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
 import java.util.stream.Stream;
 
 /**
- * Two filter chains: the admin panel and admin API (browser session or {@code Rbac: Cached}/{@code Token} header,
+ * Two filter chains: the admin panel and admin API (browser session or {@code Rbac: Cached} header,
  * admin role), and everything else (stateless, {@code Rbac} header, user role for the API and subscriptions, user or
- * admin role for {@code /rbac/session}, the only place where a client logs in with credentials).
+ * admin role for {@code /rbac/session}, the only place where a client logs in).
  */
 @Configuration
 @EnableWebSecurity
@@ -40,7 +40,7 @@ public class SecurityConfiguration {
             "/openapi.yaml", "/asyncapi.yaml", "/error", "/readyz", "/actuator/health/**"};
     private static final String[] LOGIN_PATHS = {"/oauth2/**", "/login/**"};
     private static final String LOGIN_REQUIRED = "RBAC login required: log in with PUT " + ApiPaths.RBAC_SESSION
-            + " (Rbac: Explicit, Kerberos or Oauth), then send Rbac: Cached <id>, or send Rbac: Token <token>";
+            + " (Rbac: Explicit, Kerberos, Oauth or Token), then send Rbac: Cached <id>";
 
     private final RbacLoginService loginService;
     private final RbacSessionRegistry registry;

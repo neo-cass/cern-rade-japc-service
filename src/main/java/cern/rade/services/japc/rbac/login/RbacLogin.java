@@ -9,9 +9,9 @@ public interface RbacLogin {
     String scheme();
 
     /**
-     * True if the scheme logs in to RBAC with credentials, which clients may only do at {@code PUT /rbac/session}.
-     * False for schemes that present something they already have, a cached session or an RBAC token, and so are
-     * accepted on every request.
+     * True if the scheme logs in, with credentials or an RBAC token, which clients may only do at
+     * {@code PUT /rbac/session}. False for {@code Cached}, which presents an existing session and is accepted on every
+     * request.
      */
     default boolean performsLogin() {
         return true;

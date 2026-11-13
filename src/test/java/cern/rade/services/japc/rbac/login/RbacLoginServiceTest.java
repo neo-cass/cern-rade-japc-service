@@ -34,19 +34,20 @@ class RbacLoginServiceTest {
     }
 
     @Test
-    void doesNotCacheTokens() {
+    void cachesTokens() {
         RbacLoginService service = new RbacLoginService(List.of(fixedLogin("Token", LoginType.TOKEN)), registry);
         RbacSession session = service.login("Token abc");
-        assertTrue(registry.find(session.id()).isEmpty());
+        assertEquals(LoginType.TOKEN, session.loginType());
+        assertSame(session, registry.find(session.id()).orElseThrow());
     }
 
     @Test
-    void onlyCredentialSchemesPerformALogin() {
+    void everySchemeButCachedPerformsALogin() {
         RbacLoginService service = new RbacLoginService(List.of(fixedLogin("Explicit", LoginType.EXPLICIT),
                 new CachedLogin(registry), new TokenLogin(null, null)), registry);
         assertTrue(service.performsLogin("Explicit"));
         assertFalse(service.performsLogin("Cached"));
-        assertFalse(service.performsLogin("Token"));
+        assertTrue(service.performsLogin("Token"));
         assertFalse(service.performsLogin("Unknown"));
     }
 

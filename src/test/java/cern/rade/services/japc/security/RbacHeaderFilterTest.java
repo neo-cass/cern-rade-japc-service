@@ -61,7 +61,7 @@ class RbacHeaderFilterTest {
         }
     };
     private final RbacLoginService loginService = new RbacLoginService(
-            List.of(new FixedLogin("Explicit", LoginType.EXPLICIT, true), new FixedLogin("Token", LoginType.TOKEN, false), new CachedLogin(registry)),
+            List.of(new FixedLogin("Explicit", LoginType.EXPLICIT, true), new FixedLogin("Token", LoginType.TOKEN, true), new CachedLogin(registry)),
             registry);
     private final RbacHeaderFilter filter = new RbacHeaderFilter(loginService, tokenSupport, registry, PUT_SESSION);
     private final AtomicReference<RbacSession> seenByChain = new AtomicReference<>();
@@ -113,13 +113,16 @@ class RbacHeaderFilterTest {
     }
 
     @Test
-    void tokenAuthenticatesEverywhereWithoutCaching() throws Exception {
-        for (String[] call : new String[][]{{"GET", "/api/v1/DEV/PROP"}, {"PUT", "/rbac/session"}}) {
-            seenByChain.set(null);
-            assertEquals(200, filter(call[0], call[1], "Token abc").status);
-            assertEquals(LoginType.TOKEN, seenByChain.get().loginType());
+    void tokenIsOnlyAcceptedByTheLoginRequestAndIsCached() throws Exception {
+        for (String[] call : new String[][]{{"GET", "/api/v1/DEV/PROP"}, {"GET", "/ws/v1/DEV/PROP"}, {"GET", "/rbac/session"}}) {
+            assertEquals(401, filter(call[0], call[1], "Token abc").status, call[0] + " " + call[1]);
         }
-        assertTrue(registry.list().isEmpty());
+        assertNull(seenByChain.get());
+
+        CapturingChain issuing = new CapturingChain(session -> RbacHeaders.setCached(new HttpHeaders(), session));
+        filter.doFilterInternal(request("PUT", "/rbac/session", "Token abc"), new StubResponse().proxy(), issuing);
+        assertEquals(LoginType.TOKEN, issuing.session.loginType());
+        assertSame(issuing.session, registry.find(issuing.session.id()).orElseThrow());
     }
 
     @Test

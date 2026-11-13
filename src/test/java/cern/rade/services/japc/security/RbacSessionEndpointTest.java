@@ -50,14 +50,14 @@ class RbacSessionEndpointTest {
     }
 
     @Test
-    void loginWithATokenHasNothingToCache() {
+    void loginWithATokenReturnsTheCachedId() {
         RbacSession session = authenticated(LoginType.TOKEN);
 
         ResponseEntity<Void> response = endpoint.login();
 
         assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
-        assertFalse(response.getHeaders().containsHeader("Rbac"));
-        assertFalse(session.issued());
+        assertEquals("Cached " + session.id(), response.getHeaders().getFirst("Rbac"));
+        assertTrue(session.issued());
     }
 
     @Test

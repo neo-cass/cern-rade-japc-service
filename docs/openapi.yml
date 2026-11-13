@@ -22,9 +22,8 @@ info:
     ```
 
     Every request needs an RBAC login (see the `Rbac` security scheme) whose token has the service's required RBAC role.
-    Log in once with `PUT /rbac/session` (credentials in the `Rbac` header). The service logs in to RBAC, keeps that login as a cached RBAC session
+    Log in once with `PUT /rbac/session` (credentials or an RBAC token in the `Rbac` header). The service keeps that login as a cached RBAC session
     and answers with `Rbac: Cached <id>`. Send that header on every other call. Logging in on the other calls is rejected with 401.
-    A client that already holds an RBAC token sends it as `Rbac: Token <base64url(token)>` instead and has no cached RBAC session.
 
     Subscriptions: [WebSocket API](/docs/websocket). Specifications: [/openapi.yaml](/openapi.yaml), [/asyncapi.yaml](/asyncapi.yaml).
 security:
@@ -195,13 +194,14 @@ paths:
       summary: Log in
       description: |
         The only call that accepts login credentials: `Rbac: Explicit <base64url(username:password)>`,
-        `Rbac: Kerberos <base64url(ticket)>` or `Rbac: Oauth <access token>`. The service logs in to RBAC and keeps the login as a cached RBAC session.
+        `Rbac: Kerberos <base64url(ticket)>`, `Rbac: Oauth <access token>` or `Rbac: Token <base64url(token)>`. The service keeps the login as a cached RBAC session.
         The cached id in the response is a secret, like a password: send it as
         `Rbac: Cached <id>` on every other call. The service renews the cached RBAC session, so the id keeps working until it
         is revoked, unused for 24 hours, or the service restarts. Admins can list and revoke it under `/admin/api/sessions`.
+        A `Token` session cannot be renewed (RBAC only renews a token from the machine it was issued to): its cached id stops
+        working when the token expires, and the client must log in again with a new token.
 
-        With `Rbac: Cached <id>` the same id is returned again. With `Rbac: Token <base64url(token)>` there is nothing to
-        cache: the response is `204` without an `Rbac` header, and the token itself is sent on every request until it expires.
+        With `Rbac: Cached <id>` the same id is returned again.
         PUT rather than POST because the LabVIEW client cannot send POST.
         ```
         curl -X PUT -D - -H 'Rbac: Explicit <base64url(username:password)>' 'https://<host>/rbac/session'
@@ -226,15 +226,14 @@ paths:
       operationId: getSession
       summary: The caller's cached RBAC session
       description: |
-        Works with `Rbac: Cached <id>` or `Rbac: Token <base64url(token)>`. The secret id is not returned.
-        A `Token` caller has no cached RBAC session: the response describes the token itself (`loginType` `TOKEN`).
-        For `Cached`, admins see the same entry under `GET /admin/api/sessions`.
+        Works with `Rbac: Cached <id>`. The secret id is not returned.
+        Admins see the same entry under `GET /admin/api/sessions`.
         ```
         curl -H 'Rbac: Cached <id>' 'https://<host>/rbac/session'
         ```
       responses:
         '200':
-          description: The cached RBAC session the request was authenticated with, or the token itself for a `Token` caller.
+          description: The cached RBAC session the request was authenticated with.
           content:
             application/json:
               schema:
@@ -301,7 +300,7 @@ paths:
       summary: Cached RBAC sessions
       description: |
         All cached RBAC sessions of all users, the ones created by `PUT /rbac/session` and by CERN SSO logins to the admin panel.
-        The panel's own login is therefore in the list. `Rbac: Token` callers have no cached RBAC session and are not listed.
+        The panel's own login is therefore in the list.
         Each is identified by its public `handle`, not by its secret cached id.
       responses:
         '200':
@@ -425,17 +424,17 @@ components:
 
         A **cached RBAC session** is an RBAC login that this service holds and renews on the client's behalf. `PUT /rbac/session` creates one
         (so does an admin panel SSO login). The client refers to it with its secret cached id, `Rbac: Cached <id>`; admins refer to the
-        same cached RBAC session with its public handle (`/admin/api/sessions`). `Rbac: Token` callers have none.
+        same cached RBAC session with its public handle (`/admin/api/sessions`).
 
         | Value | Credentials | Accepted by |
         |---|---|---|
         | `Explicit <base64url(username:password)>` | Login with username and password. | `PUT /rbac/session` only |
         | `Kerberos <base64url(ticket)>` | Kerberos service ticket (GSS-API AP-REQ) for the RBAC server, `RBAC/rbac-pro-lb.cern.ch@CERN.CH` in PRO. Not a ticket for this service. | `PUT /rbac/session` only |
         | `Oauth <access token>` | CERN SSO access token whose audience is the RBAC server. Sent as-is, not Base64. The service logs in to RBAC with it and holds a renewable cached RBAC session, like Explicit and Kerberos. | `PUT /rbac/session` only |
+        | `Token <base64url(token)>` | Serialized RBAC token the client obtained itself. Cached like the other logins, but never renewed: the cached RBAC session ends when the token expires. | `PUT /rbac/session` only |
         | `Cached <id>` | Id of the cached RBAC session, returned in the `Rbac` response header of `PUT /rbac/session`. | every call |
-        | `Token <base64url(token)>` | Serialized RBAC token the client obtained itself. Validated on every request, used until it expires, never renewed or cached: no cached RBAC session, so admins cannot list or revoke it. | every call |
 
-        A login scheme on any other call is rejected with 401. The service renews a cached RBAC session for up to a year,
+        A login scheme on any other call is rejected with 401. The service renews a cached RBAC session (except `Token`) for up to a year,
         so its cached id keeps working; a cached RBAC session unused for 24 hours is dropped, and so is the oldest one of a user above the
         per-user limit. Cached RBAC sessions are held in memory by the serving instance and are lost on restart.
       x-rbac-schemes: [Explicit, Kerberos, Oauth, Cached, Token]
@@ -810,14 +809,14 @@ components:
         elements: [status Boolean, code I32, source String]
     SessionInfo:
       type: object
-      description: The caller's own cached RBAC session. Unlike `AdminSession` it has no `handle`, address or timestamps of use; the secret id is never included. A `Token` caller has no cached RBAC session, so it describes the token itself.
+      description: The caller's own cached RBAC session. Unlike `AdminSession` it has no `handle`, address or timestamps of use; the secret id is never included.
       properties:
         user: {type: string}
         roles: {type: array, items: {type: string}}
         loginType: {$ref: '#/components/schemas/LoginType'}
         location: {type: [string, 'null']}
         tokenExpiry: {type: string, format: date-time, description: When the current application token expires; the service renews it for a cached RBAC session}
-        sessionExpiry: {type: string, format: date-time, description: When the cached RBAC session can no longer be used. Equals `tokenExpiry` for `TOKEN` (no cached RBAC session)}
+        sessionExpiry: {type: string, format: date-time, description: When the cached RBAC session can no longer be used. Equals `tokenExpiry` for `TOKEN`, which is not renewed}
     AdminMe:
       type: object
       properties:

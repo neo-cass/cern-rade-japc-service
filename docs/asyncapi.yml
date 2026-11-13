@@ -25,9 +25,9 @@ info:
 
     Handshake failures return the HTTP status and error `code` listed in the [REST API](/docs/rest) `Error` response.
 
-    Authentication: at the handshake only, with `Rbac: Cached <id>` (the cached RBAC session created by `PUT /rbac/session`, see the [REST API](/docs/rest)) or `Rbac: Token <base64url(token)>`.
+    Authentication: at the handshake only, with `Rbac: Cached <id>` (the cached RBAC session created by `PUT /rbac/session`, see the [REST API](/docs/rest)).
     Nothing is re-checked afterwards: revoking or losing the cached RBAC session (`DELETE /rbac/session`, an admin, 24 h idle, restart of the instance)
-    or the expiry of the token does not close an open subscription. Admins can list open subscriptions and close one (close code 1000) under `/admin/api/subscriptions`.
+    or the expiry of its token does not close an open subscription. Admins can list open subscriptions and close one (close code 1000) under `/admin/api/subscriptions`.
 
     Liveness: the server sends a ping every 5 s. Clients must answer pings: a connection from which nothing, not even a pong, arrives for 10 s is closed (1001) and its subscription stopped.
 
@@ -166,14 +166,13 @@ components:
       description: |
         Required RBAC credentials, as in the REST API. Log in first with `PUT /rbac/session` (see the [REST API](/docs/rest)),
         which creates a cached RBAC session and answers with `Rbac: Cached <id>`. The handshake only accepts the values below and its response has no `Rbac` header.
-        A login with credentials (`Explicit`, `Kerberos`, `Oauth`) in the handshake is rejected with 401.
+        A login (`Explicit`, `Kerberos`, `Oauth`, `Token`) in the handshake is rejected with 401.
         Checked at the handshake only.
 
         | Value | Credentials |
         |---|---|
         | `Cached <id>` | Cached id of the cached RBAC session, from the `Rbac` response header of `PUT /rbac/session`. 401 if it is unknown, revoked or expired. |
-        | `Token <base64url(token)>` | Serialized RBAC token obtained by the client, which has no cached RBAC session. Validated on every handshake, used until it expires. |
-      x-rbac-schemes: [Cached, Token]
+      x-rbac-schemes: [Cached]
   parameters:
     device:
       description: Device name. Must not match `v[0-9]+`.
