@@ -5,7 +5,7 @@ import cern.rade.services.japc.admin.view.MeView;
 import cern.rade.services.japc.admin.view.ServiceInfoView;
 import cern.rade.services.japc.admin.view.SessionView;
 import cern.rade.services.japc.security.RbacAuthentication;
-import cern.rade.services.japc.stats.ClientRate;
+import cern.rade.services.japc.stats.ClientRequests;
 import cern.rade.services.japc.subscription.SubscriptionInfo;
 import cern.rbac.client.authentication.AuthenticationException;
 import org.springframework.http.ResponseEntity;
@@ -72,7 +72,7 @@ public class AdminEndpoint {
     }
 
     @GetMapping("/clients")
-    public List<ClientRate> clients() {
+    public List<ClientRequests> clients() {
         return adminService.clients();
     }
 

@@ -7,6 +7,7 @@ import cern.japc.value.ParameterValue;
 import cern.rade.services.japc.ContextProvider;
 import cern.rade.services.japc.ParameterNames;
 import cern.rade.services.japc.rbac.RbacSession;
+import io.micrometer.core.instrument.Metrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,6 +62,7 @@ public class SubscriptionService implements ParameterValueListener {
     private void enqueue(Update update) {
         while (!valueQueue.offer(update)) {
             if (valueQueue.poll() != null) {
+                Metrics.counter("japc.subscription.updates.dropped").increment();
                 logger.debug("JAPC subscription to {}: queue full, dropped oldest update", parameterName);
             }
         }

@@ -19,6 +19,8 @@ public class ErrorHandler {
         HttpStatusCode status = ErrorCode.httpStatus(e);
         String origin = request.getMethod() + " " + request.getRequestURI();
         ErrorLog.log(logger, origin, status, e);
-        return Formats.negotiate(request).errorResponse(status, ErrorCode.of(e), origin, ErrorCode.message(e));
+        ErrorCode code = ErrorCode.of(e);
+        code.count("rest", status);
+        return Formats.negotiate(request).errorResponse(status, code, origin, ErrorCode.message(e));
     }
 }

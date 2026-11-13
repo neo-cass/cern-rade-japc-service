@@ -169,15 +169,12 @@ async function loadSubscriptions() {
 
 async function loadClients() {
     const clients = await request("GET", "/clients");
-    const operationColumns = OPERATIONS.flatMap(operation => [
-        {label: operation + " / min", value: client => client.operations[operation].lastMinute, number: true},
-        {label: operation + " total", value: client => client.operations[operation].total, number: true},
-    ]);
+    const operationColumns = OPERATIONS.map(operation =>
+        ({label: operation, value: client => client.requests[operation] ?? 0, number: true}));
     renderTable(document.getElementById("clients"), [
         {label: "User", value: client => client.user},
-        {label: "Address", value: client => client.address},
         ...operationColumns,
-        {label: "Last seen", value: client => time(client.lastSeen)},
+        {label: "Rate limited", value: client => client.rateLimited, number: true},
     ], clients, "No requests yet");
 }
 

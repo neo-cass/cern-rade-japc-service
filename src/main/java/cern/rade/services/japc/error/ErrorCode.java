@@ -9,8 +9,10 @@ import cern.japc.core.AuthorizationExpiredException;
 import cern.japc.core.ParameterException;
 import cern.japc.core.transaction.BadSettingValueException;
 import cern.rade.services.codec.CodecException;
+import cern.rade.services.japc.ratelimit.RateLimitedException;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.TokenFormatException;
+import io.micrometer.core.instrument.Metrics;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.converter.HttpMessageConversionException;
@@ -27,7 +29,8 @@ public enum ErrorCode {
     CODEC_ERROR(5001),
     RBAC_ERROR(5002),
     BAD_REQUEST(5003),
-    INTERNAL_ERROR(5004);
+    INTERNAL_ERROR(5004),
+    RATE_LIMITED(5005);
 
     private static final int MAX_CLOSE_REASON_BYTES = 123;
     private final int value;
@@ -48,7 +51,17 @@ public enum ErrorCode {
         return new CloseStatus(4000 + (value - JAPC_ERROR.value), reason);
     }
 
+    /**
+     * Counts the error as {@code japc.errors}; channel is "rest" or "websocket".
+     */
+    public void count(String channel, HttpStatusCode status) {
+        Metrics.counter("japc.errors", "code", String.valueOf(value), "status", String.valueOf(status.value()), "channel", channel).increment();
+    }
+
     public static ErrorCode of(Throwable e) {
+        if (e instanceof RateLimitedException) {
+            return RATE_LIMITED;
+        }
         if (e instanceof HttpMessageConversionException && e.getCause() != null) {
             return of(e.getCause());
         }
@@ -77,6 +90,9 @@ public enum ErrorCode {
         }
         if (e instanceof HttpMessageNotWritableException) {
             return HttpStatus.INTERNAL_SERVER_ERROR;
+        }
+        if (e instanceof RateLimitedException) {
+            return HttpStatus.TOO_MANY_REQUESTS;
         }
         if (e instanceof ErrorResponse errorResponse) {
             return errorResponse.getStatusCode();

@@ -17,7 +17,6 @@ configurations.configureEach {
 extra["junit-jupiter.version"] = "5.11.0"
 
 val springBootVersion =org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES.substringAfterLast(':')
-val log4j2Version = dependencyManagement.importedProperties["log4j2.version"]
 
 dependencies {
     implementation ("cern.japc:japc:PRO")
@@ -48,8 +47,6 @@ dependencies {
     //log4j2 from springboot
     implementation("org.springframework.boot:spring-boot-starter-log4j2:$springBootVersion")
 
-    //needed to use json layouts for log messages
-    implementation("org.apache.logging.log4j:log4j-layout-template-json:$log4j2Version")
 
     implementation ("org.springframework.boot:spring-boot-starter-websocket:$springBootVersion"){
         exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
@@ -61,6 +58,13 @@ dependencies {
     implementation ("org.springframework.boot:spring-boot-starter-actuator:$springBootVersion"){
         exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
     }
+    // OTLP export of metrics and logs to monit-otlp. Explicit versions: CBNG would otherwise substitute PRO.
+    // Appender 2.28.x matches the OpenTelemetry SDK 1.62 that Spring Boot manages.
+    implementation ("org.springframework.boot:spring-boot-starter-opentelemetry:$springBootVersion"){
+        exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
+    }
+    implementation("io.opentelemetry.instrumentation:opentelemetry-log4j-appender-2.17:2.28.0-alpha")
+    implementation("com.bucket4j:bucket4j_jdk17-core:8.14.0")
     implementation ("org.springframework.boot:spring-boot-starter-security:$springBootVersion"){
         exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
     }

@@ -39,6 +39,7 @@ public final class SecurityErrorWriter {
             throws IOException {
         String origin = request.getMethod() + " " + request.getRequestURI();
         ErrorLog.log(logger, origin, status, message, null);
+        ErrorCode.RBAC_ERROR.count(request.getHeader(WebSocketHttpHeaders.SEC_WEBSOCKET_PROTOCOL) == null ? "rest" : "websocket", status);
         try {
             ResponseEntity<byte[]> error = format(request).errorResponse(status, ErrorCode.RBAC_ERROR, origin, message);
             response.setStatus(status.value());

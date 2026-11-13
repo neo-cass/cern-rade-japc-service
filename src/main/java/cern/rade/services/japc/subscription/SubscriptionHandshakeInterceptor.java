@@ -7,11 +7,12 @@ import cern.rade.services.japc.error.ErrorCode;
 import cern.rade.services.japc.error.ErrorLog;
 import cern.rade.services.japc.format.Format;
 import cern.rade.services.japc.format.Formats;
+import cern.rade.services.japc.ratelimit.RateLimiter;
 import cern.rade.services.japc.rbac.RbacHeaders;
 import cern.rade.services.japc.security.RbacAuthentication;
 import cern.rade.services.japc.stats.Client;
-import cern.rade.services.japc.stats.ClientStats;
 import cern.rade.services.japc.stats.Operation;
+import cern.rade.services.japc.stats.RequestMetrics;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +22,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.http.server.ServletServerHttpRequest;
+import org.springframework.http.server.ServletServerHttpResponse;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.HandshakeInterceptor;
 import org.springframework.web.util.UriTemplate;
@@ -35,31 +37,51 @@ public class SubscriptionHandshakeInterceptor implements HandshakeInterceptor {
     private static final UriTemplate FIELD_PATH = new UriTemplate("/{device:[^/]+}/{property:[^/]+}/{field:[^/]+}");
     private static final UriTemplate PROPERTY_PATH = new UriTemplate("/{device:[^/]+}/{property:[^/]+}");
     private static final UriTemplate DEVICE_PATH = new UriTemplate("/{device:[^/]+}");
-    private final ClientStats clientStats;
+    private final RequestMetrics requestMetrics;
+    private final RateLimiter rateLimiter;
+    private final SubscriptionRegistry subscriptions;
     private final Clock clock;
     private final Logger logger = LoggerFactory.getLogger(SubscriptionHandshakeInterceptor.class);
 
-    public SubscriptionHandshakeInterceptor(ClientStats clientStats, Clock clock) {
-        this.clientStats = clientStats;
+    public SubscriptionHandshakeInterceptor(RequestMetrics requestMetrics, RateLimiter rateLimiter,
+                                            SubscriptionRegistry subscriptions, Clock clock) {
+        this.requestMetrics = requestMetrics;
+        this.rateLimiter = rateLimiter;
+        this.subscriptions = subscriptions;
         this.clock = clock;
     }
 
     @Override
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, Map<String, Object> attributes) throws Exception {
+        long start = System.nanoTime();
+        Client client = Client.of(((ServletServerHttpRequest) request).getServletRequest());
+        boolean accepted = false;
+        try {
+            accepted = handshake(request, response, attributes, client);
+            return accepted;
+        } finally {
+            int status = accepted ? HttpStatus.SWITCHING_PROTOCOLS.value() : ((ServletServerHttpResponse) response).getServletResponse().getStatus();
+            requestMetrics.record(client, Operation.SUBSCRIBE, request.getURI().getPath(), status, start);
+        }
+    }
+
+    private boolean handshake(ServerHttpRequest request, ServerHttpResponse response, Map<String, Object> attributes, Client client) throws Exception {
         Format format = Formats.forHandshake(request.getHeaders());
         if (format == null){
             rejectClient(Formats.preferred(), request, response, HttpStatus.BAD_REQUEST, ErrorCode.BAD_REQUEST, "Sec-WebSocket-Protocol must be one of " + Formats.subprotocols(), null);
             return false;
         }
         try{
-            return handleNewSubscription(format, request, response, attributes);
+            rateLimiter.check(client.user(), ((ServletServerHttpResponse) response).getServletResponse());
+            rateLimiter.checkSubscriptions(client.user(), subscriptions.subscriptions().stream().filter(s -> s.user().equals(client.user())).count());
+            return handleNewSubscription(format, request, response, attributes, client);
         }catch(Exception e){
             rejectClient(format, request, response, ErrorCode.httpStatus(e), ErrorCode.of(e), ErrorCode.message(e), e);
             return false;
         }
     }
 
-    private boolean handleNewSubscription(Format format, ServerHttpRequest request, ServerHttpResponse response, Map<String, Object> attributes) throws Exception {
+    private boolean handleNewSubscription(Format format, ServerHttpRequest request, ServerHttpResponse response, Map<String, Object> attributes, Client client) throws Exception {
         HttpServletRequest servletRequest = ((ServletServerHttpRequest) request).getServletRequest();
         HttpHeaders headers = request.getHeaders();
         HttpHeaders retHeaders = response.getHeaders();
@@ -86,8 +108,6 @@ public class SubscriptionHandshakeInterceptor implements HandshakeInterceptor {
         String field = vars.get("field");
 
         SubscriptionService subscriptionService = new SubscriptionService(selector, vars.get("device"), property, field, RbacAuthentication.current().orElse(null));
-        Client client = Client.of(servletRequest);
-        clientStats.record(client, Operation.SUBSCRIBE);
         subscriptionService.execute();
         try {
             attributes.put(SessionAttributes.SUBSCRIPTION_SERVICE, subscriptionService);
@@ -111,6 +131,7 @@ public class SubscriptionHandshakeInterceptor implements HandshakeInterceptor {
     protected void rejectClient(Format format, ServerHttpRequest request, ServerHttpResponse response, HttpStatusCode status, ErrorCode errorCode, String message, Throwable cause) throws CodecException, IOException {
         String origin = "GET " + request.getURI().getPath();
         ErrorLog.log(logger, "Subscription handshake " + origin, status, message, cause);
+        errorCode.count("websocket", status);
         format.writeError(response, status, errorCode, origin, message);
     }
 

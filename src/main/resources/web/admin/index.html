@@ -25,7 +25,7 @@
         <button role="tab" data-tab="info" aria-selected="true">Service</button>
         <button role="tab" data-tab="sessions">RBAC sessions</button>
         <button role="tab" data-tab="subscriptions">Subscriptions</button>
-        <button role="tab" data-tab="clients">Client rates</button>
+        <button role="tab" data-tab="clients">Clients</button>
     </nav>
 
     <p id="error" class="error" hidden></p>
@@ -47,7 +47,7 @@
     </section>
 
     <section data-panel="clients" hidden>
-        <p class="muted">Requests in the last minute and since the service started, per RBAC user and address.</p>
+        <p class="muted">Requests since the service started, per RBAC user. Rates over time are in Grafana; per-address detail is in the request log.</p>
         <table id="clients"></table>
     </section>
 

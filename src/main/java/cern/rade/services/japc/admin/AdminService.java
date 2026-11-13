@@ -5,8 +5,8 @@ import cern.rade.services.japc.admin.view.SessionView;
 import cern.rade.services.japc.rbac.RbacProperties;
 import cern.rade.services.japc.rbac.RbacSessionRegistry;
 import cern.rade.services.japc.rbac.gateway.RbacGateway;
-import cern.rade.services.japc.stats.ClientRate;
-import cern.rade.services.japc.stats.ClientStats;
+import cern.rade.services.japc.stats.ClientRequests;
+import cern.rade.services.japc.stats.RequestMetrics;
 import cern.rade.services.japc.subscription.SubscriptionInfo;
 import cern.rade.services.japc.subscription.SubscriptionRegistry;
 import org.springframework.beans.factory.ObjectProvider;
@@ -28,18 +28,18 @@ public class AdminService {
     private static final String UNKNOWN_VERSION = "unknown";
     private final RbacSessionRegistry sessions;
     private final SubscriptionRegistry subscriptions;
-    private final ClientStats clientStats;
+    private final RequestMetrics requestMetrics;
     private final RbacProperties properties;
     private final RbacGateway gateway;
     private final ObjectProvider<BuildProperties> buildProperties;
     private final Clock clock;
 
-    public AdminService(RbacSessionRegistry sessions, SubscriptionRegistry subscriptions, ClientStats clientStats,
+    public AdminService(RbacSessionRegistry sessions, SubscriptionRegistry subscriptions, RequestMetrics requestMetrics,
                         RbacProperties properties, RbacGateway gateway, ObjectProvider<BuildProperties> buildProperties,
                         Clock clock) {
         this.sessions = sessions;
         this.subscriptions = subscriptions;
-        this.clientStats = clientStats;
+        this.requestMetrics = requestMetrics;
         this.properties = properties;
         this.gateway = gateway;
         this.buildProperties = buildProperties;
@@ -88,7 +88,7 @@ public class AdminService {
         return subscriptions.closeSubscription(id);
     }
 
-    public List<ClientRate> clients() {
-        return clientStats.rates();
+    public List<ClientRequests> clients() {
+        return requestMetrics.clients();
     }
 }

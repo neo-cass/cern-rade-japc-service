@@ -8,6 +8,7 @@ import cern.rade.services.japc.error.ErrorCode;
 import cern.rade.services.japc.error.ErrorLog;
 import cern.rade.services.japc.format.Format;
 import cern.rade.services.japc.stats.Client;
+import io.micrometer.core.instrument.Metrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.socket.*;
@@ -55,13 +56,13 @@ public class SubscriptionWebSocketHandler implements WebSocketHandler {
             try {
                 sendData(waitForUpdate);
             } catch (ParameterException e) {
-                ErrorLog.log(logger, "Subscription " + ID + " (" + origin + ")", e);
+                logError(e);
                 sendError(e);
             } catch (IOException e) {
                 logger.warn("Subscription {} ({}): could not send to client: {}", ID, origin, e.getMessage());
                 close(CloseStatus.SERVER_ERROR);
             } catch (Exception e) {
-                ErrorLog.log(logger, "Subscription " + ID + " (" + origin + ")", e);
+                logError(e);
                 close(ErrorCode.of(e).closeStatus(ErrorCode.message(e)));
             }
         }
@@ -73,6 +74,12 @@ public class SubscriptionWebSocketHandler implements WebSocketHandler {
         }
         SubscriptionService.Latest latest = subscriptionService.latest();
         session.sendMessage(format.dataFrame(Fields.select(latest.value(), fields), latest.header(), session.getAttributes()));
+        Metrics.counter("japc.subscription.updates.sent", "format", format.subprotocol()).increment();
+    }
+
+    private void logError(Exception e) {
+        ErrorLog.log(logger, "Subscription " + ID + " (" + origin + ")", e);
+        ErrorCode.of(e).count("websocket", ErrorCode.httpStatus(e));
     }
 
     private void sendError(Exception e) {

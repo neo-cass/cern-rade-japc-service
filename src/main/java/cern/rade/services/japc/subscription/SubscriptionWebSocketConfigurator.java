@@ -2,7 +2,8 @@ package cern.rade.services.japc.subscription;
 
 import cern.rade.services.japc.ApiPaths;
 import cern.rade.services.japc.ContextProvider;
-import cern.rade.services.japc.stats.ClientStats;
+import cern.rade.services.japc.ratelimit.RateLimiter;
+import cern.rade.services.japc.stats.RequestMetrics;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
@@ -16,11 +17,13 @@ import java.time.Clock;
 @Configuration
 @EnableWebSocket
 public class SubscriptionWebSocketConfigurator implements WebSocketConfigurer {
-    private final ClientStats clientStats;
+    private final RequestMetrics requestMetrics;
+    private final RateLimiter rateLimiter;
     private final Clock clock;
 
-    public SubscriptionWebSocketConfigurator(ClientStats clientStats, Clock clock) {
-        this.clientStats = clientStats;
+    public SubscriptionWebSocketConfigurator(RequestMetrics requestMetrics, RateLimiter rateLimiter, Clock clock) {
+        this.requestMetrics = requestMetrics;
+        this.rateLimiter = rateLimiter;
         this.clock = clock;
     }
 
@@ -42,7 +45,7 @@ public class SubscriptionWebSocketConfigurator implements WebSocketConfigurer {
         //We intercept the HTTP handshake, so we can initialise the SubscriptionService
         //and return the client's RBAC ID and type descriptor as required.
         registry.addHandler(subscriptionManager(), ApiPaths.WS + "/**")
-                .addInterceptors(new SubscriptionHandshakeInterceptor(clientStats, clock));
+                .addInterceptors(new SubscriptionHandshakeInterceptor(requestMetrics, rateLimiter, subscriptionManager(), clock));
     }
 
     @Bean
