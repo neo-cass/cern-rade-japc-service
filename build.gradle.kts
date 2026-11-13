@@ -2,6 +2,8 @@ plugins {
     id ("java")
     id ("war")
     id ("cern.devops.cbng.dependency")
+    id ("cern.devops.cbng.project")
+    id ("cern.devops.cbng.publication")
     id ("org.springframework.boot") version "4.1.2"
     id("io.spring.dependency-management") version "1.1.7"
 }
@@ -121,3 +123,18 @@ java {
 }
 // missing: manifest (see https://docs.gradle.org/7.4.2/userguide/building_java_projects.html#sec:jar_manifest)
 
+
+// Publication (cern.devops.cbng.publication): the artifact released to the Pro repository is the executable Spring Boot
+// war produced by bootWar (cern.rade.services:japc:<version>@war), not the plain jar CBNG publishes by default.
+// Repositories (Pro, Development, ...) and their credentials are the ones CBNG configures; none are defined here.
+publishing {
+    publications.named<MavenPublication>("cbng") {
+        // CBNG creates this publication from the java component (plain jar + sources + javadoc): replace those with the boot war.
+        // Maven file name is <artifactId>-<version>.war whatever -PwarName (image build) set on the file produced by bootWar.
+        setArtifacts(emptyList<Any>())
+        artifact(tasks.named<org.springframework.boot.gradle.tasks.bundling.BootWar>("bootWar"))
+        pom {
+            packaging = "war"
+        }
+    }
+}
