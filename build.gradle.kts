@@ -29,8 +29,8 @@ dependencies {
     implementation ("cern.cmw:cmw-data:PRO")
     implementation ("cern.cmw:cmw-rda3:PRO")
 
-    implementation ("cern.rade.services:codec:refactor-SNAPSHOT")
-    implementation ("cern.rade.services:common:refactor-SNAPSHOT")
+    implementation ("cern.rade.services:codec:1.0.0")
+    implementation ("cern.rade.services:common:1.0.0")
 
     implementation ("org.apache.commons:commons-lang3:3.12.0")
     implementation ("com.google.code.gson:gson:2.10.1")

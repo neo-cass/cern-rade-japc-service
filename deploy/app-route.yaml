@@ -1,0 +1,24 @@
+# Per-deployment Route with a generated host, for review apps and staging (APP_NAME japc-<slug>, japc-master).
+# Not applied for production: there https://rade-services-japc.web.cern.ch (deploy/route.yaml) is the only entry point.
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: ${APP_NAME}
+  labels:
+    app: ${APP_NAME}
+  annotations:
+    router.cern.ch/network-visibility: Intranet
+    # Per-IP backstop, above the per-user limits in the service (50 requests/s, 200 subscriptions) so those answer first
+    # with 429/5005. rate-http counts HTTP requests per 3 s; concurrent-tcp includes one connection per subscription.
+    haproxy.router.openshift.io/rate-limit-connections: "true"
+    haproxy.router.openshift.io/rate-limit-connections.rate-http: "600"
+    haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp: "1000"
+spec:
+  to:
+    kind: Service
+    name: ${APP_NAME}
+  port:
+    targetPort: 8443
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

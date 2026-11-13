@@ -3,16 +3,44 @@ variables:
   REDOCLY_CLI: "@redocly/cli@2.72.1"
   ASYNCAPI_CLI: "@asyncapi/cli@6.2.2"
   ASYNCAPI_HTML_TEMPLATE: "@asyncapi/html-template@3.5.6"
+  # TODO pin: floating tag, replace by a concrete version once known (no registry access when this was written)
   CMW_TOOLS_IMAGE: "gitlab-registry.cern.ch/rade/rade-core/continuous-integration/cmw-tools:latest"
-  ROUTE_BRANCH: "refactor"   # branch whose deployment https://rade-services-japc.web.cern.ch serves
+  PROD_APP_NAME: "japc"   # production deployment; https://rade-services-japc.web.cern.ch always serves it (deploy/route.yaml)
 
+# Pipelines (deploy section at the bottom):
+#   feature branch: review app (deploy_review -> test_deployed), stopped after a week or with stop_review
+#   default branch: staging    (deploy_staging -> test_deployed), the stable pre-production environment
+#   tag (release):  release_guard, the same build/test jobs, then a manual deploy_production (deployment japc) that
+#                   also points the production URL at it, followed by a read-only smoke_production
 stages:
+  - .pre
   - buildDocs
   - buildWar
   - testWar
   - buildImage
   - deploy
   - testDeployed
+  - smokeProduction
+
+release_guard:
+  stage: .pre
+  tags:
+    - k8s-default
+  image:
+    name: registry.cern.ch/docker.io/library/alpine:3.21
+  script:
+    # a release must be reproducible: no moving SNAPSHOT dependency (commented-out lines are ignored)
+    - |
+      found=0
+      for f in build.gradle.kts settings.gradle.kts gradle.properties; do
+        if [ -f "$f" ] && grep -v '^[[:space:]]*//' "$f" | grep -n 'SNAPSHOT'; then
+          echo "ERROR: $f references a -SNAPSHOT version, release tag $CI_COMMIT_TAG cannot be deployed"
+          found=1
+        fi
+      done
+      exit $found
+  rules:
+    - if: $CI_COMMIT_TAG
 
 build_docs:
   tags:
@@ -97,7 +125,7 @@ test_deployed:
   needs:
     - job: deploy_review
       optional: true
-    - job: deploy_master
+    - job: deploy_staging
       optional: true
   script:
     - ./gradlew test
@@ -113,12 +141,16 @@ build_image:
   stage: buildImage
   script:
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA --build-arg WAR_NAME=$WAR_NAME
+    - DESTINATIONS="--destination $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+    # release tags also get an exact, never reused tag: this is what production runs and what a rollback redeploys
+    - if [ -n "$CI_COMMIT_TAG" ]; then DESTINATIONS="$DESTINATIONS --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG"; fi
+    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile $DESTINATIONS --build-arg WAR_NAME=$WAR_NAME
 
 .paas:
   tags:
     - k8s-default
   stage: deploy
+  # TODO pin: floating tag, replace by a concrete version once known (no registry access when this was written)
   image: gitlab-registry.cern.ch/paas-tools/openshift-client:latest
   variables:
     SERVER: https://api.paas.okd.cern.ch
@@ -128,38 +160,33 @@ build_image:
     - oc project $PROJECT
     - export APP_NAME=${APP_NAME:-$(echo "japc-$CI_COMMIT_REF_SLUG" | cut -c1-49 | sed 's/-*$//')}
 
+# Review apps and staging: image of the pipeline's commit, own Route with a generated host
 .deploy:
   extends: .paas
+  variables:
+    IMAGE_TAG: $CI_COMMIT_SHORT_SHA
   script:
-    - sed -e "s|\${APP_NAME}|$APP_NAME|g" -e "s|\${IMAGE}|$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA|g" deploy/app.yaml | oc apply -f -
+    - sed -e "s|\${APP_NAME}|$APP_NAME|g" -e "s|\${IMAGE}|$CI_REGISTRY_IMAGE:$IMAGE_TAG|g" deploy/app.yaml | oc apply -f -
+    - sed -e "s|\${APP_NAME}|$APP_NAME|g" deploy/app-route.yaml | oc apply -f -
     - oc rollout status deployment/$APP_NAME --timeout=5m
     - HOST=$(oc get route $APP_NAME -o jsonpath='{.spec.host}')
-    - echo "APP_URL=https://$HOST/api/v1" > deploy.env
+    - echo "ENV_URL=https://$HOST" > deploy.env
+    - echo "APP_URL=https://$HOST/api/v1" >> deploy.env
     - echo "SUB_URL=wss://$HOST/ws/v1" >> deploy.env
   artifacts:
     reports:
       dotenv: deploy.env
   environment:
-    url: $APP_URL
+    url: $ENV_URL
 
-deploy_master:
+# Default branch: staging. The deployment keeps its name japc-master so the existing deployment is updated in place.
+deploy_staging:
   extends: .deploy
   environment:
-    name: master
+    name: staging
+    deployment_tier: staging
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-
-publish_route:
-  extends: .paas
-  needs:
-    - job: deploy_review
-      optional: true
-    - job: deploy_master
-      optional: true
-  script:
-    - sed -e "s|\${ROUTE_TARGET}|$APP_NAME|g" deploy/route.yaml | oc apply -f -
-  rules:
-    - if: $CI_COMMIT_BRANCH == $ROUTE_BRANCH
 
 deploy_review:
   extends: .deploy
@@ -183,13 +210,55 @@ stop_review:
     - if: $CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
       when: manual
 
+# Release tags: manual, and only after the guard, docs, tests and image build of the same tag pipeline passed.
+# Re-running this job from the pipeline of an older tag is the rollback: that tag's image and manifests are applied.
 deploy_production:
-  extends: .deploy
+  extends: .paas
   variables:
-    APP_NAME: japc
+    APP_NAME: $PROD_APP_NAME
+    IMAGE_TAG: $CI_COMMIT_TAG
+  needs:
+    - job: release_guard
+      artifacts: false
+    - job: build_docs
+      artifacts: false
+    - job: test_war
+      artifacts: false
+    - job: build_image
+      artifacts: false
+  resource_group: production
+  script:
+    - sed -e "s|\${APP_NAME}|$APP_NAME|g" -e "s|\${IMAGE}|$CI_REGISTRY_IMAGE:$IMAGE_TAG|g" deploy/app.yaml | oc apply -f -
+    # no generated-host Route (deploy/app-route.yaml) for production; remove the one an earlier version of this job created
+    - oc delete route/$APP_NAME --ignore-not-found
+    - oc rollout status deployment/$APP_NAME --timeout=5m
+    # only once the rollout is healthy, point the production URL at this deployment
+    - sed -e "s|\${ROUTE_TARGET}|$APP_NAME|g" deploy/route.yaml | oc apply -f -
   environment:
     name: production
     deployment_tier: production
+    url: https://rade-services-japc.web.cern.ch
   rules:
     - if: $CI_COMMIT_TAG
       when: manual
+
+# Read-only: no device GET/SET. EndpointTest (test_deployed) writes to RADE.TEST and must never run against production.
+# /readyz and /openapi.yaml are public paths served on the route port (8443), unlike /actuator/** on 8081.
+smoke_production:
+  extends: .paas
+  stage: smokeProduction
+  variables:
+    APP_NAME: $PROD_APP_NAME
+    GIT_STRATEGY: none
+  needs:
+    - job: deploy_production
+      artifacts: false
+  script:
+    - oc rollout status deployment/$APP_NAME --timeout=5m
+    - test "$(oc get route japc-prod -o jsonpath='{.spec.to.name}')" = "$APP_NAME"
+    - test "$(oc get deployment/$APP_NAME -o jsonpath='{.spec.template.spec.containers[0].image}')" = "$CI_REGISTRY_IMAGE:$CI_COMMIT_TAG"
+    - HOST=$(oc get route japc-prod -o jsonpath='{.spec.host}')
+    - curl -fsS --retry 12 --retry-delay 5 --retry-all-errors https://$HOST/readyz | tee /dev/stderr | grep -q '"status":"UP"'
+    - curl -fsS --retry 3 --retry-delay 5 --retry-all-errors -o /dev/null https://$HOST/openapi.yaml
+  rules:
+    - if: $CI_COMMIT_TAG
