@@ -44,6 +44,8 @@ class EndpointTest {
     @BeforeAll
     static void logIn() throws Exception {
         cached = login(EXPLICIT);
+        // the test server only knows a device once a property was set, and tests run in any order
+        assertStatus(200, set(OPEN_DEVICE, "Get", 1, cached));
     }
 
     @Test
