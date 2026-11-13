@@ -22,9 +22,9 @@ info:
     ```
 
     Every request needs an RBAC login (see the `Rbac` security scheme) whose token has the service's required RBAC role.
-    Log in once with `PUT /rbac/session` (credentials in the `Rbac` header), which answers with `Rbac: Cached <id>`, and send that header on every
-    other call. Logging in on the other calls is rejected with 401. A client that already holds an RBAC token sends it as `Rbac: Token <base64url(token)>`
-    instead and does not need to log in.
+    Log in once with `PUT /rbac/session` (credentials in the `Rbac` header). The service logs in to RBAC, keeps that login as a cached RBAC session
+    and answers with `Rbac: Cached <id>`. Send that header on every other call. Logging in on the other calls is rejected with 401.
+    A client that already holds an RBAC token sends it as `Rbac: Token <base64url(token)>` instead and has no cached RBAC session.
 
     Subscriptions: [WebSocket API](/docs/websocket). Specifications: [/openapi.yaml](/openapi.yaml), [/asyncapi.yaml](/asyncapi.yaml).
 security:
@@ -35,8 +35,9 @@ servers:
 tags:
   - name: RBAC session
     description: |
-      Log in, inspect and log out, at `/rbac/session` (not under `/api/v1`). Needs the service's required RBAC role or the admin RBAC role.
-      This is the only place where credentials are accepted.
+      Log in, inspect and log out of the caller's own cached RBAC session, at `/rbac/session` (not under `/api/v1`).
+      Needs the service's required RBAC role or the admin RBAC role. This is the only place where credentials are accepted.
+      Admins see the same cached RBAC sessions under `/admin/api/sessions`.
   - name: Parameter
     description: Access by device, property and optional field in the path.
   - name: LabVIEW descriptor
@@ -194,9 +195,10 @@ paths:
       summary: Log in
       description: |
         The only call that accepts login credentials: `Rbac: Explicit <base64url(username:password)>`,
-        `Rbac: Kerberos <base64url(ticket)>` or `Rbac: Oauth <access token>`. The cached id in the response is a secret, like a password: send it as
-        `Rbac: Cached <id>` on every other call. The session is renewed by the service, so the id keeps working until it
-        is revoked, unused for 24 hours, or the service restarts.
+        `Rbac: Kerberos <base64url(ticket)>` or `Rbac: Oauth <access token>`. The service logs in to RBAC and keeps the login as a cached RBAC session.
+        The cached id in the response is a secret, like a password: send it as
+        `Rbac: Cached <id>` on every other call. The service renews the cached RBAC session, so the id keeps working until it
+        is revoked, unused for 24 hours, or the service restarts. Admins can list and revoke it under `/admin/api/sessions`.
 
         With `Rbac: Cached <id>` the same id is returned again. With `Rbac: Token <base64url(token)>` there is nothing to
         cache: the response is `204` without an `Rbac` header, and the token itself is sent on every request until it expires.
@@ -222,15 +224,17 @@ paths:
     get:
       tags: [RBAC session]
       operationId: getSession
-      summary: The caller's session
+      summary: The caller's cached RBAC session
       description: |
         Works with `Rbac: Cached <id>` or `Rbac: Token <base64url(token)>`. The secret id is not returned.
+        A `Token` caller has no cached RBAC session: the response describes the token itself (`loginType` `TOKEN`).
+        For `Cached`, admins see the same entry under `GET /admin/api/sessions`.
         ```
         curl -H 'Rbac: Cached <id>' 'https://<host>/rbac/session'
         ```
       responses:
         '200':
-          description: The session the request was authenticated with.
+          description: The cached RBAC session the request was authenticated with, or the token itself for a `Token` caller.
           content:
             application/json:
               schema:
@@ -244,8 +248,10 @@ paths:
       operationId: logout
       summary: Log out
       description: |
-        Revokes the session whose cached id was sent, so the id gets 401 from then on. There is no parameter: a client can
-        only revoke its own session. A login (`Explicit`, `Kerberos`, `Oauth`) is not accepted here.
+        Revokes the cached RBAC session whose cached id was sent, so the id gets 401 from then on. There is no parameter: a client can
+        only revoke its own cached RBAC session. A login (`Explicit`, `Kerberos`, `Oauth`) is not accepted here.
+        Admins can revoke any cached RBAC session under `/admin/api/sessions`, with the same effect.
+        WebSocket subscriptions already open stay open; admins close them under `/admin/api/subscriptions`.
         ```
         curl -X DELETE -H 'Rbac: Cached <id>' 'https://<host>/rbac/session'
         ```
@@ -293,9 +299,13 @@ paths:
       tags: [Admin]
       operationId: adminSessions
       summary: Cached RBAC sessions
+      description: |
+        All cached RBAC sessions of all users, the ones created by `PUT /rbac/session` and by CERN SSO logins to the admin panel.
+        The panel's own login is therefore in the list. `Rbac: Token` callers have no cached RBAC session and are not listed.
+        Each is identified by its public `handle`, not by its secret cached id.
       responses:
         '200':
-          description: Sessions sorted by user, each user's most recently used first. The secret cached ids are not included.
+          description: Cached RBAC sessions sorted by user, each user's most recently used first. The secret cached ids are not included.
           content:
             application/json:
               schema:
@@ -307,10 +317,11 @@ paths:
     delete:
       tags: [Admin]
       operationId: adminRevokeAllSessions
-      summary: Revoke all cached sessions
+      summary: Revoke all cached RBAC sessions
+      description: Like `DELETE /rbac/session` for every cached RBAC session. Open subscriptions are not closed. Includes the panel's own login.
       responses:
         '204':
-          description: Revoked. Clients must log in again.
+          description: Revoked. Their cached ids now get 401, so clients must log in again.
         4XX:
           $ref: '#/components/responses/AdminError'
   /users/{user}/sessions:
@@ -318,7 +329,8 @@ paths:
     delete:
       tags: [Admin]
       operationId: adminRevokeUserSessions
-      summary: Revoke all cached sessions of one user
+      summary: Revoke all cached RBAC sessions of one user
+      description: Like `DELETE /rbac/session` for each of the user's cached RBAC sessions. Open subscriptions are not closed.
       parameters:
         - name: user
           in: path
@@ -327,7 +339,7 @@ paths:
             type: string
       responses:
         '204':
-          description: Revoked. All of the user's clients must log in again.
+          description: Revoked. Their cached ids now get 401, so all of the user's clients must log in again.
         4XX:
           $ref: '#/components/responses/AdminError'
   /sessions/{handle}:
@@ -335,7 +347,11 @@ paths:
     delete:
       tags: [Admin]
       operationId: adminRevokeSession
-      summary: Revoke one cached session
+      summary: Revoke one cached RBAC session
+      description: |
+        Revokes a cached RBAC session created by `PUT /rbac/session` or by an admin panel SSO login. Its cached id then gets 401,
+        just like after the client's own `DELETE /rbac/session`. Open subscriptions are not closed: use `/admin/api/subscriptions`.
+        `handle` is from `GET /admin/api/sessions`.
       parameters:
         - name: handle
           in: path
@@ -407,17 +423,21 @@ components:
       description: |
         RBAC credentials. Required: without them the service answers 401, and without the required RBAC role 403.
 
+        A **cached RBAC session** is an RBAC login that this service holds and renews on the client's behalf. `PUT /rbac/session` creates one
+        (so does an admin panel SSO login). The client refers to it with its secret cached id, `Rbac: Cached <id>`; admins refer to the
+        same cached RBAC session with its public handle (`/admin/api/sessions`). `Rbac: Token` callers have none.
+
         | Value | Credentials | Accepted by |
         |---|---|---|
         | `Explicit <base64url(username:password)>` | Login with username and password. | `PUT /rbac/session` only |
         | `Kerberos <base64url(ticket)>` | Kerberos service ticket (GSS-API AP-REQ) for the RBAC server, `RBAC/rbac-pro-lb.cern.ch@CERN.CH` in PRO. Not a ticket for this service. | `PUT /rbac/session` only |
-        | `Oauth <access token>` | CERN SSO access token whose audience is the RBAC server. Sent as-is, not Base64. The service logs in to RBAC with it and holds a renewable session, like Explicit and Kerberos. | `PUT /rbac/session` only |
-        | `Cached <id>` | Id returned in the `Rbac` response header of `PUT /rbac/session`. | every call |
-        | `Token <base64url(token)>` | Serialized RBAC token the client obtained itself. Validated on every request, used until it expires, never renewed or cached. | every call |
+        | `Oauth <access token>` | CERN SSO access token whose audience is the RBAC server. Sent as-is, not Base64. The service logs in to RBAC with it and holds a renewable cached RBAC session, like Explicit and Kerberos. | `PUT /rbac/session` only |
+        | `Cached <id>` | Id of the cached RBAC session, returned in the `Rbac` response header of `PUT /rbac/session`. | every call |
+        | `Token <base64url(token)>` | Serialized RBAC token the client obtained itself. Validated on every request, used until it expires, never renewed or cached: no cached RBAC session, so admins cannot list or revoke it. | every call |
 
-        A login scheme on any other call is rejected with 401. Explicit, Kerberos and Oauth logins are renewed by the service for up to a year,
-        so their cached id keeps working; a cached id unused for 24 hours is dropped, and so is the oldest one of a user above the
-        per-user limit. Cached ids are held in memory by the serving instance and are lost on restart.
+        A login scheme on any other call is rejected with 401. The service renews a cached RBAC session for up to a year,
+        so its cached id keeps working; a cached RBAC session unused for 24 hours is dropped, and so is the oldest one of a user above the
+        per-user limit. Cached RBAC sessions are held in memory by the serving instance and are lost on restart.
       x-rbac-schemes: [Explicit, Kerberos, Oauth, Cached, Token]
   parameters:
     device:
@@ -500,7 +520,7 @@ components:
         type: integer
         format: int64
     Rbac:
-      description: '`Cached <id>`. Present when `PUT /rbac/session` logged in with credentials or a cached id. Send the value as the `Rbac` request header on every other call. The id is a secret, like a password.'
+      description: '`Cached <id>`, the cached id of the cached RBAC session. Present when `PUT /rbac/session` logged in with credentials or a cached id. Send the value as the `Rbac` request header on every other call. The id is a secret, like a password.'
       schema:
         type: string
         pattern: '^Cached [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
@@ -570,7 +590,7 @@ components:
     Set:
       description: Value set. No body.
     AdminError:
-      description: '401 without an RBAC login, 403 without the admin role, 404 for an unknown session or subscription.'
+      description: '401 without an RBAC login, 403 without the admin role, 404 for an unknown cached RBAC session (handle) or subscription.'
       content:
         application/json:
           schema:
@@ -586,7 +606,7 @@ components:
         | 400 | 5000 | Value or selector rejected by the device (invalid argument, invalid request, bad setting value) |
         | 400 | 5001 | Body or `Lv-Type-Descriptor` cannot be decoded |
         | 400 | 5003 | Malformed request, `Lv-Type-Descriptor` does not match the path, unknown field in `fields` |
-        | 401 | 5002 | No `Rbac` header, invalid `Rbac` header, failed login, expired or invalid token, unknown or revoked cached id, or a login scheme (`Explicit`, `Kerberos`, `Oauth`) on any call but `PUT /rbac/session` |
+        | 401 | 5002 | No `Rbac` header, invalid `Rbac` header, failed login, expired or invalid token, unknown, revoked or expired cached id (cached RBAC session), or a login scheme (`Explicit`, `Kerberos`, `Oauth`) on any call but `PUT /rbac/session` |
         | 403 | 5002 | Token lacks the service's required RBAC role (or, for `/rbac/session`, the admin role as well), or RBAC access to the device denied |
         | 404 | 5000 | Device or property not found |
         | 404 | 5003 | Unknown route |
@@ -790,14 +810,14 @@ components:
         elements: [status Boolean, code I32, source String]
     SessionInfo:
       type: object
-      description: The caller's own session. Unlike `AdminSession` it has no `handle`, address or timestamps of use; the secret id is never included.
+      description: The caller's own cached RBAC session. Unlike `AdminSession` it has no `handle`, address or timestamps of use; the secret id is never included. A `Token` caller has no cached RBAC session, so it describes the token itself.
       properties:
         user: {type: string}
         roles: {type: array, items: {type: string}}
         loginType: {$ref: '#/components/schemas/LoginType'}
         location: {type: [string, 'null']}
-        tokenExpiry: {type: string, format: date-time, description: When the current application token expires; the service renews it for a cached session}
-        sessionExpiry: {type: string, format: date-time, description: When the session can no longer be used. Equals `tokenExpiry` for a `TOKEN` session}
+        tokenExpiry: {type: string, format: date-time, description: When the current application token expires; the service renews it for a cached RBAC session}
+        sessionExpiry: {type: string, format: date-time, description: When the cached RBAC session can no longer be used. Equals `tokenExpiry` for `TOKEN` (no cached RBAC session)}
     AdminMe:
       type: object
       properties:
@@ -816,13 +836,14 @@ components:
         tokenLifetime: {type: string, description: ISO-8601 duration, example: PT12H}
         sessionLifetime: {type: string, description: ISO-8601 duration, example: PT8760H}
         sessionIdleTimeout: {type: string, description: ISO-8601 duration, example: PT24H}
-        sessionsPerUser: {type: integer, description: Most cached sessions per user; 0 means unlimited}
-        sessions: {type: integer}
+        sessionsPerUser: {type: integer, description: Most cached RBAC sessions per user; 0 means unlimited}
+        sessions: {type: integer, description: Cached RBAC sessions held now}
         subscriptions: {type: integer}
     AdminSession:
       type: object
+      description: A cached RBAC session as admins see it. The same entry as the client's `SessionInfo`, plus its public `handle`.
       properties:
-        handle: {type: string, description: Public id for revoking. Not the cached id.}
+        handle: {type: string, description: Public id for revoking the cached RBAC session. Not the secret cached id.}
         user: {type: string}
         loginType: {$ref: '#/components/schemas/LoginType'}
         roles: {type: array, items: {type: string}}
@@ -832,9 +853,10 @@ components:
         created: {type: string, format: date-time}
         lastUsed: {type: string, format: date-time}
         tokenExpiry: {type: string, format: date-time}
-        sessionExpiry: {type: string, format: date-time}
+        sessionExpiry: {type: string, format: date-time, description: When the cached RBAC session can no longer be used}
     AdminSubscription:
       type: object
+      description: An open WebSocket subscription, opened by the RBAC `user`. Credentials are checked at the handshake only, so revoking the cached RBAC session or the expiry of the token does not close it.
       properties:
         id: {type: string}
         parameter: {type: string}
