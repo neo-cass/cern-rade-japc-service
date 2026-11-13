@@ -27,7 +27,22 @@ spec:
             - name: JAVA_TOOL_OPTIONS
               value: "-XX:MaxRAMPercentage=75"
             - name: SPRING_PROFILES_ACTIVE
-              value: "prod,sso"
+              value: "prod,sso,monit"
+            - name: OTEL_SERVICE_NAME
+              value: ${APP_NAME}
+            # optional: without the secret the pod starts and MONIT export stays off
+            - name: MONIT_ENABLED
+              valueFrom:
+                secretKeyRef:
+                  name: monit-tenant
+                  key: MONIT_ENABLED
+                  optional: true
+            - name: MONIT_CREDENTIALS
+              valueFrom:
+                secretKeyRef:
+                  name: monit-tenant
+                  key: MONIT_CREDENTIALS
+                  optional: true
             - name: SSO_CLIENT_ID
               valueFrom:
                 secretKeyRef:
@@ -84,6 +99,11 @@ metadata:
     app: ${APP_NAME}
   annotations:
     router.cern.ch/network-visibility: Intranet
+    # Per-IP backstop, above the per-user limits in the service (50 requests/s, 200 subscriptions) so those answer first
+    # with 429/5005. rate-http counts HTTP requests per 3 s; concurrent-tcp includes one connection per subscription.
+    haproxy.router.openshift.io/rate-limit-connections: "true"
+    haproxy.router.openshift.io/rate-limit-connections.rate-http: "600"
+    haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp: "1000"
 spec:
   to:
     kind: Service

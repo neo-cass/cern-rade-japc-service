@@ -6,6 +6,11 @@ metadata:
     app: japc-prod
   annotations:
     router.cern.ch/network-visibility: Intranet
+    # Per-IP backstop, above the per-user limits in the service (50 requests/s, 200 subscriptions) so those answer first
+    # with 429/5005. rate-http counts HTTP requests per 3 s; concurrent-tcp includes one connection per subscription.
+    haproxy.router.openshift.io/rate-limit-connections: "true"
+    haproxy.router.openshift.io/rate-limit-connections.rate-http: "600"
+    haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp: "1000"
 spec:
   host: rade-services-japc.web.cern.ch
   to:
