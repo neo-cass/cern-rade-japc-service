@@ -1,9 +1,10 @@
 package cern.rade.services.japc.set;
 
 import cern.japc.core.ParameterException;
+import cern.rade.services.codec.CodecException;
 import cern.rade.services.japc.ApiPaths;
+import cern.rade.services.japc.format.LabVIEWBody;
 import cern.rade.services.japc.format.LabVIEWFormat;
-import cern.rade.services.japc.format.LabVIEWValue;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,10 +17,11 @@ public class LVDescriptorSetEndpoint extends SetEndpoint {
             @PathVariable(value = "property", required = false) String property,
             @PathVariable(value = "field", required = false) String field,
             @RequestParam(value = "selector", required = false) String selector,
-            @RequestBody LabVIEWValue body)
-            throws ParameterException {
-        LabVIEWValue value = LabVIEWFormat.matchValue(body, property, field);
-        SetService setService = setService(selector, device, property == null ? value.descriptor().getName() : property, field, value.value());
+            @RequestBody LabVIEWBody body)
+            throws ParameterException, CodecException {
+        LabVIEWBody value = body.matching(property, field);
+        SetService setService = setService(selector, device, property == null ? value.name() : property, field,
+                descriptor -> value.decode(descriptor.get()));
         setService.execute();
         return ResponseEntity.ok().build();
     }

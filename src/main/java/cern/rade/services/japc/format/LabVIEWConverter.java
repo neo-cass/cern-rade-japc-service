@@ -1,8 +1,6 @@
 package cern.rade.services.japc.format;
 
-import cern.japc.value.ParameterValue;
 import cern.rade.services.codec.CodecException;
-import cern.rade.services.codec.labview.LVDataDecoder;
 import cern.rade.services.codec.labview.LVDataEncoder;
 import cern.rade.services.codec.labview.LVTypeEncoder;
 import cern.rade.services.common.containers.labview.LVTypeDescriptor;
@@ -14,8 +12,11 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.HttpMessageNotWritableException;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
+/**
+ * Reads LabVIEW request bodies as {@link LabVIEWBody}, left undecoded for the endpoint, and writes
+ * {@link LabVIEWValue} and {@link NamedValue} responses.
+ */
 public class LabVIEWConverter extends AbstractHttpMessageConverter<Object> {
     public LabVIEWConverter(MediaType mediaType) {
         super(mediaType);
@@ -28,7 +29,7 @@ public class LabVIEWConverter extends AbstractHttpMessageConverter<Object> {
 
     @Override
     public boolean canRead(Class<?> clazz, MediaType mediaType) {
-        return LabVIEWValue.class == clazz && canRead(mediaType);
+        return LabVIEWBody.class == clazz && canRead(mediaType);
     }
 
     @Override
@@ -43,9 +44,7 @@ public class LabVIEWConverter extends AbstractHttpMessageConverter<Object> {
             throw new HttpMessageNotReadableException(LabVIEWFormat.TYPE_DESCRIPTOR_HEADER + " header is required", inputMessage);
         }
         try {
-            LVTypeDescriptor descriptor = LabVIEWFormat.typeDescriptorFromHeader(typeDescriptor);
-            ParameterValue value = LVDataDecoder.decode(ByteBuffer.wrap(inputMessage.getBody().readAllBytes()), descriptor);
-            return new LabVIEWValue(value, descriptor);
+            return new LabVIEWBody(LabVIEWFormat.typeDescriptorFromHeader(typeDescriptor), inputMessage.getBody().readAllBytes());
         } catch (CodecException e) {
             throw new HttpMessageNotReadableException(e.getMessage(), e, inputMessage);
         }
@@ -61,7 +60,7 @@ public class LabVIEWConverter extends AbstractHttpMessageConverter<Object> {
                 NamedValue namedValue = (NamedValue) object;
                 LVTypeDescriptor descriptor = LVTypeEncoder.describe(namedValue.name(), namedValue.value());
                 outputMessage.getHeaders().set(LabVIEWFormat.TYPE_DESCRIPTOR_HEADER,
-                        LabVIEWFormat.typeDescriptorToHeader(LVTypeEncoder.encodeTypeDescriptor(descriptor, namedValue.value())));
+                        LabVIEWFormat.typeDescriptorToHeader(LVTypeEncoder.encodeTypeDescriptor(descriptor)));
                 body = LVDataEncoder.encode(namedValue.value(), descriptor);
             }
             outputMessage.getBody().write(body);

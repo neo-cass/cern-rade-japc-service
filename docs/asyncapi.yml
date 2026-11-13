@@ -314,6 +314,11 @@ components:
         | 17 | | LabVIEW flattened data |
 
         The data is described by the `Lv-Type-Descriptor` request header or, when absent, by the `Lv-Type-Descriptor` handshake response header.
+
+        The descriptor can contain marked types, which LabVIEW cannot unflatten as they are: type code `0x60` is a discrete function (a 2D Array of DBL, 2 rows X and Y) and `0x61` an enum set (a Cluster of Boolean, one per item).
+        Patch them back (`0x60` to `0x40`, `0x61` to `0x50`, at any nesting depth) before unflattening the descriptor, and remember which fields were marked.
+        Enums are U16 enums whose items are the JAPC item symbols ordered by JAPC code, the value is the position.
+        Unsigned integers are only sent if the request descriptor declares them. See `LvTypeDescriptor` in the [REST API](/docs/rest).
       payload:
         type: string
         format: binary

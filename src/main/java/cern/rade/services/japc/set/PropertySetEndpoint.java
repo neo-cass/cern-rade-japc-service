@@ -2,6 +2,7 @@ package cern.rade.services.japc.set;
 
 import cern.japc.core.ParameterException;
 import cern.japc.value.ParameterValue;
+import cern.rade.services.codec.CodecException;
 import cern.rade.services.japc.ApiPaths;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,7 +17,7 @@ public class PropertySetEndpoint extends SetEndpoint {
             @PathVariable(value = "field", required = false) String field,
             @RequestParam(value = "selector", required = false) String selector,
             @RequestBody ParameterValue value)
-            throws ParameterException {
+            throws ParameterException, CodecException {
         SetService setService = setService(selector, device, property, field, value);
         setService.execute();
         return ResponseEntity.ok().build();

@@ -497,7 +497,9 @@ components:
       name: Lv-Type-Descriptor
       in: header
       required: false
-      description: Required when `Content-Type` is `application/labview-variant`. Describes the request body (see `LvTypeDescriptor`).
+      description: |
+        Required when `Content-Type` is `application/labview-variant`. Describes the request body (see `LvTypeDescriptor`, including the marked types).
+        Must describe the property or field of the path, as for the response descriptor, otherwise `400`. Enums and enum sets are decoded with the JAPC enum type of the parameter.
       schema:
         $ref: '#/components/schemas/LvTypeDescriptor'
     LvTypeDescriptorDevice:
@@ -603,7 +605,7 @@ components:
         | HTTP status | `code` | Cause |
         |---|---|---|
         | 400 | 5000 | Value or selector rejected by the device (invalid argument, invalid request, bad setting value) |
-        | 400 | 5001 | Body or `Lv-Type-Descriptor` cannot be decoded |
+        | 400 | 5001 | Body or `Lv-Type-Descriptor` cannot be decoded. For example: data not matching the descriptor, a marked descriptor with the wrong layout (discrete function that is not a 2D Array of DBL, enum set that is not a Cluster of uniquely labelled Boolean), an enum item name the JAPC enum does not have, an unsigned value out of range, or an enum or enum set sent when the service cannot obtain the JAPC enum type of the parameter (the message names the field, e.g. `JAPC descriptor with enum type required for field mode`) |
         | 400 | 5003 | Malformed request, `Lv-Type-Descriptor` does not match the path, unknown field in `fields` |
         | 401 | 5002 | No `Rbac` header, invalid `Rbac` header, failed login, expired or invalid token, unknown, revoked or expired cached id (cached RBAC session), or a login scheme (`Explicit`, `Kerberos`, `Oauth`) on any call but `PUT /rbac/session` |
         | 403 | 5002 | Token lacks the service's required RBAC role (or, for `/rbac/session`, the admin role as well), or RBAC access to the device denied |
@@ -612,7 +614,7 @@ components:
         | 406 | 5003 | `Accept` not supported by the route |
         | 415 | 5003 | `Content-Type` not supported by the route |
         | 429 | 5005 | Rate limit of the RBAC user exceeded: requests per second (wait `Retry-After` seconds) or open subscriptions |
-        | 500 | 5001 | Value cannot be encoded in the requested format |
+        | 500 | 5001 | Value cannot be encoded in the requested format, e.g. a JAPC type LabVIEW cannot represent |
         | 500 | 5004 | Internal error |
         | 502 | 5000 | Device or middleware error |
         | 504 | 5000 | Device timeout |
@@ -647,7 +649,7 @@ components:
     Value:
       description: |
         japc-json typed value. `@type` identifies the JAPC value type.
-        Enum, enum set and discrete function values use the japc-json 8.2.1 encoding and are not supported by `application/labview-variant`.
+        Enum, enum set and discrete function values use the japc-json 8.2.1 encoding. Their LabVIEW encoding is described in `LvTypeDescriptor`.
       oneOf:
         - $ref: '#/components/schemas/MapValue'
         - $ref: '#/components/schemas/ScalarValue'
@@ -766,7 +768,30 @@ components:
         | double | DBL |
         | string | String |
         | 1D / 2D array | 1D / 2D Array |
+        | enum | Enum (U8, U16 or U32), items labelled with the JAPC item symbols |
+        | enum set | Cluster of Boolean, one per item, labelled with the item symbol. Marked `0x61` |
+        | discrete function | 2D Array of DBL, 2 rows (row 0 = X, row 1 = Y) by N columns. Marked `0x60` |
+        | discrete function list | 1D Array of 1-element Cluster holding the 2D Array of DBL. The inner array is marked `0x60` |
+        | enum / enum set array | 1D / 2D Array of the enum or of the enum set cluster |
+        | (no JAPC type) unsigned integers | U8, U16, U32, U64, scalar or array |
         | property | Cluster, labelled with the property name, elements labelled with the field names |
+
+        LabVIEW has no discrete function and no enum set. They are sent as the LabVIEW layout in the table, with the **type code byte** of that
+        type descriptor (at any nesting depth) replaced by a code LabVIEW does not use: `0x60` instead of the 2D Array code `0x40`,
+        `0x61` instead of the Cluster code `0x50`. A client patches the codes in after flattening the type descriptor it sends,
+        and patches them back (`0x60` to `0x40`, `0x61` to `0x50`) before unflattening a type descriptor it receives, as LabVIEW rejects unknown codes.
+
+        Enums use the item symbols, never the JAPC codes.
+
+        | | SET | GET |
+        |---|---|---|
+        | Enum | Flatten as usual. The service maps the item name to the device's code with the JAPC descriptor of the parameter. | When the service derives the descriptor: U16 Enum listing all items ordered by JAPC code; the value is the position. |
+        | Enum set | Marked `0x61`. May list only some of the items: the missing ones are not in the set. | Marked `0x61`, Boolean for every item in JAPC code order. |
+        | Unsigned integers | U8 is set as short, U16 as int, U32 as long, U64 as long (error above 2^63-1). | Only when the client's `Lv-Type-Descriptor` declares an unsigned type, the value is then range checked. Otherwise the signed types above. |
+
+        Not representable: `OBJECT` and undefined JAPC values, and the LabVIEW types extended, complex, physical quantity, path, picture, waveform, timestamp, variant and refnum.
+
+        Client guide, with examples and the LabVIEW VIs: `java-codec/LABVIEW_FORMAT.md` in the [rade-codec](https://gitlab.cern.ch/rade/rade-core/services/rade-codec) repository.
       type: string
       format: base64url
       x-labview-types:
@@ -781,6 +806,10 @@ components:
         array: 1D Array
         array2d: 2D Array
         map: Cluster
+        enum: Enum
+        enumSet: Cluster of Boolean, marked 0x61
+        discreteFunction: 2D Array of DBL, marked 0x60
+        discreteFunctionList: 1D Array of Cluster of 2D Array of DBL, marked 0x60
     LabVIEWData:
       description: |
         LabVIEW flattened data (`Flatten To String`) matching the type descriptor.
@@ -791,6 +820,9 @@ components:
         | String | I32 length, then bytes |
         | Array | I32 length per dimension, then elements |
         | Cluster | Elements in descriptor order |
+        | Enum | Position of the item (U8, U16 or U32 as in the descriptor) |
+        | Enum set | One byte per Boolean, in descriptor order |
+        | Discrete function | I32 rows (2), I32 columns, then the X row and the Y row as DBL |
       type: string
       format: binary
       x-labview-encoding:

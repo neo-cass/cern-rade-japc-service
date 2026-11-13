@@ -73,7 +73,7 @@ public class LabVIEWFormat extends Format {
             lvTypeDescriptor = matchDescriptor(typeDescriptorFromHeader(typeDescriptor), property, field);
         } else {
             lvTypeDescriptor = LVTypeEncoder.describe(field != null ? field : property, latest);
-            responseHeaders.set(TYPE_DESCRIPTOR_HEADER, typeDescriptorToHeader(LVTypeEncoder.encodeTypeDescriptor(lvTypeDescriptor, latest)));
+            responseHeaders.set(TYPE_DESCRIPTOR_HEADER, typeDescriptorToHeader(LVTypeEncoder.encodeTypeDescriptor(lvTypeDescriptor)));
         }
         attributes.put(TYPE_DESCRIPTOR_ATTRIBUTE, lvTypeDescriptor);
     }
@@ -111,14 +111,6 @@ public class LabVIEWFormat extends Format {
         }
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, TYPE_DESCRIPTOR_HEADER + " '" + descriptor.getName()
                 + "' does not match " + (property == null ? "a property" : property) + (field == null ? "" : "/" + field));
-    }
-
-    public static LabVIEWValue matchValue(LabVIEWValue labviewValue, String property, String field) {
-        LVTypeDescriptor descriptor = matchDescriptor(labviewValue.descriptor(), property, field);
-        if (descriptor == labviewValue.descriptor()) {
-            return labviewValue;
-        }
-        return new LabVIEWValue(labviewValue.value().castAsMap().get(descriptor.getName()), descriptor);
     }
 
     public static String typeDescriptorToHeader(short[] typeDescriptor) {
