@@ -1,0 +1,22 @@
+# OTLP export of metrics and logs to MONIT. Activated in OpenShift (SPRING_PROFILES_ACTIVE=...,monit). Export stays off
+# until the optional monit-tenant secret exists: MONIT_ENABLED=true, MONIT_CREDENTIALS=base64("<tenant>:<password>").
+management:
+  otlp:
+    metrics:
+      export:
+        enabled: ${MONIT_ENABLED:false}
+        url: https://monit-otlp.cern.ch:4319/v1/metrics
+        headers:
+          Authorization: "Basic ${MONIT_CREDENTIALS:}"
+        step: 30s
+  logging:
+    export:
+      otlp:
+        enabled: ${MONIT_ENABLED:false}
+  opentelemetry:
+    logging:
+      export:
+        otlp:
+          endpoint: https://monit-otlp.cern.ch:4319/v1/logs
+          headers:
+            Authorization: "Basic ${MONIT_CREDENTIALS:}"

@@ -14,8 +14,6 @@ service-properties:
   firstUpdateTimeout: 5000
   socketIdleTimeout: 10000
   subQueueSize: 100
-  logstashHost: "cs-ccr-rade4.cern.ch"
-  logstashPort: 30000
   rbac:
     required-role: "RADE-SERVICES-JAPC-USER"
     admin-role: "RADE-ADMIN"

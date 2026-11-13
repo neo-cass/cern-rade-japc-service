@@ -8,10 +8,6 @@ Configuration:
         value: "%white{%date{ISO8601}} %highlight{%-5level} [Thread: %yellow{%thread}] [Class: %green{%logger{1}}]: %message%n%red{%exception{full}}"
       - name: app_name
         value: ${spring:spring.application.name}
-      - name: logstash_host
-        value: ${spring:service-properties.logstashHost}
-      - name: logstash_port
-        value: ${spring:service-properties.logstashPort}
 
   Appenders:
     Console:
@@ -33,18 +29,10 @@ Configuration:
           size: 1GB
       DefaultRolloverStrategy:
         max: 20
-    Socket:
-      name: logstash
-      host: ${logstash_host}
-      port: ${logstash_port}
-      protocol: udp
-      JsonTemplateLayout:
-        #uses the official logstash logging layout
-        eventTemplateUri: "classpath:LogstashJsonEventLayoutV1.json"
-        eventTemplateAdditionalField:
-          - key: "app_name"
-            value: "${app_name}"
-            format: "STRING"
+    # OTLP to MONIT OpenSearch when the monit profile enables export; context data (request log fields) become attributes
+    OpenTelemetry:
+      name: monit
+      captureContextDataAttributes: "*"
 
   Loggers:
     Root:
@@ -52,4 +40,4 @@ Configuration:
       AppenderRef:
         - ref: console
         - ref: file
-        - ref: logstash
+        - ref: monit
