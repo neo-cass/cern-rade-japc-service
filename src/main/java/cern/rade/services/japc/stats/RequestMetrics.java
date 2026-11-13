@@ -4,6 +4,7 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
@@ -32,8 +33,11 @@ public class RequestMetrics {
     public void record(Client client, Operation operation, String target, int status, long startNanos) {
         long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         registry.counter(REQUESTS, "operation", operation.name(), "user", client.user(), "status", String.valueOf(status)).increment();
+        // Successful GETs are most of the traffic and already counted above: DEBUG keeps them out of MONIT unless this
+        // logger is set to DEBUG (LOGGING_LEVEL_CERN_RADE_SERVICES_JAPC_STATS_REQUESTMETRICS=DEBUG).
+        Level level = operation == Operation.GET && status < 400 ? Level.DEBUG : Level.INFO;
         // key-values become attributes of the OTLP log record in MONIT OpenSearch
-        logger.atInfo().addKeyValue("user", client.user()).addKeyValue("address", client.address())
+        logger.atLevel(level).addKeyValue("user", client.user()).addKeyValue("address", client.address())
                 .addKeyValue("operation", operation).addKeyValue("target", target)
                 .addKeyValue("status", status).addKeyValue("durationMs", durationMs)
                 .log("{} {} by {} from {}: {} in {} ms", operation, target, client.user(), client.address(), status, durationMs);
