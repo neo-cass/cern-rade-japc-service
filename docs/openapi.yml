@@ -816,7 +816,7 @@ components:
         loginType: {$ref: '#/components/schemas/LoginType'}
         location: {type: [string, 'null']}
         tokenExpiry: {type: string, format: date-time, description: When the current application token expires; the service renews it for a cached RBAC session}
-        sessionExpiry: {type: string, format: date-time, description: When the cached RBAC session can no longer be used. Equals `tokenExpiry` for `TOKEN`, which is not renewed}
+        sessionExpiry: {type: string, format: date-time, description: "When the cached RBAC session can no longer be used. Equals `tokenExpiry` for `TOKEN`, which is not renewed"}
     AdminMe:
       type: object
       properties:
