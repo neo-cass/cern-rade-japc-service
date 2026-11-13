@@ -1,0 +1,18 @@
+# MONIT Remote Probe for the JAPC service (not applied by CI).
+# To be merged to https://gitlab.cern.ch/monitoring/monit-remote-probes as <group>/probes.yaml
+# (add the group and your username to whitelist.yaml in the same merge request).
+# Guide: https://monit.docs.cern.ch/remote-probes/quickstart/
+#
+# Opens a "LabVIEW Support" SNOW ticket 10 min after the last successful probe, closed again when it recovers,
+# and 30 days before the TLS certificate expires. Internal mode (default): the Route is Intranet only.
+# Once the rade tenant accepts shared metrics, add `monit_shared: "rade"` to labels to chart/alert on it in our org.
+http_ipv4:
+  targets:
+    - url: https://rade-services-japc.web.cern.ch/readyz
+      enabled_alerts: [certificate_expiration]
+      alert_options:
+        certificate_expiration:
+          days: 30
+      labels:
+        snow_functional_element: "LabVIEW Support"
+        snow_auto_closing: "true"
