@@ -790,8 +790,6 @@ components:
         | Unsigned integers | U8 is set as short, U16 as int, U32 as long, U64 as long (error above 2^63-1). | Only when the client's `Lv-Type-Descriptor` declares an unsigned type, the value is then range checked. Otherwise the signed types above. |
 
         Not representable: `OBJECT` and undefined JAPC values, and the LabVIEW types extended, complex, physical quantity, path, picture, waveform, timestamp, variant and refnum.
-
-        Client guide, with examples and the LabVIEW VIs: `java-codec/LABVIEW_FORMAT.md` in the [rade-codec](https://gitlab.cern.ch/rade/rade-core/services/rade-codec) repository.
       type: string
       format: base64url
       x-labview-types:
