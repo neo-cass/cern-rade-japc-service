@@ -120,10 +120,6 @@ public class SubscriptionService implements ParameterValueListener {
         return sh.isMonitoring();
     }
 
-    public RbacSession getRbacSession() {
-        return rbacSession;
-    }
-
     public String getParameterName() {
         return parameterName;
     }

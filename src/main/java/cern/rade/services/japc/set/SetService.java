@@ -43,8 +43,4 @@ public class SetService {
     public boolean isExecuted() {
         return isExecuted;
     }
-
-    public RbacSession getRbacSession() {
-        return rbacSession;
-    }
 }

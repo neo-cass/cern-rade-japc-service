@@ -43,7 +43,7 @@ public class SubscriptionWebSocketConfigurator implements WebSocketConfigurer {
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         //We intercept the HTTP handshake, so we can initialise the SubscriptionService
-        //and return the client's RBAC ID and type descriptor as required.
+        //with the client's RBAC session and return the type descriptor as required.
         registry.addHandler(subscriptionManager(), ApiPaths.WS + "/**")
                 .addInterceptors(new SubscriptionHandshakeInterceptor(requestMetrics, rateLimiter, subscriptionManager(), clock));
     }

@@ -19,9 +19,6 @@ public class PropertySetEndpoint extends SetEndpoint {
             throws ParameterException {
         SetService setService = setService(selector, device, property, field, value);
         setService.execute();
-        return ResponseEntity
-                .ok()
-                .headers(responseHeaders(setService))
-                .build();
+        return ResponseEntity.ok().build();
     }
 }

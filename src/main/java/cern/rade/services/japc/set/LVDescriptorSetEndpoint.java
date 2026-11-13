@@ -21,9 +21,6 @@ public class LVDescriptorSetEndpoint extends SetEndpoint {
         LabVIEWValue value = LabVIEWFormat.matchValue(body, property, field);
         SetService setService = setService(selector, device, property == null ? value.descriptor().getName() : property, field, value.value());
         setService.execute();
-        return ResponseEntity
-                .ok()
-                .headers(responseHeaders(setService))
-                .build();
+        return ResponseEntity.ok().build();
     }
 }

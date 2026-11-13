@@ -71,8 +71,4 @@ public class GetService {
         }
         return cycleStamp;
     }
-
-    public RbacSession getRbacSession() {
-        return rbacSession;
-    }
 }

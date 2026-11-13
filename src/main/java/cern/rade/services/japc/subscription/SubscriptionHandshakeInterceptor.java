@@ -8,7 +8,6 @@ import cern.rade.services.japc.error.ErrorLog;
 import cern.rade.services.japc.format.Format;
 import cern.rade.services.japc.format.Formats;
 import cern.rade.services.japc.ratelimit.RateLimiter;
-import cern.rade.services.japc.rbac.RbacHeaders;
 import cern.rade.services.japc.security.RbacAuthentication;
 import cern.rade.services.japc.stats.Client;
 import cern.rade.services.japc.stats.Operation;
@@ -115,7 +114,6 @@ public class SubscriptionHandshakeInterceptor implements HandshakeInterceptor {
             attributes.put(SessionAttributes.FORMAT, format);
             attributes.put(SessionAttributes.CLIENT, client);
             attributes.put(SessionAttributes.OPENED_AT, clock.instant());
-            RbacHeaders.setCached(retHeaders, subscriptionService.getRbacSession());
             List<String> fields = Fields.parse(servletRequest.getParameter("fields"));
             if (fields != null){
                 attributes.put(SessionAttributes.FIELDS, fields);
