@@ -18,6 +18,12 @@
         .org figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 0.25rem; }
         .org figcaption { font-size: 0.8rem; color: var(--muted); }
         .sep { color: var(--muted); }
+        .steps { margin: 0.5rem 0; padding-left: 1.25rem; }
+        .steps li { margin: 0.4rem 0; }
+        .contact { display: grid; grid-template-columns: max-content 1fr; gap: 0.4rem 1.25rem; margin: 0.5rem 0; }
+        .contact dt { color: var(--muted); }
+        .contact dd { margin: 0; }
+        .doi { overflow-wrap: break-word; }
     </style>
 </head>
 <body>
@@ -47,10 +53,28 @@
             <p class="muted">Subscriptions at <code>/ws/v1</code></p>
             <p><a href="/asyncapi.yaml">asyncapi.yaml</a></p>
         </div>
+        <div class="card">
+            <h3><a href="https://doi.org/10.17181/x7kbq-qrv65">Background paper</a></h3>
+            <p class="muted">Why and how the service was built</p>
+            <p class="doi"><a href="https://doi.org/10.17181/x7kbq-qrv65">https://doi.org/<wbr>10.17181/x7kbq-qrv65</a></p>
+        </div>
     </div>
 
     <h2>Access</h2>
-    <p>Every request needs an RBAC login with the service's RBAC role. Log in once with <code>PUT /rbac/session</code> (<code>Rbac: Explicit</code>, <code>Rbac: Kerberos</code>, <code>Rbac: Oauth</code> or <code>Rbac: Token</code>) and send the returned <code>Rbac: Cached</code> header on every other request. A <code>Token</code> login is not renewed: log in again with a new token once it expires. Admins can use the <a href="/admin">admin panel</a>.</p>
+    <ol class="steps">
+        <li>Join the <a href="https://groups-portal.web.cern.ch/group/rade-services-japc-users">rade-services-japc-users</a> e-group. Only its members can use the service.</li>
+        <li>Log in once with <code>PUT /rbac/session</code>, sending <code>Rbac: Explicit</code>, <code>Rbac: Kerberos</code>, <code>Rbac: Oauth</code> or <code>Rbac: Token</code>.</li>
+        <li>Send the returned <code>Rbac: Cached</code> header on every other request. A <code>Token</code> login is not renewed: log in again with a new token once it expires.</li>
+    </ol>
+    <p>The rade-admins group can use the <a href="/admin">admin panel</a>.</p>
+
+    <h2>Contact</h2>
+    <dl class="contact">
+        <dt>Support</dt>
+        <dd><a href="https://cern.service-now.com/service-portal?id=service_element&amp;name=labview-support">LabVIEW Support on Service Portal</a></dd>
+        <dt>Main developer</dt>
+        <dd><a href="mailto:neo.michael.cass@cern.ch">neo.michael.cass@cern.ch</a> <span class="muted">(or <a href="mailto:neo@neocass.com">neo@neocass.com</a> if no longer at CERN)</span></dd>
+    </dl>
 
     <footer>
         <div class="org">
