@@ -7,7 +7,7 @@ info:
 
     Connection:
     1. Open a WebSocket to a channel address. Select the format with `Sec-WebSocket-Protocol`: `json` (default when absent) or `labview-variant`.
-    2. The handshake fails with an HTTP error response, encoded as in the [REST API](/docs/rest), if there is no valid RBAC login with the required role (401/403), the parameter cannot be subscribed or no first value arrives within 5 s.
+    2. The handshake fails with an HTTP error response, encoded as in the [REST API](/docs/rest), if there is no valid RBAC login with the required role (401/403), the RBAC user exceeds its rate limit or open subscription limit (429), the parameter cannot be subscribed or no first value arrives within 5 s.
     3. The first message is the current value. Each further update is one message.
     4. Device errors are sent as error messages and the subscription continues. Fatal errors close the connection with a close code and the error message as reason.
 
@@ -372,5 +372,5 @@ components:
       description: Cycle stamp in nanoseconds since 1970-01-01T00:00:00Z. `0` when not multiplexed.
     errorCode:
       type: integer
-      enum: [5000, 5001, 5002, 5003, 5004]
-      description: 5000 JAPC, 5001 codec, 5002 RBAC, 5003 bad request, 5004 internal.
+      enum: [5000, 5001, 5002, 5003, 5004, 5005]
+      description: 5000 JAPC, 5001 codec, 5002 RBAC, 5003 bad request, 5004 internal, 5005 rate limited (handshake only).

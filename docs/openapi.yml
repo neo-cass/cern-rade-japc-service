@@ -311,16 +311,16 @@ paths:
     get:
       tags: [Admin]
       operationId: adminClients
-      summary: Request rates per client
+      summary: Requests per user
       responses:
         '200':
-          description: Per RBAC user and address, most recently seen first.
+          description: Requests per RBAC user since the service started, by user name.
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/AdminClientRate'
+                  $ref: '#/components/schemas/AdminClientRequests'
         4XX:
           $ref: '#/components/responses/AdminError'
 components:
@@ -527,11 +527,16 @@ components:
         | 404 | 5003 | Unknown route |
         | 406 | 5003 | `Accept` not supported by the route |
         | 415 | 5003 | `Content-Type` not supported by the route |
+        | 429 | 5005 | Rate limit of the RBAC user exceeded: requests per second (wait `Retry-After` seconds) or open subscriptions |
         | 500 | 5001 | Value cannot be encoded in the requested format |
         | 500 | 5004 | Internal error |
         | 502 | 5000 | Device or middleware error |
         | 504 | 5000 | Device timeout |
       headers:
+        Retry-After:
+          description: 429 only. Seconds to wait before retrying.
+          schema:
+            type: integer
         Lv-Type-Descriptor:
           description: LabVIEW only. Descriptor of the error cluster.
           schema:
@@ -550,6 +555,7 @@ components:
         '404': [5000, 5003]
         '406': [5003]
         '415': [5003]
+        '429': [5005]
         '500': [5001, 5004]
         '502': [5000]
         '504': [5000]
@@ -762,20 +768,15 @@ components:
         user: {type: string}
         address: {type: string}
         openedAt: {type: string, format: date-time}
-    AdminClientRate:
+    AdminClientRequests:
       type: object
       properties:
         user: {type: string}
-        address: {type: string}
-        lastSeen: {type: string, format: date-time}
-        operations:
+        requests:
           type: object
-          description: Keys GET, SET, SUBSCRIBE.
-          additionalProperties:
-            type: object
-            properties:
-              lastMinute: {type: integer}
-              total: {type: integer}
+          description: Keys GET, SET, SUBSCRIBE (absent when zero). Rate-limited requests included.
+          additionalProperties: {type: integer}
+        rateLimited: {type: integer}
     LoginType:
       type: string
       enum: [EXPLICIT, KERBEROS, OAUTH, LOCATION, TOKEN]
