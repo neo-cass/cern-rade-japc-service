@@ -72,7 +72,7 @@ function duration(iso) {
  */
 function renderTable(table, columns, rows, emptyText, group) {
     const head = element("tr");
-    columns.forEach(column => head.append(element("th", column.label)));
+    columns.forEach(column => head.append(element("th", column.label, column.number ? "number" : "")));
     const body = [];
     rows.forEach((row, index) => {
         if (group && (index === 0 || group.key(rows[index - 1]) !== group.key(row))) {
