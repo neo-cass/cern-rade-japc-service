@@ -15,23 +15,28 @@ info:
 
     Examples:
     ```
+    curl -X PUT -D - -H 'Rbac: Explicit <base64url(username:password)>' 'https://<host>/rbac/session'
     curl -H 'Rbac: Cached <id>' 'https://<host>/api/v1/EXAMPLE.DEVICE/Acquisition?selector=CPS.USER.ALL'
     curl -H 'Rbac: Cached <id>' 'https://<host>/api/v1/EXAMPLE.DEVICE/Acquisition?fields=current,voltage'
     curl -H 'Rbac: Cached <id>' -X PUT -H 'Content-Type: application/json' -d '{"@type":"double_value","value":1.5}' 'https://<host>/api/v1/EXAMPLE.DEVICE/Setting/current'
-    curl -H 'Rbac: Explicit <base64url(username:password)>' 'https://<host>/api/v1/EXAMPLE.DEVICE/Acquisition'
-    curl -H 'Rbac: Cached <id>' 'https://<host>/api/v1/EXAMPLE.DEVICE/Acquisition'
     ```
 
     Every request needs an RBAC login (see the `Rbac` security scheme) whose token has the service's required RBAC role.
+    Log in once with `PUT /rbac/session` (credentials in the `Rbac` header), which answers with `Rbac: Cached <id>`, and send that header on every
+    other call. Logging in on the other calls is rejected with 401. A client that already holds an RBAC token sends it as `Rbac: Token <base64url(token)>`
+    instead and does not need to log in.
 
     Subscriptions: [WebSocket API](/docs/websocket). Specifications: [/openapi.yaml](/openapi.yaml), [/asyncapi.yaml](/asyncapi.yaml).
 security:
   - Rbac: []
-  - RbacToken: []
 servers:
   - url: /api/v1
     description: This deployment. /api is an alias of /api/v1.
 tags:
+  - name: RBAC session
+    description: |
+      Log in, inspect and log out, at `/rbac/session` (not under `/api/v1`). Needs the service's required RBAC role or the admin RBAC role.
+      This is the only place where credentials are accepted.
   - name: Parameter
     description: Access by device, property and optional field in the path.
   - name: LabVIEW descriptor
@@ -149,8 +154,6 @@ paths:
               $ref: '#/components/headers/Acq-Stamp'
             Cycle-Stamp:
               $ref: '#/components/headers/Cycle-Stamp'
-            Rbac:
-              $ref: '#/components/headers/Rbac'
           content:
             application/labview-variant:
               schema:
@@ -177,6 +180,78 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/Set'
+        4XX:
+          $ref: '#/components/responses/Error'
+        5XX:
+          $ref: '#/components/responses/Error'
+  /session:
+    servers:
+      - url: /rbac
+        description: Not under /api/v1.
+    put:
+      tags: [RBAC session]
+      operationId: login
+      summary: Log in
+      description: |
+        The only call that accepts login credentials: `Rbac: Explicit <base64url(username:password)>`,
+        `Rbac: Kerberos <base64url(ticket)>` or `Rbac: Oauth <access token>`. The cached id in the response is a secret, like a password: send it as
+        `Rbac: Cached <id>` on every other call. The session is renewed by the service, so the id keeps working until it
+        is revoked, unused for 24 hours, or the service restarts.
+
+        With `Rbac: Cached <id>` the same id is returned again. With `Rbac: Token <base64url(token)>` there is nothing to
+        cache: the response is `204` without an `Rbac` header, and the token itself is sent on every request until it expires.
+        PUT rather than POST because the LabVIEW client cannot send POST.
+        ```
+        curl -X PUT -D - -H 'Rbac: Explicit <base64url(username:password)>' 'https://<host>/rbac/session'
+        ```
+      responses:
+        '204':
+          description: Logged in. No body.
+          headers:
+            Rbac:
+              $ref: '#/components/headers/Rbac'
+            Cache-Control:
+              description: '`no-store`, because of the secret id.'
+              schema:
+                type: string
+                const: no-store
+        4XX:
+          $ref: '#/components/responses/Error'
+        5XX:
+          $ref: '#/components/responses/Error'
+    get:
+      tags: [RBAC session]
+      operationId: getSession
+      summary: The caller's session
+      description: |
+        Works with `Rbac: Cached <id>` or `Rbac: Token <base64url(token)>`. The secret id is not returned.
+        ```
+        curl -H 'Rbac: Cached <id>' 'https://<host>/rbac/session'
+        ```
+      responses:
+        '200':
+          description: The session the request was authenticated with.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionInfo'
+        4XX:
+          $ref: '#/components/responses/Error'
+        5XX:
+          $ref: '#/components/responses/Error'
+    delete:
+      tags: [RBAC session]
+      operationId: logout
+      summary: Log out
+      description: |
+        Revokes the session whose cached id was sent, so the id gets 401 from then on. There is no parameter: a client can
+        only revoke its own session. A login (`Explicit`, `Kerberos`, `Oauth`) is not accepted here.
+        ```
+        curl -X DELETE -H 'Rbac: Cached <id>' 'https://<host>/rbac/session'
+        ```
+      responses:
+        '204':
+          description: Revoked. No body.
         4XX:
           $ref: '#/components/responses/Error'
         5XX:
@@ -332,23 +407,18 @@ components:
       description: |
         RBAC credentials. Required: without them the service answers 401, and without the required RBAC role 403.
 
-        | Value | Credentials |
-        |---|---|
-        | `Explicit <base64url(username:password)>` | Login with username and password. |
-        | `Kerberos <base64url(ticket)>` | Kerberos service ticket (GSS-API AP-REQ) for the RBAC server, `RBAC/rbac-pro-lb.cern.ch@CERN.CH` in PRO. Not a ticket for this service. |
-        | `Location <base64url(token)>` | Serialized RBAC token obtained by the client, e.g. by location login. Used until it expires, never renewed. |
-        | `Cached <id>` | Id returned in the `Rbac` response header of an earlier request. |
+        | Value | Credentials | Accepted by |
+        |---|---|---|
+        | `Explicit <base64url(username:password)>` | Login with username and password. | `PUT /rbac/session` only |
+        | `Kerberos <base64url(ticket)>` | Kerberos service ticket (GSS-API AP-REQ) for the RBAC server, `RBAC/rbac-pro-lb.cern.ch@CERN.CH` in PRO. Not a ticket for this service. | `PUT /rbac/session` only |
+        | `Oauth <access token>` | CERN SSO access token whose audience is the RBAC server. Sent as-is, not Base64. The service logs in to RBAC with it and holds a renewable session, like Explicit and Kerberos. | `PUT /rbac/session` only |
+        | `Cached <id>` | Id returned in the `Rbac` response header of `PUT /rbac/session`. | every call |
+        | `Token <base64url(token)>` | Serialized RBAC token the client obtained itself. Validated on every request, used until it expires, never renewed or cached. | every call |
 
-        Explicit and Kerberos logins are renewed by the service for up to a year, so their cached id keeps working;
-        a cached id unused for 24 hours is dropped. Cached ids are held in memory by the serving instance and are lost on restart.
-      x-rbac-schemes: [Explicit, Kerberos, Location, Cached]
-    RbacToken:
-      type: apiKey
-      in: header
-      name: Authorization
-      description: |
-        `rbac-token <base64(token)>`, the format of rbac-util's `RbacAuthenticationFilter` and `FeignRbacInterceptor`
-        (`RbaToken#toHttpHeader`). Used until it expires; no `Rbac` response header.
+        A login scheme on any other call is rejected with 401. Explicit, Kerberos and Oauth logins are renewed by the service for up to a year,
+        so their cached id keeps working; a cached id unused for 24 hours is dropped, and so is the oldest one of a user above the
+        per-user limit. Cached ids are held in memory by the serving instance and are lost on restart.
+      x-rbac-schemes: [Explicit, Kerberos, Oauth, Cached, Token]
   parameters:
     device:
       name: device
@@ -430,7 +500,7 @@ components:
         type: integer
         format: int64
     Rbac:
-      description: '`Cached <id>`. Present when the request used the `Rbac` header. Reuse the value as the `Rbac` request header. The id is a secret, like a password.'
+      description: '`Cached <id>`. Present when `PUT /rbac/session` logged in with credentials or a cached id. Send the value as the `Rbac` request header on every other call. The id is a secret, like a password.'
       schema:
         type: string
         pattern: '^Cached [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
@@ -474,8 +544,6 @@ components:
           $ref: '#/components/headers/Acq-Stamp'
         Cycle-Stamp:
           $ref: '#/components/headers/Cycle-Stamp'
-        Rbac:
-          $ref: '#/components/headers/Rbac'
         Lv-Type-Descriptor:
           $ref: '#/components/headers/Lv-Type-Descriptor'
       content:
@@ -501,9 +569,6 @@ components:
             $ref: '#/components/schemas/LabVIEWData'
     Set:
       description: Value set. No body.
-      headers:
-        Rbac:
-          $ref: '#/components/headers/Rbac'
     AdminError:
       description: '401 without an RBAC login, 403 without the admin role, 404 for an unknown session or subscription.'
       content:
@@ -521,8 +586,8 @@ components:
         | 400 | 5000 | Value or selector rejected by the device (invalid argument, invalid request, bad setting value) |
         | 400 | 5001 | Body or `Lv-Type-Descriptor` cannot be decoded |
         | 400 | 5003 | Malformed request, `Lv-Type-Descriptor` does not match the path, unknown field in `fields` |
-        | 401 | 5002 | No RBAC login, invalid `Rbac` header, failed login, expired token or unknown cached id |
-        | 403 | 5002 | Token lacks the service's required RBAC role, or RBAC access to the device denied |
+        | 401 | 5002 | No `Rbac` header, invalid `Rbac` header, failed login, expired or invalid token, unknown or revoked cached id, or a login scheme (`Explicit`, `Kerberos`, `Oauth`) on any call but `PUT /rbac/session` |
+        | 403 | 5002 | Token lacks the service's required RBAC role (or, for `/rbac/session`, the admin role as well), or RBAC access to the device denied |
         | 404 | 5000 | Device or property not found |
         | 404 | 5003 | Unknown route |
         | 406 | 5003 | `Accept` not supported by the route |
@@ -723,6 +788,16 @@ components:
       x-labview-cluster:
         label: error out
         elements: [status Boolean, code I32, source String]
+    SessionInfo:
+      type: object
+      description: The caller's own session. Unlike `AdminSession` it has no `handle`, address or timestamps of use; the secret id is never included.
+      properties:
+        user: {type: string}
+        roles: {type: array, items: {type: string}}
+        loginType: {$ref: '#/components/schemas/LoginType'}
+        location: {type: [string, 'null']}
+        tokenExpiry: {type: string, format: date-time, description: When the current application token expires; the service renews it for a cached session}
+        sessionExpiry: {type: string, format: date-time, description: When the session can no longer be used. Equals `tokenExpiry` for a `TOKEN` session}
     AdminMe:
       type: object
       properties:
@@ -779,4 +854,4 @@ components:
         rateLimited: {type: integer}
     LoginType:
       type: string
-      enum: [EXPLICIT, KERBEROS, OAUTH, LOCATION, TOKEN]
+      enum: [EXPLICIT, KERBEROS, OAUTH, TOKEN]

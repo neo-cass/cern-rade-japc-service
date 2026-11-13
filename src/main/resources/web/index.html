@@ -50,7 +50,7 @@
     </div>
 
     <h2>Access</h2>
-    <p>Every request needs an RBAC login with the service's RBAC role, sent in the <code>Rbac</code> header. Admins can use the <a href="/admin">admin panel</a>.</p>
+    <p>Every request needs an RBAC login with the service's RBAC role. Log in once with <code>PUT /rbac/session</code> (<code>Rbac: Explicit</code>, <code>Rbac: Kerberos</code> or <code>Rbac: Oauth</code>) and send the returned <code>Rbac: Cached</code> header on every other request. Admins can use the <a href="/admin">admin panel</a>.</p>
 
     <footer>
         <div class="org">

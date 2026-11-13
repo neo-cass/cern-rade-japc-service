@@ -31,8 +31,8 @@ info:
 
     Examples:
     ```
-    wscat -s json -H 'Rbac: Explicit <base64url(username:password)>' -c 'wss://<host>/ws/v1/EXAMPLE.DEVICE/Acquisition?selector=CPS.USER.ALL'
-    wscat -s json -H 'Rbac: Cached <id>' -c 'wss://<host>/ws/v1/EXAMPLE.DEVICE/Acquisition'
+    curl -X PUT -D - -H 'Rbac: Explicit <base64url(username:password)>' 'https://<host>/rbac/session'
+    wscat -s json -H 'Rbac: Cached <id>' -c 'wss://<host>/ws/v1/EXAMPLE.DEVICE/Acquisition?selector=CPS.USER.ALL'
     ```
     ```python
     import asyncio, json, websockets
@@ -160,16 +160,15 @@ components:
       in: header
       name: Rbac
       description: |
-        Required RBAC credentials, as in the REST API. The handshake response contains `Rbac: Cached <id>`.
-        `Authorization: rbac-token <base64(token)>` is accepted too.
+        Required RBAC credentials, as in the REST API. Log in first with `PUT /rbac/session` (see the [REST API](/docs/rest)),
+        which answers with `Rbac: Cached <id>`. The handshake only accepts the values below and its response has no `Rbac` header.
+        A login with credentials (`Explicit`, `Kerberos`, `Oauth`) in the handshake is rejected with 401.
 
         | Value | Credentials |
         |---|---|
-        | `Explicit <base64url(username:password)>` | Login with username and password. |
-        | `Kerberos <base64url(ticket)>` | Kerberos service ticket for the RBAC server (`RBAC/rbac-pro-lb.cern.ch@CERN.CH` in PRO). |
-        | `Location <base64url(token)>` | Serialized RBAC token obtained by the client. Used until it expires. |
-        | `Cached <id>` | Id from an earlier `Rbac` response header. |
-      x-rbac-schemes: [Explicit, Kerberos, Location, Cached]
+        | `Cached <id>` | Id from the `Rbac` response header of `PUT /rbac/session`. |
+        | `Token <base64url(token)>` | Serialized RBAC token obtained by the client. Validated on every handshake, used until it expires. |
+      x-rbac-schemes: [Cached, Token]
   parameters:
     device:
       description: Device name. Must not match `v[0-9]+`.
