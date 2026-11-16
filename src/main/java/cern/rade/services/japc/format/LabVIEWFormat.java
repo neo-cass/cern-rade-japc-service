@@ -25,6 +25,10 @@ import java.nio.ByteBuffer;
 import java.util.Base64;
 import java.util.Map;
 
+/**
+ * The {@code application/labview-variant} format: LabVIEW flattened data, described by the {@code Lv-Type-Descriptor}
+ * header.
+ */
 public class LabVIEWFormat extends Format {
     public static final String MEDIA_TYPE = "application/labview-variant";
     public static final String TYPE_DESCRIPTOR_HEADER = "Lv-Type-Descriptor";
@@ -43,8 +47,8 @@ public class LabVIEWFormat extends Format {
     }
 
     @Override
-    public HttpMessageConverter<?> converter() {
-        return new LabVIEWConverter(mediaType());
+    public HttpMessageConverter<?> converter(int maxBodyBytes) {
+        return new LabVIEWConverter(mediaType(), maxBodyBytes);
     }
 
     @Override

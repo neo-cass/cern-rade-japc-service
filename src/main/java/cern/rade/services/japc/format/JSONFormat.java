@@ -14,6 +14,9 @@ import org.springframework.web.socket.WebSocketMessage;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
+/**
+ * The {@code application/json} format, WebSocket subprotocol {@code json}.
+ */
 public class JSONFormat extends Format {
     public static final String MEDIA_TYPE = MediaType.APPLICATION_JSON_VALUE;
 
@@ -28,8 +31,8 @@ public class JSONFormat extends Format {
     }
 
     @Override
-    public HttpMessageConverter<?> converter() {
-        return new JSONConverter(mediaType());
+    public HttpMessageConverter<?> converter(int maxBodyBytes) {
+        return new JSONConverter(mediaType(), maxBodyBytes);
     }
 
     @Override

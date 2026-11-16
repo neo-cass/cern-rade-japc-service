@@ -18,8 +18,11 @@ import java.io.IOException;
  * {@link LabVIEWValue} and {@link NamedValue} responses.
  */
 public class LabVIEWConverter extends AbstractHttpMessageConverter<Object> {
-    public LabVIEWConverter(MediaType mediaType) {
+    private final int maxBodyBytes;
+
+    public LabVIEWConverter(MediaType mediaType, int maxBodyBytes) {
         super(mediaType);
+        this.maxBodyBytes = maxBodyBytes;
     }
 
     @Override
@@ -44,7 +47,7 @@ public class LabVIEWConverter extends AbstractHttpMessageConverter<Object> {
             throw new HttpMessageNotReadableException(LabVIEWFormat.TYPE_DESCRIPTOR_HEADER + " header is required", inputMessage);
         }
         try {
-            return new LabVIEWBody(LabVIEWFormat.typeDescriptorFromHeader(typeDescriptor), inputMessage.getBody().readAllBytes());
+            return new LabVIEWBody(LabVIEWFormat.typeDescriptorFromHeader(typeDescriptor), Format.readBody(inputMessage, maxBodyBytes));
         } catch (CodecException e) {
             throw new HttpMessageNotReadableException(e.getMessage(), e, inputMessage);
         }

@@ -13,9 +13,15 @@ import org.springframework.http.converter.HttpMessageNotWritableException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * Reads JSON request bodies as JAPC values and writes {@link NamedValue} responses as JSON.
+ */
 public class JSONConverter extends AbstractHttpMessageConverter<Object> {
-    public JSONConverter(MediaType mediaType) {
+    private final int maxBodyBytes;
+
+    public JSONConverter(MediaType mediaType, int maxBodyBytes) {
         super(StandardCharsets.UTF_8, mediaType);
+        this.maxBodyBytes = maxBodyBytes;
     }
 
     @Override
@@ -36,7 +42,7 @@ public class JSONConverter extends AbstractHttpMessageConverter<Object> {
     @Override
     protected Object readInternal(Class<?> clazz, HttpInputMessage inputMessage) throws IOException {
         try {
-            return JSONCodec.decode(new String(inputMessage.getBody().readAllBytes(), StandardCharsets.UTF_8));
+            return JSONCodec.decode(new String(Format.readBody(inputMessage, maxBodyBytes), StandardCharsets.UTF_8));
         } catch (CodecException e) {
             throw new HttpMessageNotReadableException(e.getMessage(), e, inputMessage);
         }

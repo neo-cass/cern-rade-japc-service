@@ -9,9 +9,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.util.Base64;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -19,8 +21,11 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * Reading LabVIEW request bodies: what is accepted, deferred to the endpoint and refused.
+ */
 class LabVIEWConverterTest {
-    private final LabVIEWConverter converter = new LabVIEWConverter(new LabVIEWFormat().mediaType());
+    private final LabVIEWConverter converter = new LabVIEWConverter(new LabVIEWFormat().mediaType(), 64);
 
     private static HttpInputMessage request(String typeDescriptorHeader, byte[] body) {
         HttpHeaders headers = new HttpHeaders();
@@ -77,5 +82,27 @@ class LabVIEWConverterTest {
         for (String header : new String[]{"not base64 !", "AAAA"}) {
             assertThrows(HttpMessageNotReadableException.class, () -> converter.read(LabVIEWBody.class, request(header, new byte[0])), header);
         }
+    }
+
+    @Test
+    void typeDescriptorWithNegativeCountIsNotReadable() {
+        // a cluster whose element count is negative: the codec fails with an unchecked exception
+        String header = Base64.getUrlEncoder().encodeToString(new byte[]{0, 6, 0, 0x50, (byte) 0xFF, (byte) 0xFF});
+
+        assertThrows(HttpMessageNotReadableException.class, () -> converter.read(LabVIEWBody.class, request(header, new byte[0])));
+    }
+
+    @Test
+    void bodyLargerThanTheCapIsRefused() throws Exception {
+        HttpInputMessage message = request(settingHeader(), new byte[65]);
+
+        ResponseStatusException e = assertThrows(ResponseStatusException.class, () -> converter.read(LabVIEWBody.class, message));
+        assertEquals(413, e.getStatusCode().value());
+    }
+
+    @Test
+    void bodyOfExactlyTheCapIsRead() throws Exception {
+        LabVIEWBody body = (LabVIEWBody) converter.read(LabVIEWBody.class, request(settingHeader(), new byte[64]));
+        assertEquals("Setting", body.name());
     }
 }

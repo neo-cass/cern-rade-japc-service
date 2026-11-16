@@ -10,6 +10,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+/**
+ * The supported formats, and which one a request or a WebSocket handshake uses. The first is the default.
+ */
 public final class Formats {
     public static final List<Format> ALL = List.of(new JSONFormat(), new LabVIEWFormat());
 
