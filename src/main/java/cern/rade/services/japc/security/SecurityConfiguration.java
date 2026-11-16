@@ -1,6 +1,7 @@
 package cern.rade.services.japc.security;
 
 import cern.rade.services.japc.ApiPaths;
+import cern.rade.services.japc.ratelimit.RateLimiter;
 import cern.rade.services.japc.rbac.RbacHeaders;
 import cern.rade.services.japc.rbac.RbacProperties;
 import cern.rade.services.japc.rbac.RbacSessionRegistry;
@@ -45,11 +46,14 @@ public class SecurityConfiguration {
     private final RbacLoginService loginService;
     private final RbacSessionRegistry registry;
     private final RbacProperties properties;
+    private final RateLimiter rateLimiter;
 
-    public SecurityConfiguration(RbacLoginService loginService, RbacSessionRegistry registry, RbacProperties properties) {
+    public SecurityConfiguration(RbacLoginService loginService, RbacSessionRegistry registry, RbacProperties properties,
+                                 RateLimiter rateLimiter) {
         this.loginService = loginService;
         this.registry = registry;
         this.properties = properties;
+        this.rateLimiter = rateLimiter;
     }
 
     /**
@@ -69,6 +73,8 @@ public class SecurityConfiguration {
                 .addFilterAfter(new InactiveSessionFilter(), SecurityContextHolderFilter.class)
                 // no login with credentials here: the panel logs in with CERN SSO, API clients use /rbac/session
                 .addFilterBefore(rbacHeaderFilter(tokenSupport, request -> false), AnonymousAuthenticationFilter.class)
+                // the panel only loads its own script and styles
+                .headers(headers -> headers.contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'self'; frame-ancestors 'none'")))
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .csrf(csrf -> csrf.spa()
@@ -138,7 +144,7 @@ public class SecurityConfiguration {
      * Not a bean: Spring Boot would also register a filter bean for every request, outside the chains.
      */
     private RbacHeaderFilter rbacHeaderFilter(RbacTokenSupport tokenSupport, RequestMatcher loginRequest) {
-        return new RbacHeaderFilter(loginService, tokenSupport, registry, loginRequest);
+        return new RbacHeaderFilter(loginService, tokenSupport, registry, loginRequest, rateLimiter);
     }
 
     /**

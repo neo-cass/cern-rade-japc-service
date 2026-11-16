@@ -28,20 +28,20 @@ public final class SecurityErrorWriter {
     }
 
     public static AuthenticationEntryPoint unauthorized(String message) {
-        return (request, response, exception) -> write(request, response, HttpStatus.UNAUTHORIZED, message);
+        return (request, response, exception) -> write(request, response, HttpStatus.UNAUTHORIZED, ErrorCode.RBAC_ERROR, message);
     }
 
     public static AccessDeniedHandler forbidden(String message) {
-        return (request, response, exception) -> write(request, response, HttpStatus.FORBIDDEN, message);
+        return (request, response, exception) -> write(request, response, HttpStatus.FORBIDDEN, ErrorCode.RBAC_ERROR, message);
     }
 
-    public static void write(HttpServletRequest request, HttpServletResponse response, HttpStatus status, String message)
-            throws IOException {
+    public static void write(HttpServletRequest request, HttpServletResponse response, HttpStatus status, ErrorCode code,
+                             String message) throws IOException {
         String origin = request.getMethod() + " " + request.getRequestURI();
         ErrorLog.log(logger, origin, status, message, null);
-        ErrorCode.RBAC_ERROR.count(request.getHeader(WebSocketHttpHeaders.SEC_WEBSOCKET_PROTOCOL) == null ? "rest" : "websocket", status);
+        code.count(request.getHeader(WebSocketHttpHeaders.SEC_WEBSOCKET_PROTOCOL) == null ? "rest" : "websocket", status);
         try {
-            ResponseEntity<byte[]> error = format(request).errorResponse(status, ErrorCode.RBAC_ERROR, origin, message);
+            ResponseEntity<byte[]> error = format(request).errorResponse(status, code, origin, message);
             response.setStatus(status.value());
             error.getHeaders().forEach((name, values) -> values.forEach(value -> response.addHeader(name, value)));
             response.getOutputStream().write(error.getBody());

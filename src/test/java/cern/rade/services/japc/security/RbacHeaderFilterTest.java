@@ -1,5 +1,7 @@
 package cern.rade.services.japc.security;
 
+import cern.rade.services.japc.ratelimit.RateLimitProperties;
+import cern.rade.services.japc.ratelimit.RateLimiter;
 import cern.rade.services.japc.rbac.ClientContext;
 import cern.rade.services.japc.rbac.LoginType;
 import cern.rade.services.japc.rbac.RbacHeaders;
@@ -11,6 +13,7 @@ import cern.rade.services.japc.rbac.login.CachedLogin;
 import cern.rade.services.japc.rbac.login.RbacCredentials;
 import cern.rade.services.japc.rbac.login.RbacLogin;
 import cern.rade.services.japc.rbac.login.RbacLoginService;
+import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.RbaToken;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletOutputStream;
@@ -31,7 +34,9 @@ import java.lang.reflect.Proxy;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
@@ -61,9 +66,11 @@ class RbacHeaderFilterTest {
         }
     };
     private final RbacLoginService loginService = new RbacLoginService(
-            List.of(new FixedLogin("Explicit", LoginType.EXPLICIT, true), new FixedLogin("Token", LoginType.TOKEN, true), new CachedLogin(registry)),
+            List.of(new FixedLogin("Explicit", LoginType.EXPLICIT, true), new FixedLogin("Token", LoginType.TOKEN, true), new CachedLogin(registry),
+                    new FailingLogin()),
             registry);
-    private final RbacHeaderFilter filter = new RbacHeaderFilter(loginService, tokenSupport, registry, PUT_SESSION);
+    private final RbacHeaderFilter filter = new RbacHeaderFilter(loginService, tokenSupport, registry, PUT_SESSION,
+            new RateLimiter(new RateLimitProperties(50, 100, 200, Map.of(), 2)));
     private final AtomicReference<RbacSession> seenByChain = new AtomicReference<>();
     private final FilterChain chain = (request, response) -> seenByChain.set(RbacAuthentication.current().orElse(null));
 
@@ -141,18 +148,51 @@ class RbacHeaderFilterTest {
         assertNull(SecurityContextHolder.getContext().getAuthentication());
     }
 
+    @Test
+    void addressIsRefusedAfterTooManyFailedLogins() throws Exception {
+        assertEquals(401, filter("PUT", "/rbac/session", "Bad x", "10.0.0.1").status);
+        assertEquals(401, filter("PUT", "/rbac/session", "Bad x", "10.0.0.1").status);
+        StubResponse blocked = filter("PUT", "/rbac/session", "Bad x", "10.0.0.1");
+        assertEquals(429, blocked.status);
+        assertTrue(blocked.body().contains("5005"), blocked.body());
+        assertTrue(blocked.headers.containsKey("Retry-After"), blocked.headers.toString());
+
+        assertEquals(429, filter("PUT", "/rbac/session", "Explicit abc", "10.0.0.1").status);
+        assertNull(seenByChain.get());
+        assertEquals(200, filter("PUT", "/rbac/session", "Explicit abc", "10.0.0.2").status);
+        assertTrue(seenByChain.get() != null);
+    }
+
+    @Test
+    void requestsThatAreNotFailedLoginsDoNotBlockTheAddress() throws Exception {
+        for (int i = 0; i < 5; i++) {
+            assertEquals(401, filter("GET", "/api/v1/DEV/PROP", "Bad x").status);
+            assertEquals(401, filter("PUT", "/rbac/session", "Unknown abc").status);
+            assertEquals(401, filter("PUT", "/rbac/session", "Cached 00000000-0000-0000-0000-000000000000").status);
+        }
+        assertEquals(200, filter("PUT", "/rbac/session", "Explicit abc").status);
+    }
+
     private StubResponse filter(String method, String path, String rbac) throws Exception {
+        return filter(method, path, rbac, "127.0.0.1");
+    }
+
+    private StubResponse filter(String method, String path, String rbac, String address) throws Exception {
         StubResponse response = new StubResponse();
-        filter.doFilterInternal(request(method, path, rbac), response.proxy(), chain);
+        filter.doFilterInternal(request(method, path, rbac, address), response.proxy(), chain);
         return response;
     }
 
     private static HttpServletRequest request(String method, String path, String rbac) {
+        return request(method, path, rbac, "127.0.0.1");
+    }
+
+    private static HttpServletRequest request(String method, String path, String rbac, String address) {
         return (HttpServletRequest) Proxy.newProxyInstance(RbacHeaderFilterTest.class.getClassLoader(), new Class<?>[]{HttpServletRequest.class},
                 (proxy, call, args) -> switch (call.getName()) {
                     case "getMethod" -> method;
                     case "getRequestURI" -> path;
-                    case "getRemoteAddr" -> "127.0.0.1";
+                    case "getRemoteAddr" -> address;
                     case "getHeader" -> "Rbac".equals(args[0]) ? rbac : null;
                     default -> defaultValue(call.getReturnType());
                 });
@@ -173,6 +213,7 @@ class RbacHeaderFilterTest {
      */
     private static final class StubResponse {
         private final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        private final Map<String, String> headers = new HashMap<>();
         private int status = 200;
 
         HttpServletResponse proxy() {
@@ -195,6 +236,7 @@ class RbacHeaderFilterTest {
                     (proxy, call, args) -> {
                         switch (call.getName()) {
                             case "setStatus" -> status = (Integer) args[0];
+                            case "setHeader", "addHeader" -> headers.put((String) args[0], (String) args[1]);
                             case "getOutputStream" -> {
                                 return out;
                             }
@@ -225,6 +267,26 @@ class RbacHeaderFilterTest {
         public void doFilter(ServletRequest request, ServletResponse response) {
             session = RbacAuthentication.current().orElseThrow();
             action.accept(session);
+        }
+    }
+
+    /**
+     * A login scheme whose credentials are always rejected.
+     */
+    private static final class FailingLogin implements RbacLogin {
+        @Override
+        public String scheme() {
+            return "Bad";
+        }
+
+        @Override
+        public boolean performsLogin() {
+            return true;
+        }
+
+        @Override
+        public RbacSession login(RbacCredentials credentials) {
+            throw new AuthenticationException("bad credentials");
         }
     }
 

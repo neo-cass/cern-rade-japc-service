@@ -7,13 +7,14 @@ import cern.rade.services.japc.admin.view.SessionView;
 import cern.rade.services.japc.security.RbacAuthentication;
 import cern.rade.services.japc.stats.ClientRequests;
 import cern.rade.services.japc.subscription.SubscriptionInfo;
-import cern.rbac.client.authentication.AuthenticationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -31,8 +32,7 @@ public class AdminEndpoint {
 
     @GetMapping("/me")
     public MeView me() {
-        return RbacAuthentication.current().map(MeView::of)
-                .orElseThrow(() -> new AuthenticationException("No RBAC session"));
+        return MeView.of(RbacAuthentication.required());
     }
 
     @GetMapping("/info")
@@ -47,12 +47,12 @@ public class AdminEndpoint {
 
     @DeleteMapping("/sessions/{handle}")
     public ResponseEntity<Void> revokeSession(@PathVariable("handle") String handle) {
-        return noContentOrNotFound(adminService.revokeSession(handle));
+        return noContentOrNotFound(adminService.revokeSession(handle), "Session");
     }
 
     @DeleteMapping("/users/{user}/sessions")
     public ResponseEntity<Void> revokeUserSessions(@PathVariable("user") String user) {
-        return noContentOrNotFound(adminService.revokeUserSessions(user) > 0);
+        return noContentOrNotFound(adminService.revokeUserSessions(user) > 0, "Sessions of user");
     }
 
     @DeleteMapping("/sessions")
@@ -68,7 +68,7 @@ public class AdminEndpoint {
 
     @DeleteMapping("/subscriptions/{id}")
     public ResponseEntity<Void> closeSubscription(@PathVariable("id") String id) {
-        return noContentOrNotFound(adminService.closeSubscription(id));
+        return noContentOrNotFound(adminService.closeSubscription(id), "Subscription");
     }
 
     @GetMapping("/clients")
@@ -76,7 +76,10 @@ public class AdminEndpoint {
         return adminService.clients();
     }
 
-    private static ResponseEntity<Void> noContentOrNotFound(boolean found) {
-        return found ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+    private static ResponseEntity<Void> noContentOrNotFound(boolean found, String what) {
+        if (!found) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, what + " not found");
+        }
+        return ResponseEntity.noContent().build();
     }
 }

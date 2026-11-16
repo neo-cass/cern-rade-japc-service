@@ -2,6 +2,8 @@ package cern.rade.services.japc.security;
 
 import cern.rade.services.japc.ApiPaths;
 import cern.rade.services.japc.error.ErrorCode;
+import cern.rade.services.japc.ratelimit.RateLimitedException;
+import cern.rade.services.japc.ratelimit.RateLimiter;
 import cern.rade.services.japc.rbac.ClientContext;
 import cern.rade.services.japc.rbac.RbacHeaders;
 import cern.rade.services.japc.rbac.RbacSession;
@@ -24,23 +26,26 @@ import java.io.IOException;
  * Authenticates requests carrying {@code Rbac: <scheme> <value>}. Requests without the header pass through
  * unauthenticated; rejected credentials get a 401. Login schemes (Explicit, Kerberos, Oauth, Token) are only accepted on
  * the login request, {@code PUT /rbac/session}; everywhere else the header must be {@code Cached <id>}. A session logged
- * in for a request whose response did not hand out its cached id (missing role, ...) is dropped afterwards.
+ * in for a request whose response did not hand out its cached id (missing role, ...) is dropped afterwards. Failed
+ * logins are counted per client address, and an address that has too many is answered with a 429 instead of being tried.
  */
 public class RbacHeaderFilter extends OncePerRequestFilter {
     private final RbacLoginService loginService;
     private final RbacSessionRegistry registry;
     private final RbacTokenSupport tokenSupport;
     private final RequestMatcher loginRequest;
+    private final RateLimiter rateLimiter;
 
     /**
      * @param loginRequest matches the requests allowed to log in with credentials
      */
     public RbacHeaderFilter(RbacLoginService loginService, RbacTokenSupport tokenSupport, RbacSessionRegistry registry,
-                            RequestMatcher loginRequest) {
+                            RequestMatcher loginRequest, RateLimiter rateLimiter) {
         this.loginService = loginService;
         this.tokenSupport = tokenSupport;
         this.registry = registry;
         this.loginRequest = loginRequest;
+        this.rateLimiter = rateLimiter;
     }
 
     @Override
@@ -61,11 +66,15 @@ public class RbacHeaderFilter extends OncePerRequestFilter {
                 throw new AuthenticationException("Rbac " + credentials.scheme() + " is only accepted by PUT " + ApiPaths.RBAC_SESSION
                         + ". Log in there, then send Rbac: Cached <id>");
             }
-            session = loginService.login(credentials);
+            session = loggingIn ? throttledLogin(request, response, credentials) : loginService.login(credentials);
             authentication = new RbacAuthentication(session, tokenSupport.authorities(session));
+        } catch (RateLimitedException e) {
+            SecurityContextHolder.clearContext();
+            SecurityErrorWriter.write(request, response, HttpStatus.TOO_MANY_REQUESTS, ErrorCode.RATE_LIMITED, e.getMessage());
+            return;
         } catch (AuthenticationException e) {
             SecurityContextHolder.clearContext();
-            SecurityErrorWriter.write(request, response, HttpStatus.UNAUTHORIZED, ErrorCode.message(e));
+            SecurityErrorWriter.write(request, response, HttpStatus.UNAUTHORIZED, ErrorCode.RBAC_ERROR, ErrorCode.message(e));
             return;
         }
         try {
@@ -75,6 +84,17 @@ public class RbacHeaderFilter extends OncePerRequestFilter {
             if (loggingIn) {
                 registry.releaseIfUnissued(session);
             }
+        }
+    }
+
+    private RbacSession throttledLogin(HttpServletRequest request, HttpServletResponse response, RbacCredentials credentials) {
+        String address = request.getRemoteAddr();
+        rateLimiter.checkLogin(address, response);
+        try {
+            return loginService.login(credentials);
+        } catch (AuthenticationException e) {
+            rateLimiter.loginFailed(address);
+            throw e;
         }
     }
 }

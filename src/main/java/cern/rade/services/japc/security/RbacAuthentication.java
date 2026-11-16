@@ -2,6 +2,7 @@ package cern.rade.services.japc.security;
 
 import cern.rade.services.japc.rbac.RbacSession;
 import cern.rade.services.japc.security.sso.RbacOidcUser;
+import cern.rbac.client.authentication.AuthenticationException;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -27,6 +28,14 @@ public class RbacAuthentication extends AbstractAuthenticationToken {
      */
     public static Optional<RbacSession> current() {
         return of(SecurityContextHolder.getContext().getAuthentication());
+    }
+
+    /**
+     * The RBAC session of the current request. Every route that reaches a controller is authenticated, so a missing
+     * session is refused, never served without RBAC.
+     */
+    public static RbacSession required() {
+        return current().orElseThrow(() -> new AuthenticationException("No RBAC session"));
     }
 
     /**

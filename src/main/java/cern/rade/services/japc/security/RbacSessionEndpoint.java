@@ -2,9 +2,7 @@ package cern.rade.services.japc.security;
 
 import cern.rade.services.japc.ApiPaths;
 import cern.rade.services.japc.rbac.RbacHeaders;
-import cern.rade.services.japc.rbac.RbacSession;
 import cern.rade.services.japc.rbac.RbacSessionRegistry;
-import cern.rbac.client.authentication.AuthenticationException;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -35,22 +33,18 @@ public class RbacSessionEndpoint {
     public ResponseEntity<Void> login() {
         HttpHeaders headers = new HttpHeaders();
         headers.setCacheControl(CacheControl.noStore());
-        RbacHeaders.setCached(headers, session());
+        RbacHeaders.setCached(headers, RbacAuthentication.required());
         return ResponseEntity.noContent().headers(headers).build();
     }
 
     @GetMapping
     public SessionInfoView info() {
-        return SessionInfoView.of(session());
+        return SessionInfoView.of(RbacAuthentication.required());
     }
 
     @DeleteMapping
     public ResponseEntity<Void> logout() {
-        registry.revoke(session());
+        registry.revoke(RbacAuthentication.required());
         return ResponseEntity.noContent().build();
-    }
-
-    private static RbacSession session() {
-        return RbacAuthentication.current().orElseThrow(() -> new AuthenticationException("No RBAC session"));
     }
 }
