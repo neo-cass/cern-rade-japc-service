@@ -24,6 +24,10 @@ import org.springframework.web.socket.CloseStatus;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
+/**
+ * The error codes of the service (5000 to 5005) and the only mapping from an exception to its code, HTTP status and
+ * client message.
+ */
 public enum ErrorCode {
     JAPC_ERROR(5000),
     CODEC_ERROR(5001),
@@ -131,6 +135,10 @@ public enum ErrorCode {
     }
 
     public static String message(Throwable e) {
+        // Internal errors may carry class names or state: the client gets a fixed text, the log gets the cause.
+        if (of(e) == INTERNAL_ERROR) {
+            return "Internal error";
+        }
         if (e instanceof ErrorResponse errorResponse && errorResponse.getBody().getDetail() != null) {
             return errorResponse.getBody().getDetail();
         }

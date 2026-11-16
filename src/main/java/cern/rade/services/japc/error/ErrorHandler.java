@@ -10,6 +10,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+/**
+ * Turns every exception thrown by a controller into an error response in the client's format.
+ */
 @RestControllerAdvice
 public class ErrorHandler {
     private final Logger logger = LoggerFactory.getLogger(ErrorHandler.class);

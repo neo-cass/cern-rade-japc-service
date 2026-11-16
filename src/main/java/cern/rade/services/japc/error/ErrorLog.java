@@ -4,12 +4,16 @@ import org.slf4j.Logger;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 
+/**
+ * Logs errors that are answered to a client, with the cause at error level when the client does not see it.
+ */
 public final class ErrorLog {
     private ErrorLog() {
     }
 
     public static void log(Logger logger, String context, HttpStatusCode status, String message, Throwable cause) {
-        if (status.isSameCodeAs(HttpStatus.INTERNAL_SERVER_ERROR)) {
+        if (status.isSameCodeAs(HttpStatus.INTERNAL_SERVER_ERROR)
+                || cause != null && ErrorCode.of(cause) == ErrorCode.INTERNAL_ERROR) {
             logger.error("{} failed with {}: {}", context, status.value(), message, cause);
         } else {
             logger.warn("{} failed with {}: {}", context, status.value(), message);
