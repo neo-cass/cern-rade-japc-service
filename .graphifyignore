@@ -1,0 +1,12 @@
+.gradle/
+.idea/
+build/
+logs/
+*.env
+pma.env
+*.bin
+*.gz
+*.vi
+subscription_error_replay/
+.git/
+src/main/resources/web/logos/
