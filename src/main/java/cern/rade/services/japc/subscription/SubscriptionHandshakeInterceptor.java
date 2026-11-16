@@ -2,7 +2,9 @@ package cern.rade.services.japc.subscription;
 
 import cern.rade.services.codec.CodecException;
 import cern.rade.services.japc.ApiPaths;
-import cern.rade.services.japc.Fields;
+import cern.rade.services.japc.parameter.Fields;
+import cern.rade.services.japc.parameter.ParameterAddress;
+import cern.rade.services.japc.parameter.ParameterProvider;
 import cern.rade.services.japc.error.ErrorCode;
 import cern.rade.services.japc.error.ErrorLog;
 import cern.rade.services.japc.format.Format;
@@ -32,6 +34,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Validates a WebSocket handshake and starts the JAPC subscription before the connection is upgraded.
+ */
 public class SubscriptionHandshakeInterceptor implements HandshakeInterceptor {
     private static final UriTemplate FIELD_PATH = new UriTemplate("/{device:[^/]+}/{property:[^/]+}/{field:[^/]+}");
     private static final UriTemplate PROPERTY_PATH = new UriTemplate("/{device:[^/]+}/{property:[^/]+}");
@@ -40,14 +45,19 @@ public class SubscriptionHandshakeInterceptor implements HandshakeInterceptor {
     private final RateLimiter rateLimiter;
     private final SubscriptionRegistry subscriptions;
     private final Clock clock;
+    private final SubscriptionProperties properties;
+    private final ParameterProvider parameters;
     private final Logger logger = LoggerFactory.getLogger(SubscriptionHandshakeInterceptor.class);
 
     public SubscriptionHandshakeInterceptor(RequestMetrics requestMetrics, RateLimiter rateLimiter,
-                                            SubscriptionRegistry subscriptions, Clock clock) {
+                                            SubscriptionRegistry subscriptions, Clock clock,
+                                            SubscriptionProperties properties, ParameterProvider parameters) {
         this.requestMetrics = requestMetrics;
         this.rateLimiter = rateLimiter;
         this.subscriptions = subscriptions;
         this.clock = clock;
+        this.properties = properties;
+        this.parameters = parameters;
     }
 
     @Override
@@ -106,7 +116,8 @@ public class SubscriptionHandshakeInterceptor implements HandshakeInterceptor {
         String property = vars.get("property");
         String field = vars.get("field");
 
-        SubscriptionService subscriptionService = new SubscriptionService(selector, vars.get("device"), property, field, RbacAuthentication.current().orElse(null));
+        ParameterAddress address = new ParameterAddress(vars.get("device"), property, field, selector);
+        SubscriptionService subscriptionService = new SubscriptionService(parameters, address, RbacAuthentication.required(), properties);
         subscriptionService.execute();
         try {
             attributes.put(SessionAttributes.SUBSCRIPTION_SERVICE, subscriptionService);

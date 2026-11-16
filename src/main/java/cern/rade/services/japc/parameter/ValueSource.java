@@ -1,4 +1,4 @@
-package cern.rade.services.japc.set;
+package cern.rade.services.japc.parameter;
 
 import cern.japc.value.ParameterValue;
 import cern.japc.value.ValueDescriptor;

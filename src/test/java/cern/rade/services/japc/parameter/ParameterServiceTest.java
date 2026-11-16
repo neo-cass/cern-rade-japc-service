@@ -1,11 +1,11 @@
-package cern.rade.services.japc.set;
+package cern.rade.services.japc.parameter;
 
+import cern.japc.core.AcquiredParameterValue;
 import cern.japc.core.Parameter;
 import cern.japc.core.factory.SimpleParameterValueFactory;
 import cern.japc.value.ParameterValue;
 import cern.japc.value.ValueDescriptor;
 import cern.rade.services.codec.CodecException;
-import cern.rade.services.japc.ParameterProvider;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Proxy;
@@ -14,16 +14,15 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * SetService against a stub parameter provider: no device is involved.
+ * ParameterService against a stub parameter provider: no device is involved.
  */
-class SetServiceTest {
+class ParameterServiceTest {
     private interface Call {
         Object handle(String method, Object[] args) throws Throwable;
     }
@@ -57,8 +56,8 @@ class SetServiceTest {
             };
         }
 
-        SetService service(ValueSource source) {
-            return new SetService(provider, null, "DEVICE", "Setting", null, source, null);
+        void set(ValueSource source) throws Exception {
+            new ParameterService(provider).set(new ParameterAddress("DEVICE", "Setting", null, null), source, null);
         }
     }
 
@@ -71,16 +70,14 @@ class SetServiceTest {
         ParameterValue value = SimpleParameterValueFactory.newSimpleParameterValue(1);
         List<ValueDescriptor> seen = new ArrayList<>();
 
-        SetService service = stub.service(descriptors -> {
+        stub.set(descriptors -> {
             seen.add(descriptors.get());
             return value;
         });
-        service.execute();
 
         assertEquals(1, seen.size());
         assertSame(descriptor, seen.get(0));
         assertEquals(List.of(value), stub.set);
-        assertTrue(service.isExecuted());
     }
 
     @Test
@@ -90,7 +87,7 @@ class SetServiceTest {
         });
         ParameterValue value = SimpleParameterValueFactory.newSimpleParameterValue(1);
 
-        stub.service(ValueSource.of(value)).execute();
+        stub.set(ValueSource.of(value));
 
         assertEquals(0, stub.descriptorReads);
         assertSame(value, stub.set.get(0));
@@ -104,10 +101,10 @@ class SetServiceTest {
             StubParameter stub = new StubParameter(unavailable);
             ParameterValue value = SimpleParameterValueFactory.newSimpleParameterValue(1);
 
-            stub.service(descriptors -> {
+            stub.set(descriptors -> {
                 assertNull(descriptors.get());
                 return value;
-            }).execute();
+            });
 
             assertEquals(List.of(value), stub.set);
         }
@@ -117,12 +114,27 @@ class SetServiceTest {
     void invalidRequestDataIsNotSet() {
         StubParameter stub = new StubParameter(() -> null);
         CodecException error = new CodecException("bad data");
-        SetService service = stub.service(descriptors -> {
-            throw error;
-        });
 
-        assertSame(error, assertThrows(CodecException.class, service::execute));
+        assertSame(error, assertThrows(CodecException.class, () -> stub.set(descriptors -> {
+            throw error;
+        })));
         assertTrue(stub.set.isEmpty());
-        assertFalse(service.isExecuted());
+    }
+
+    @Test
+    void getReturnsTheValueOfTheParameter() throws Exception {
+        AcquiredParameterValue acquired = stub(AcquiredParameterValue.class, (method, args) -> {
+            throw new UnsupportedOperationException(method);
+        });
+        Parameter parameter = stub(Parameter.class, (method, args) -> switch (method) {
+            case "getValue" -> acquired;
+            default -> throw new UnsupportedOperationException(method);
+        });
+        ParameterProvider provider = name -> {
+            assertEquals("DEVICE/Setting", name);
+            return parameter;
+        };
+
+        assertSame(acquired, new ParameterService(provider).get(new ParameterAddress("DEVICE", "Setting", null, null), null));
     }
 }

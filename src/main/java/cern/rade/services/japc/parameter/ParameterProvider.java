@@ -1,4 +1,4 @@
-package cern.rade.services.japc;
+package cern.rade.services.japc.parameter;
 
 import cern.japc.core.Parameter;
 import cern.japc.core.ParameterException;
@@ -10,7 +10,7 @@ import cern.japc.core.factory.ParameterFactory;
 @FunctionalInterface
 public interface ParameterProvider {
     /**
-     * @param parameterName the full name of the parameter, see {@link ParameterNames#parameter}
+     * @param parameterName the full name of the parameter, see {@link ParameterAddress#parameterName}
      * @return the parameter
      * @throws ParameterException if the parameter cannot be created
      */

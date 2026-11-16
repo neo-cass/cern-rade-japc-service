@@ -1,11 +1,10 @@
 package cern.rade.services.japc.subscription;
 
 import cern.japc.core.*;
-import cern.japc.core.factory.ParameterFactory;
 import cern.japc.core.factory.SelectorFactory;
 import cern.japc.value.ParameterValue;
-import cern.rade.services.japc.ContextProvider;
-import cern.rade.services.japc.ParameterNames;
+import cern.rade.services.japc.parameter.ParameterAddress;
+import cern.rade.services.japc.parameter.ParameterProvider;
 import cern.rade.services.japc.rbac.RbacSession;
 import io.micrometer.core.instrument.Metrics;
 import org.slf4j.Logger;
@@ -16,28 +15,38 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+/**
+ * Runs one JAPC subscription and queues its updates for a single client.
+ */
 public class SubscriptionService implements ParameterValueListener {
-    private String parameterName;
-    private String selectorName;
+    private final ParameterProvider parameters;
+    private final String parameterName;
+    private final String selectorName;
     private Parameter parameter;
     private Selector selector;
-    private RbacSession rbacSession;
+    private final RbacSession rbacSession;
     private volatile Latest latest;
     private SubscriptionHandle sh;
     private LinkedBlockingQueue<Update> valueQueue;
+    private final int queueSize;
+    private final long firstUpdateTimeout;
     private boolean executed = false;
     private final Logger logger = LoggerFactory.getLogger(SubscriptionService.class);
-    public SubscriptionService(String selectorName, String device, String property, String field, RbacSession rbacSession){
-        this.parameterName = ParameterNames.parameter(device, property, field);
-        this.selectorName = ParameterNames.selector(selectorName);
+    public SubscriptionService(ParameterProvider parameters, ParameterAddress address, RbacSession rbacSession,
+                               SubscriptionProperties properties){
+        this.parameters = parameters;
+        this.parameterName = address.parameterName();
+        this.selectorName = address.selector();
         this.rbacSession = rbacSession;
+        this.queueSize = properties.queueSize();
+        this.firstUpdateTimeout = properties.firstUpdateTimeout().toMillis();
     }
 
     public void init() throws ParameterRuntimeException, ParameterException {
-        this.parameter = ParameterFactory.newInstance().newParameter(parameterName);
+        this.parameter = parameters.newParameter(parameterName);
         this.selector = SelectorFactory.newSelector(selectorName);
         this.sh = parameter.createSubscription(selector, this);
-        this.valueQueue = new LinkedBlockingQueue<>(ContextProvider.getServiceProperties().getSubQueueSize());
+        this.valueQueue = new LinkedBlockingQueue<>(queueSize);
     }
 
     private void subscribe() throws ParameterException {
@@ -96,9 +105,8 @@ public class SubscriptionService implements ParameterValueListener {
         init();
         subscribe();
         try {
-            long timeout = ContextProvider.getServiceProperties().getFirstUpdateTimeout();
-            if (!awaitUpdate(timeout)) {
-                throw new ParameterException("No first update from " + parameterName + " within " + timeout + " ms", new TimeoutException());
+            if (!awaitUpdate(firstUpdateTimeout)) {
+                throw new ParameterException("No first update from " + parameterName + " within " + firstUpdateTimeout + " ms", new TimeoutException());
             }
         } catch (ParameterException | RuntimeException e) {
             stopSubscription();

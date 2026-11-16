@@ -2,8 +2,7 @@ package cern.rade.services.japc.subscription;
 
 import cern.japc.core.ParameterException;
 import cern.rade.services.codec.CodecException;
-import cern.rade.services.japc.ContextProvider;
-import cern.rade.services.japc.Fields;
+import cern.rade.services.japc.parameter.Fields;
 import cern.rade.services.japc.error.ErrorCode;
 import cern.rade.services.japc.error.ErrorLog;
 import cern.rade.services.japc.format.Format;
@@ -15,15 +14,19 @@ import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorator;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * Streams the latest values of one subscription to one WebSocket client.
+ */
 public class SubscriptionWebSocketHandler implements WebSocketHandler {
     private final Logger logger = LoggerFactory.getLogger(SubscriptionWebSocketHandler.class);
-    protected final long waitTimeForNewValueFromSub = ContextProvider.getServiceProperties().getWaitTimeForNewValueFromSub();
+    private final long updateWaitMillis;
     protected ConcurrentWebSocketSessionDecorator session;
     protected String ID;
     protected SubscriptionService subscriptionService;
@@ -32,6 +35,10 @@ public class SubscriptionWebSocketHandler implements WebSocketHandler {
     protected List<String> fields;
     private final ExecutorService sendService = Executors.newSingleThreadExecutor();
     private final AtomicBoolean released = new AtomicBoolean();
+
+    public SubscriptionWebSocketHandler(Duration updateWaitTimeout) {
+        this.updateWaitMillis = updateWaitTimeout.toMillis();
+    }
 
     @Override
     @SuppressWarnings("unchecked")
@@ -69,7 +76,7 @@ public class SubscriptionWebSocketHandler implements WebSocketHandler {
     }
 
     private void sendData(boolean waitForUpdate) throws IOException, CodecException, ParameterException {
-        if (waitForUpdate && !subscriptionService.awaitUpdate(waitTimeForNewValueFromSub)) {
+        if (waitForUpdate && !subscriptionService.awaitUpdate(updateWaitMillis)) {
             return;
         }
         SubscriptionService.Latest latest = subscriptionService.latest();

@@ -1,4 +1,4 @@
-package cern.rade.services.japc;
+package cern.rade.services.japc.parameter;
 
 import cern.japc.core.factory.MapParameterValueFactory;
 import cern.japc.value.MapParameterValue;
@@ -10,6 +10,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
+/**
+ * Selects fields of a property value, as requested with the {@code fields} parameter.
+ */
 public final class Fields {
     private Fields() {
     }

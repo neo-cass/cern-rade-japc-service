@@ -1,21 +1,17 @@
 package cern.rade.services.japc.subscription;
 
 
-import cern.rade.services.japc.ContextProvider;
 import cern.rade.services.japc.format.Formats;
 import jakarta.websocket.Session;
 import org.apache.tomcat.websocket.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.BeanFactory;
-import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.SubProtocolCapable;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.WebSocketMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.adapter.NativeWebSocketSession;
-import org.springframework.web.socket.handler.BeanCreatingHandlerProvider;
 import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorator;
 
 import java.io.Closeable;
@@ -23,38 +19,28 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
-public class SubscriptionManager implements WebSocketHandler, SubProtocolCapable, BeanFactoryAware, Closeable, SubscriptionRegistry {
+
+/**
+ * Creates a handler for each subscription connection and keeps them alive by pinging clients.
+ */
+public class SubscriptionManager implements WebSocketHandler, SubProtocolCapable, Closeable, SubscriptionRegistry {
     private static final CloseStatus CLOSED_BY_ADMIN = CloseStatus.NORMAL.withReason("Closed by admin");
     private static final CloseStatus PING_FAILED = CloseStatus.SESSION_NOT_RELIABLE.withReason("Could not ping client");
-    private final long pingToClientFrequency = ContextProvider.getServiceProperties().getPingToClientFrequency();
-    private final long readIdleTimeout = ContextProvider.getServiceProperties().getSocketIdleTimeout();
-    private ConcurrentHashMap<WebSocketSession, SubscriptionWebSocketHandler> handlers;
-    private ScheduledExecutorService pingSchedulerService;
-    private ExecutorService pingService;
-    private boolean supportsPartialMessages;
+    private final SubscriptionProperties properties;
+    private final ConcurrentHashMap<WebSocketSession, SubscriptionWebSocketHandler> handlers = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService pingSchedulerService = Executors.newSingleThreadScheduledExecutor();
+    private final ExecutorService pingService = Executors.newCachedThreadPool();
     private final Logger logger = LoggerFactory.getLogger(SubscriptionManager.class);
-    private final BeanCreatingHandlerProvider<SubscriptionWebSocketHandler> provider;
 
-    public SubscriptionManager(Class<? extends SubscriptionWebSocketHandler> handlerType) {
-        this(handlerType,false);
-    }
-
-    public SubscriptionManager(Class<? extends SubscriptionWebSocketHandler> handlerType, boolean supportsPartialMessages) {
-        this.supportsPartialMessages = supportsPartialMessages;
-        this.provider = new BeanCreatingHandlerProvider<>(handlerType);
-        this.handlers = new ConcurrentHashMap<>();
+    public SubscriptionManager(SubscriptionProperties properties) {
+        this.properties = properties;
+        pingSchedulerService.scheduleAtFixedRate(this::pingSockets, 0, properties.pingInterval().toMillis(), TimeUnit.MILLISECONDS);
     }
 
     @Override
     public List<String> getSubProtocols() {
         return Formats.subprotocols();
     }
-    public void init(){
-        this.pingSchedulerService = Executors.newSingleThreadScheduledExecutor();
-        this.pingService = Executors.newCachedThreadPool();
-        pingSchedulerService.scheduleAtFixedRate(this::pingSockets,0, pingToClientFrequency, TimeUnit.MILLISECONDS);
-    }
-
     public void pingSockets(){
         handlers.forEach((session, handler) -> pingService.submit(() -> keepAlive(session, handler)));
     }
@@ -79,7 +65,7 @@ public class SubscriptionManager implements WebSocketHandler, SubProtocolCapable
             logger.debug("Subscription {}: close failed: {}", handler.getId(), e.getMessage());
         }
         handler.release(status);
-        destroyHandler(session);
+        handlers.remove(session);
     }
     public void clearSubscriptionHandlers() throws IOException{
         for (Map.Entry<WebSocketSession, SubscriptionWebSocketHandler> entry : handlers.entrySet()) {
@@ -116,13 +102,9 @@ public class SubscriptionManager implements WebSocketHandler, SubProtocolCapable
     }
 
     //WebSocketHandler methods
-    public void setBeanFactory(BeanFactory beanFactory) {
-        this.provider.setBeanFactory(beanFactory);
-    }
-
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         closeWhenClientGoesSilent(session);
-        SubscriptionWebSocketHandler handler = this.provider.getHandler();
+        SubscriptionWebSocketHandler handler = new SubscriptionWebSocketHandler(properties.updateWaitTimeout());
         this.handlers.put(session, handler);
         handler.afterConnectionEstablished(new ConcurrentWebSocketSessionDecorator(session, 32768, 32768));
     }
@@ -149,12 +131,12 @@ public class SubscriptionManager implements WebSocketHandler, SubProtocolCapable
                 handler.afterConnectionClosed(session, closeStatus);
             }
         } finally {
-            this.destroyHandler(session);
+            this.handlers.remove(session);
         }
     }
 
     public boolean supportsPartialMessages() {
-        return this.supportsPartialMessages;
+        return false;
     }
 
     /**
@@ -165,29 +147,8 @@ public class SubscriptionManager implements WebSocketHandler, SubProtocolCapable
         if (session instanceof NativeWebSocketSession nativeSession) {
             Session tomcatSession = nativeSession.getNativeSession(Session.class);
             if (tomcatSession != null) {
-                tomcatSession.getUserProperties().put(Constants.READ_IDLE_TIMEOUT_MS, readIdleTimeout);
+                tomcatSession.getUserProperties().put(Constants.READ_IDLE_TIMEOUT_MS, properties.socketIdleTimeout().toMillis());
             }
         }
     }
-
-    private void destroyHandler(WebSocketSession session) {
-        SubscriptionWebSocketHandler handler = this.handlers.remove(session);
-
-        try {
-            if (handler != null) {
-                this.provider.destroy(handler);
-            }
-        } catch (Throwable var4) {
-            if (logger.isWarnEnabled()) {
-                logger.warn("Error while destroying " + handler, var4);
-            }
-        }
-
-    }
-    public String toString() {
-        return "SubscriptionManager[handlerType=" + this.provider.getHandlerType() + "]";
-    }
-
-
 }
-
