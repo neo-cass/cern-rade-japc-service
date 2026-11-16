@@ -2,6 +2,9 @@ package cern.rade.services.japc.rbac;
 
 import org.springframework.http.HttpHeaders;
 
+/**
+ * The {@code Rbac} header and its {@code Cached} scheme.
+ */
 public final class RbacHeaders {
     public static final String HEADER = "Rbac";
     public static final String CACHED = "Cached";

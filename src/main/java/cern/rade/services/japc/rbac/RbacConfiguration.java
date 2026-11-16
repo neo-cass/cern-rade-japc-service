@@ -16,6 +16,9 @@ import org.springframework.context.annotation.Configuration;
 import java.time.Clock;
 import java.util.List;
 
+/**
+ * Wires the RBAC beans: gateway, session factory and registry, and one login per {@code Rbac} scheme.
+ */
 @Configuration
 @EnableConfigurationProperties(RbacProperties.class)
 public class RbacConfiguration {

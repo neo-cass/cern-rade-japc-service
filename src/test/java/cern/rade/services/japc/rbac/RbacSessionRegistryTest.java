@@ -17,6 +17,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * Caching, revoking and limiting RBAC sessions.
+ */
 class RbacSessionRegistryTest {
     private final RbacProperties properties = new RbacProperties("USER", "ADMIN", Duration.ofHours(1), Duration.ofDays(1), Duration.ZERO, 0);
     private final RbacSessionFactory sessions = new RbacSessionFactory(null, properties, Clock.systemUTC());

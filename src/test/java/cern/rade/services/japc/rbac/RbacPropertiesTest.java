@@ -9,6 +9,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * Defaults, caps and validation of the RBAC settings.
+ */
 class RbacPropertiesTest {
 
     @Test

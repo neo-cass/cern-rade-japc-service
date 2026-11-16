@@ -27,6 +27,10 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * End-to-end tests against a running service and the RADE test devices. Only runs when {@code APP_URL} is set. It sets
+ * values: never point it at production.
+ */
 @EnabledIfEnvironmentVariable(named = "APP_URL", matches = ".+")
 class EndpointTest {
     private static final String APP_URL = System.getenv("APP_URL");

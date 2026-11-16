@@ -16,6 +16,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+/**
+ * Registers request metrics and rate limiting for the API, the gauges and the OTLP log appender.
+ */
 @Configuration
 @EnableConfigurationProperties(RateLimitProperties.class)
 public class StatsConfiguration implements WebMvcConfigurer {

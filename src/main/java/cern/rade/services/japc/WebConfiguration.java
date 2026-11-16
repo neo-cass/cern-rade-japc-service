@@ -5,6 +5,9 @@ import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+/**
+ * Serves the static pages: home page, admin panel and API documentation.
+ */
 @Configuration
 public class WebConfiguration implements WebMvcConfigurer {
     private static final String API_DOCS = "classpath:/api-docs/";

@@ -8,6 +8,9 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+/**
+ * Request counts per user.
+ */
 class RequestMetricsTest {
     private final RequestMetrics metrics = new RequestMetrics(new SimpleMeterRegistry());
 
