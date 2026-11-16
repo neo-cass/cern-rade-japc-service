@@ -3,6 +3,9 @@ package cern.rade.services.japc.rbac.login;
 import cern.rade.services.japc.rbac.ClientContext;
 import cern.rbac.client.authentication.AuthenticationException;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 /**
@@ -34,6 +37,19 @@ public record RbacCredentials(String scheme, String value, ClientContext client)
             return Base64.getUrlDecoder().decode(value);
         } catch (IllegalArgumentException e) {
             throw new AuthenticationException("Invalid Base64 in Rbac " + scheme + " header", e);
+        }
+    }
+
+    /**
+     * The decoded value as text: UTF-8, or ISO-8859-1 for clients such as LabVIEW that send their strings in the system
+     * code page.
+     */
+    public String decodedText() {
+        byte[] bytes = decodedValue();
+        try {
+            return StandardCharsets.UTF_8.newDecoder().decode(ByteBuffer.wrap(bytes)).toString();
+        } catch (CharacterCodingException e) {
+            return new String(bytes, StandardCharsets.ISO_8859_1);
         }
     }
 

@@ -7,11 +7,10 @@ import cern.rade.services.japc.rbac.gateway.RbacGateway;
 import cern.rbac.client.authentication.AuthenticationException;
 import cern.rbac.common.MasterToken;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
 /**
- * {@code Rbac: Explicit <base64url(user:password)>}
+ * {@code Rbac: Explicit <base64url(user:password)>}, UTF-8 (ISO-8859-1 is still accepted).
  */
 public class ExplicitLogin extends MasterTokenLogin {
 
@@ -21,7 +20,7 @@ public class ExplicitLogin extends MasterTokenLogin {
 
     @Override
     protected MasterToken obtainMaster(RbacCredentials credentials, Duration lifetime) {
-        String userAndPassword = new String(credentials.decodedValue(), StandardCharsets.ISO_8859_1);
+        String userAndPassword = credentials.decodedText();
         int separator = userAndPassword.indexOf(':');
         if (separator <= 0) {
             throw new AuthenticationException("Invalid credentials format for Rbac Explicit. Expected base64url(user:password)");
