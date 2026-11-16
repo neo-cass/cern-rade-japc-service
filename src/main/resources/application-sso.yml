@@ -12,3 +12,10 @@ spring:
         provider:
           cern:
             issuer-uri: https://auth.cern.ch/auth/realms/cern
+server:
+  servlet:
+    session:
+      cookie:
+        # set explicitly, TLS ends at the router so Tomcat itself sees plain HTTP
+        secure: true
+        same-site: lax

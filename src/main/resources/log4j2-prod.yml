@@ -4,8 +4,9 @@ Configuration:
   properties:
     property:
       #pattern for file and console logging
+      # line breaks in messages are escaped so client-supplied text cannot forge log lines
       - name: pattern
-        value: "%white{%date{ISO8601}} %highlight{%-5level} [Thread: %yellow{%thread}] [Class: %green{%logger{1}}]: %message%n%red{%exception{full}}"
+        value: "%white{%date{ISO8601}} %highlight{%-5level} [Thread: %yellow{%thread}] [Class: %green{%logger{1}}]: %enc{%message}{CRLF}%n%red{%exception{full}}"
       - name: app_name
         value: ${spring:spring.application.name}
 
