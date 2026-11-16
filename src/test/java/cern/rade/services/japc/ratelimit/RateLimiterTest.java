@@ -11,6 +11,9 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+/**
+ * Request and subscription limits per user.
+ */
 class RateLimiterTest {
     private final Map<String, String> headers = new HashMap<>();
     private final HttpServletResponse response = (HttpServletResponse) Proxy.newProxyInstance(getClass().getClassLoader(),
@@ -20,7 +23,7 @@ class RateLimiterTest {
                 }
                 return null;
             });
-    private final RateLimiter limiter = new RateLimiter(new RateLimitProperties(1, 2, 1, Map.of("shared", 0)));
+    private final RateLimiter limiter = new RateLimiter(new RateLimitProperties(1, 2, 1, Map.of("shared", 0), 2));
 
     @Test
     void rejectsBeyondBurstWithRetryAfter() {
@@ -36,6 +39,42 @@ class RateLimiterTest {
         for (int i = 0; i < 10; i++) {
             limiter.check("shared", response);
         }
+    }
+
+    @Test
+    void refusesAnAddressAfterItsFailedLoginsWithRetryAfter() {
+        limiter.loginFailed("10.0.0.1");
+        assertDoesNotThrow(() -> limiter.checkLogin("10.0.0.1", response));
+        limiter.loginFailed("10.0.0.1");
+        assertThrows(RateLimitedException.class, () -> limiter.checkLogin("10.0.0.1", response));
+        assertNotNull(headers.get("Retry-After"));
+        assertDoesNotThrow(() -> limiter.checkLogin("10.0.0.2", response));
+    }
+
+    @Test
+    void checkingALoginDoesNotUseUpTheAllowance() {
+        for (int i = 0; i < 10; i++) {
+            limiter.checkLogin("10.0.0.1", response);
+        }
+        limiter.loginFailed("10.0.0.1");
+        assertDoesNotThrow(() -> limiter.checkLogin("10.0.0.1", response));
+    }
+
+    @Test
+    void zeroFailedLoginsDisablesTheLoginThrottle() {
+        RateLimiter disabled = new RateLimiter(new RateLimitProperties(1, 2, 1, Map.of(), 0));
+        for (int i = 0; i < 10; i++) {
+            disabled.loginFailed("10.0.0.1");
+        }
+        assertDoesNotThrow(() -> disabled.checkLogin("10.0.0.1", response));
+    }
+
+    @Test
+    void keepsAnAddressThatIsStillBlocked() {
+        limiter.loginFailed("10.0.0.1");
+        limiter.loginFailed("10.0.0.1");
+        limiter.forgetRecoveredAddresses();
+        assertThrows(RateLimitedException.class, () -> limiter.checkLogin("10.0.0.1", response));
     }
 
     @Test
