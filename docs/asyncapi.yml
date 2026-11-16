@@ -73,7 +73,9 @@ servers:
     host: '{host}'
     protocol: wss
     pathname: /ws/v1
-    description: /ws is an alias of /ws/v1.
+    description: |
+      Every API version has its own prefix. The unversioned prefix `/ws` always serves the latest version, today v1:
+      a client that cannot follow a new version must use `/ws/v1`. `/ws/v<n>` of a version that does not exist is 404.
     variables:
       host:
         default: japc-rade-services.app.cern.ch
@@ -175,7 +177,7 @@ components:
       x-rbac-schemes: [Cached]
   parameters:
     device:
-      description: Device name. Must not match `v[0-9]+`.
+      description: Device name. Must not match `v[0-9]+`. Like the property and field names, it must not contain `/`, `#` or control characters (400).
       examples: [EXAMPLE.DEVICE]
     property:
       description: Property name.

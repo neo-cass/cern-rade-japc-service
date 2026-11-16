@@ -30,7 +30,10 @@ security:
   - Rbac: []
 servers:
   - url: /api/v1
-    description: This deployment. /api is an alias of /api/v1.
+    description: |
+      This deployment. Every API version has its own prefix. The unversioned prefix `/api` always serves the latest
+      version, today v1: a client that cannot follow a new version must use `/api/v1`. `/api/v<n>` of a version that
+      does not exist is 404.
 tags:
   - name: RBAC session
     description: |
@@ -202,6 +205,9 @@ paths:
         working when the token expires, and the client must log in again with a new token.
 
         With `Rbac: Cached <id>` the same id is returned again.
+
+        Failed logins are limited per client address (10 per minute by default). Once the limit is reached, every login from
+        that address gets 429 with code 5005 and `Retry-After`, until the address has recovered.
         PUT rather than POST because the LabVIEW client cannot send POST.
         ```
         curl -X PUT -D - -H 'Rbac: Explicit <base64url(username:password)>' 'https://<host>/rbac/session'
@@ -428,7 +434,7 @@ components:
 
         | Value | Credentials | Accepted by |
         |---|---|---|
-        | `Explicit <base64url(username:password)>` | Login with username and password. | `PUT /rbac/session` only |
+        | `Explicit <base64url(username:password)>` | Login with username and password. `username:password` is encoded as UTF-8 before Base64; ISO-8859-1 is still accepted. | `PUT /rbac/session` only |
         | `Kerberos <base64url(ticket)>` | Kerberos service ticket (GSS-API AP-REQ) for the RBAC server, `RBAC/rbac-pro-lb.cern.ch@CERN.CH` in PRO. Not a ticket for this service. | `PUT /rbac/session` only |
         | `Oauth <access token>` | CERN SSO access token whose audience is the RBAC server. Sent as-is, not Base64. The service logs in to RBAC with it and holds a renewable cached RBAC session, like Explicit and Kerberos. | `PUT /rbac/session` only |
         | `Token <base64url(token)>` | Serialized RBAC token the client obtained itself. Cached like the other logins, but never renewed: the cached RBAC session ends when the token expires. | `PUT /rbac/session` only |
@@ -443,7 +449,7 @@ components:
       name: device
       in: path
       required: true
-      description: Device name. Must not match `v[0-9]+`.
+      description: Device name. Must not match `v[0-9]+`. Like the property and field names, it must not contain `/`, `#` or control characters.
       schema:
         type: string
         not:
@@ -606,16 +612,17 @@ components:
         |---|---|---|
         | 400 | 5000 | Value or selector rejected by the device (invalid argument, invalid request, bad setting value) |
         | 400 | 5001 | Body or `Lv-Type-Descriptor` cannot be decoded. For example: data not matching the descriptor, a marked descriptor with the wrong layout (discrete function that is not a 2D Array of DBL, enum set that is not a Cluster of uniquely labelled Boolean), an enum item name the JAPC enum does not have, an unsigned value out of range, or an enum or enum set sent when the service cannot obtain the JAPC enum type of the parameter (the message names the field, e.g. `JAPC descriptor with enum type required for field mode`) |
-        | 400 | 5003 | Malformed request, `Lv-Type-Descriptor` does not match the path, unknown field in `fields` |
+        | 400 | 5003 | Malformed request, `Lv-Type-Descriptor` does not match the path, unknown field in `fields`, device, property or field name that is empty or contains `/`, `#` or a control character |
         | 401 | 5002 | No `Rbac` header, invalid `Rbac` header, failed login, expired or invalid token, unknown, revoked or expired cached id (cached RBAC session), or a login scheme (`Explicit`, `Kerberos`, `Oauth`) on any call but `PUT /rbac/session` |
         | 403 | 5002 | Token lacks the service's required RBAC role (or, for `/rbac/session`, the admin role as well), or RBAC access to the device denied |
         | 404 | 5000 | Device or property not found |
-        | 404 | 5003 | Unknown route |
+        | 404 | 5003 | Unknown route, or unknown session handle, user or subscription id in the admin API |
         | 406 | 5003 | `Accept` not supported by the route |
+        | 413 | 5003 | Request body larger than the service accepts (16 MiB unless configured otherwise) |
         | 415 | 5003 | `Content-Type` not supported by the route |
-        | 429 | 5005 | Rate limit of the RBAC user exceeded: requests per second (wait `Retry-After` seconds) or open subscriptions |
+        | 429 | 5005 | Rate limit of the RBAC user exceeded: requests per second (wait `Retry-After` seconds) or open subscriptions. On `PUT /rbac/session`: too many failed logins from the client's address (wait `Retry-After` seconds) |
         | 500 | 5001 | Value cannot be encoded in the requested format, e.g. a JAPC type LabVIEW cannot represent |
-        | 500 | 5004 | Internal error |
+        | 500 | 5004 | Internal error. The message is always `Internal error`; the cause is in the service log |
         | 502 | 5000 | Device or middleware error |
         | 504 | 5000 | Device timeout |
       headers:
@@ -640,6 +647,7 @@ components:
         '403': [5002]
         '404': [5000, 5003]
         '406': [5003]
+        '413': [5003]
         '415': [5003]
         '429': [5005]
         '500': [5001, 5004]
@@ -743,16 +751,18 @@ components:
         | 5000 | JAPC error | 400, 404, 502, 504 | 4000 |
         | 5001 | Codec error | 400, 500 | 4001 |
         | 5002 | RBAC error | 401, 403 | 4002 |
-        | 5003 | Bad request | 400, 404, 406, 415 | 4003 |
+        | 5003 | Bad request | 400, 404, 406, 413, 415 | 4003 |
         | 5004 | Internal error | 500 | 4004 |
+        | 5005 | Rate limited | 429 | none: only answered to requests and handshakes |
       type: integer
-      enum: [5000, 5001, 5002, 5003, 5004]
+      enum: [5000, 5001, 5002, 5003, 5004, 5005]
       x-error-codes:
         '5000': JAPC error
         '5001': Codec error
         '5002': RBAC error
         '5003': Bad request
         '5004': Internal error
+        '5005': Rate limited
     LvTypeDescriptor:
       description: |
         base64url, with padding, of the LabVIEW flattened type descriptor (`Flatten To String` type string, big-endian I16 words).
