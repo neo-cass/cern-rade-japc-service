@@ -12,35 +12,24 @@ repositories {
     mavenCentral()
 }
 
-configurations.configureEach {
-    resolutionStrategy.cacheChangingModulesFor(0, "seconds")
-}
-
 extra["junit-jupiter.version"] = "5.11.0"
 
 val springBootVersion =org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES.substringAfterLast(':')
 
 dependencies {
-    implementation ("cern.japc:japc:PRO")
-    implementation ("cern.japc:japc-ext-cmwrda3:PRO")
-    implementation ("cern.japc:japc-value:PRO")
-    implementation ("cern.japc:japc-ext-remote:PRO")
-    implementation ("cern.accsoft.security:rbac-client:PRO")
-    implementation ("cern.accsoft.security:rbac-common:PRO")
-    implementation ("cern.accsoft.security:rbac-util:PRO")
-    implementation ("cern.cmw:cmw-data:PRO")
-    implementation ("cern.cmw:cmw-rda3:PRO")
+    // CERN dependencies are pinned for reproducible builds: update them deliberately, together, to the current PRO versions listed by CBNG.
+    implementation ("cern.japc:japc:8.2.1")
+    implementation ("cern.japc:japc-ext-cmwrda3:8.2.1")
+    implementation ("cern.japc:japc-value:8.2.1")
+    implementation ("cern.japc:japc-ext-remote:8.2.2")
+    implementation ("cern.accsoft.security:rbac-client:10.11.1")
+    implementation ("cern.accsoft.security:rbac-common:10.11.1")
+    implementation ("cern.accsoft.security:rbac-util:10.11.1")
+    implementation ("cern.cmw:cmw-data:10.11.2")
+    implementation ("cern.cmw:cmw-rda3:10.11.2")
 
-    implementation ("cern.rade.services:codec:1.0.0")
+    implementation ("cern.rade.services:codec:1.0.1")
     implementation ("cern.rade.services:common:1.0.0")
-
-    implementation ("org.apache.commons:commons-lang3:3.12.0")
-    implementation ("com.google.code.gson:gson:2.10.1")
-
-    //implementation("net.logstash.logback:logstash-logback-encoder:7.4")
-    //implementation("org.springframework.boot:spring-boot-starter-logging:3.1.2")
-
-
 
     //necessary for log4j2 yaml config file to work
 
@@ -54,7 +43,7 @@ dependencies {
         exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
     }
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor:$springBootVersion")
-    implementation ("org.springframework.boot:spring-boot-starter-webservices:$springBootVersion"){
+    implementation ("org.springframework.boot:spring-boot-starter-webmvc:$springBootVersion"){
         exclude(group= "org.springframework.boot", module= "spring-boot-starter-logging")
     }
     implementation ("org.springframework.boot:spring-boot-starter-actuator:$springBootVersion"){
@@ -79,6 +68,7 @@ dependencies {
     providedRuntime("org.springframework.boot:spring-boot-starter-tomcat-runtime:$springBootVersion")
 
     testImplementation("org.junit.jupiter:junit-jupiter")
+    testImplementation ("com.google.code.gson:gson:2.10.1")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
@@ -91,10 +81,6 @@ tasks.test {
 }
 
 
-//    implementation(files("/home/ncass/Workspace/common/build/libs/common-1.0.3.jar"))
-////    implementation(files("/home/ncass/Workspace/rade-codec/java-codec/build/libs/codec-1.0.3.jar"))
-//    implementation(files("C:\\Users\\ncass\\workspace\\common\\build\\libs\\common-test.jar"))
-//    implementation(files("C:\\Users\\ncass\\workspace\\rade-codec\\java-codec\\build\\libs\\codec-1.0.3.jar"))
 springBoot {
     buildInfo()
 }
@@ -121,7 +107,6 @@ java {
     withJavadocJar()
     withSourcesJar()
 }
-// missing: manifest (see https://docs.gradle.org/7.4.2/userguide/building_java_projects.html#sec:jar_manifest)
 
 
 // Publication (cern.devops.cbng.publication): the artifact released to the Pro repository is the executable Spring Boot
