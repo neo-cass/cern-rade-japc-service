@@ -13,6 +13,6 @@ test-scripts/python/.idea
 ADMIN__SSO_METRICS_PLAN.md
 subscription_error_replay/
 METRICS_AND_MUTABLE_CLOCK.md
-graphify-out/manifest.json
-graphify-out/cost.json
+graphify-out/**/manifest.json
+graphify-out/**/cost.json
 graphify-out/cache/
