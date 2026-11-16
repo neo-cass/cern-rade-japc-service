@@ -1,1 +1,5 @@
+# Text is stored with LF in the repository and checked out with LF on every platform (gradlew and CI scripts break with CRLF).
+* text=auto eol=lf
+*.bat text eol=crlf
+*.vi binary
 graphify-out/graph.json merge=graphify
