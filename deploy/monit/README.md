@@ -377,10 +377,13 @@ the shown word, so create the data sources in C2 to C4 with those names first.
 For each file:
 
 1. Open https://monit-grafana.cern.ch/dashboard/import
-2. Click **Upload dashboard JSON file** and choose the file from this repository. To update an existing copy, import the
-   file again and choose **Import (Overwrite)**.
+2. Click **Upload dashboard JSON file** and choose the file from this repository. Set **Folder** to `JAPC` (create it
+   with **New** the first time; the alert rules in C7 use the same folder). To update an existing copy, import the
+   file again, keep the folder `JAPC` and choose **Import (Overwrite)**. Importing into *Dashboards* instead moves
+   the copy out of `JAPC`.
 3. Click **Import**. At the top of the dashboard check the **Datasource**. The service dashboard also has
-   **Deployment** (`japc`); the logs dashboard has **Deployment** and **Level** (leave **All**).
+   **Deployment** (`japc`); the pods dashboard has **Deployment** (`japc`, `japc-master` or All); the logs dashboard
+   has **Deployment** and **Level** (leave **All**).
 
 Notes:
 
@@ -450,8 +453,8 @@ MONIT drops the `_total` and `_bytes` suffixes that Prometheus adds, so the name
 Counters such as `japc_requests` and `japc_errors` only appear after their first increment. Series from OTLP carry
 only `job`, `area` and `id`-style labels, not `pod`.
 
-Alert rules live under **Alerting → Alert rules**, not under **Dashboards**, so the `JAPC` folder looks empty in the
-Dashboards list while it holds the rules.
+The `JAPC` folder holds both the three dashboards (C5) and these alert rules. The rules are listed under **Alerting →
+Alert rules**, not under **Dashboards**, so the dashboard list shows only the dashboards.
 
 The rules only notify once C6 step 3 is done: until the default policy points at `monit-alarms`, they evaluate but
 send nothing, so no SNOW ticket is opened.
