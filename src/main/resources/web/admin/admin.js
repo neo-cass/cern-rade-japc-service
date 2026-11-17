@@ -50,6 +50,15 @@ function button(label, onClick, className) {
     return node;
 }
 
+/** Fixed-height cell content: wraps, shows at most `lines` lines and scrolls to reveal the rest. */
+function scrollLines(text, lines) {
+    const node = element("div", text, "scroll-lines");
+    node.style.setProperty("--lines", lines);
+    node.tabIndex = 0;
+    node.title = text;
+    return node;
+}
+
 function time(value) {
     return value ? new Date(value).toLocaleString() : "–";
 }
@@ -65,25 +74,12 @@ function duration(iso) {
         .filter(Boolean).join(" ") || "0s";
 }
 
-/**
- * columns: [{label, value: row => string | Node, number: boolean}]
- * group (optional): {key: row => string, header: (key, rows) => Node[]}; rows must arrive sorted by key, and each
- * group starts with a full-width header row.
- */
-function renderTable(table, columns, rows, emptyText, group) {
+/** columns: [{label, value: row => string | Node, number: boolean}] */
+function renderTable(table, columns, rows, emptyText) {
     const head = element("tr");
     columns.forEach(column => head.append(element("th", column.label, column.number ? "number" : "")));
     const body = [];
-    rows.forEach((row, index) => {
-        if (group && (index === 0 || group.key(rows[index - 1]) !== group.key(row))) {
-            const key = group.key(row);
-            const td = element("td", null, "group");
-            td.colSpan = columns.length;
-            td.append(...group.header(key, rows.filter(other => group.key(other) === key)));
-            const tr = element("tr");
-            tr.append(td);
-            body.push(tr);
-        }
+    rows.forEach(row => {
         const tr = element("tr");
         columns.forEach(column => {
             const value = column.value(row);
@@ -112,7 +108,9 @@ function renderTable(table, columns, rows, emptyText, group) {
 async function loadMe() {
     const me = await request("GET", "/me");
     document.getElementById("me").textContent = me.user;
-    document.getElementById("me-roles").textContent = "(" + me.loginType.toLowerCase() + ", " + me.roles.join(", ") + ")";
+    const roles = document.getElementById("me-roles");
+    roles.textContent = "(" + me.loginType.toLowerCase() + ", " + me.roles.join(", ") + ")";
+    roles.title = roles.textContent;
 }
 
 async function loadInfo() {
@@ -134,31 +132,47 @@ async function loadInfo() {
     document.getElementById("info").replaceChildren(...rows.flatMap(([label, value]) => [element("dt", label), element("dd", value)]));
 }
 
+const collapsedUsers = new Set();
+
 async function loadSessions() {
     const sessions = await request("GET", "/sessions");
-    renderTable(document.getElementById("sessions"), [
-        {label: "Login", value: session => session.loginType.toLowerCase()},
-        {label: "Address", value: session => session.address},
-        {label: "Client", value: session => session.userAgent},
-        {label: "Roles", value: session => session.roles.join(", ")},
-        {label: "Last used", value: session => time(session.lastUsed)},
-        {label: "Expires", value: session => time(session.sessionExpiry)},
-        {label: "", value: session => button("Revoke", () => act("DELETE", "/sessions/" + encodeURIComponent(session.handle)), "danger")},
-    ], sessions, "No cached sessions", {
-        key: session => session.user,
-        header: (user, userSessions) => [
+    const container = document.getElementById("sessions");
+    if (sessions.length === 0) {
+        container.replaceChildren(element("p", "No cached sessions", "muted"));
+        return;
+    }
+    const byUser = new Map();
+    sessions.forEach(session => byUser.set(session.user, [...(byUser.get(session.user) ?? []), session]));
+    container.replaceChildren(...[...byUser].map(([user, userSessions]) => {
+        const details = element("details", null, "user-sessions");
+        details.open = !collapsedUsers.has(user);
+        details.addEventListener("toggle", () => details.open ? collapsedUsers.delete(user) : collapsedUsers.add(user));
+        const summary = element("summary");
+        summary.append(
             element("strong", user),
-            element("span", " · " + userSessions.length + (userSessions.length === 1 ? " session " : " sessions "), "muted"),
-            button("Revoke all for " + user, () => act("DELETE", "/users/" + encodeURIComponent(user) + "/sessions"), "danger"),
-        ],
-    });
+            element("span", " · " + userSessions.length + (userSessions.length === 1 ? " session" : " sessions"), "muted"));
+        const revokeAll = button("Revoke all for " + user,
+            () => act("DELETE", "/users/" + encodeURIComponent(user) + "/sessions"), "danger revoke-all");
+        const table = element("table");
+        renderTable(table, [
+            {label: "Login", value: session => session.loginType.toLowerCase()},
+            {label: "Address", value: session => session.address},
+            {label: "Client", value: session => scrollLines(session.userAgent ?? "–", 1)},
+            {label: "Roles", value: session => scrollLines(session.roles.join(", "), 1)},
+            {label: "Last used", value: session => time(session.lastUsed)},
+            {label: "Expires", value: session => time(session.sessionExpiry)},
+            {label: "", value: session => button("Revoke", () => act("DELETE", "/sessions/" + encodeURIComponent(session.handle)), "danger")},
+        ], userSessions, "");
+        details.append(summary, revokeAll, table);
+        return details;
+    }));
 }
 
 async function loadSubscriptions() {
     const subscriptions = await request("GET", "/subscriptions");
     renderTable(document.getElementById("subscriptions"), [
-        {label: "Parameter", value: subscription => subscription.parameter},
-        {label: "Selector", value: subscription => subscription.selector},
+        {label: "Parameter", value: subscription => scrollLines(subscription.parameter ?? "–", 1)},
+        {label: "Selector", value: subscription => scrollLines(subscription.selector ?? "–", 1)},
         {label: "Format", value: subscription => subscription.format},
         {label: "User", value: subscription => subscription.user},
         {label: "Address", value: subscription => subscription.address},
@@ -172,7 +186,7 @@ async function loadClients() {
     const operationColumns = OPERATIONS.map(operation =>
         ({label: operation, value: client => client.requests[operation] ?? 0, number: true}));
     renderTable(document.getElementById("clients"), [
-        {label: "User", value: client => client.user},
+        {label: "User", value: client => scrollLines(client.user ?? "–", 1)},
         ...operationColumns,
         {label: "Rate limited", value: client => client.rateLimited, number: true},
     ], clients, "No requests yet");

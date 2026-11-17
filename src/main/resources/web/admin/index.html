@@ -14,7 +14,7 @@
         <img class="logo" src="/logos/rade.png" alt="RADE">
         <div class="title">
             <h1>RADE JAPC admin</h1>
-            <p class="muted">Signed in as <strong id="me">…</strong> <span id="me-roles" class="muted"></span></p>
+            <p class="muted">Signed in as <strong id="me">…</strong> <span id="me-roles" class="muted scroll-lines" style="--lines: 2" tabindex="0"></span></p>
         </div>
         <form method="post" action="/logout">
             <button type="submit">Log out</button>
@@ -45,7 +45,7 @@
             <span class="muted">Cached logins reused with <code>Rbac: Cached</code>. Revoking one makes its client log in again.</span>
             <button data-action="revoke-all">Revoke all</button>
         </div>
-        <table id="sessions"></table>
+        <div id="sessions"></div>
     </section>
 
     <section data-panel="subscriptions" hidden>
