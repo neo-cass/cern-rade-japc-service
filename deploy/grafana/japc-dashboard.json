@@ -13,6 +13,7 @@
         "name": "datasource",
         "type": "datasource",
         "query": "prometheus",
+        "regex": "/MONIT/",
         "label": "Datasource"
       },
       {
@@ -33,11 +34,207 @@
   },
   "panels": [
     {
+      "type": "row",
+      "title": "External probe (MONIT remote probe of /readyz)",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "title": "Probe",
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No data",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "text": "Reachable",
+                  "color": "green",
+                  "index": 0
+                },
+                "0": {
+                  "text": "Unreachable",
+                  "color": "red",
+                  "index": 1
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "min(probe_success{remote_producer=\"rade\"})",
+          "legendFormat": "probe",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Certificate expires in",
+      "gridPos": {
+        "x": 6,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "d",
+          "decimals": 0,
+          "noValue": "No data",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 7
+              },
+              {
+                "color": "green",
+                "value": 30
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "min((probe_ssl_earliest_cert_expiry{remote_producer=\"rade\"} - time()) / 86400)",
+          "legendFormat": "days",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Probe response time",
+      "gridPos": {
+        "x": 12,
+        "y": 1,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(probe_duration_seconds{remote_producer=\"rade\"})",
+          "legendFormat": "response time"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Probe HTTP status",
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 12,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "noValue": "No data"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(probe_http_status_code{remote_producer=\"rade\"})",
+          "legendFormat": "status"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Service",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
       "type": "timeseries",
       "title": "Requests/s by operation",
       "gridPos": {
         "x": 0,
-        "y": 0,
+        "y": 10,
         "w": 12,
         "h": 8
       },
@@ -54,7 +251,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (operation) (rate(japc_requests_total{job=\"$job\"}[5m]))",
+          "expr": "sum by (operation) (rate(japc_requests{job=\"$job\"}[5m]))",
           "legendFormat": "{{operation}}"
         }
       ]
@@ -64,7 +261,7 @@
       "title": "Requests/s by user",
       "gridPos": {
         "x": 12,
-        "y": 0,
+        "y": 10,
         "w": 12,
         "h": 8
       },
@@ -81,7 +278,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (user) (rate(japc_requests_total{job=\"$job\"}[5m]))",
+          "expr": "sum by (user) (rate(japc_requests{job=\"$job\"}[5m]))",
           "legendFormat": "{{user}}"
         }
       ]
@@ -91,7 +288,7 @@
       "title": "Rate limited/s by user",
       "gridPos": {
         "x": 0,
-        "y": 8,
+        "y": 18,
         "w": 12,
         "h": 8
       },
@@ -108,7 +305,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (user) (rate(japc_requests_total{job=\"$job\", status=\"429\"}[5m]))",
+          "expr": "sum by (user) (rate(japc_requests{job=\"$job\", status=\"429\"}[5m]))",
           "legendFormat": "{{user}}"
         }
       ]
@@ -118,7 +315,7 @@
       "title": "Errors/s by code",
       "gridPos": {
         "x": 12,
-        "y": 8,
+        "y": 18,
         "w": 12,
         "h": 8
       },
@@ -135,7 +332,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (code, channel) (rate(japc_errors_total{job=\"$job\"}[5m]))",
+          "expr": "sum by (code, channel) (rate(japc_errors{job=\"$job\"}[5m]))",
           "legendFormat": "{{code}} {{channel}}"
         }
       ]
@@ -145,7 +342,7 @@
       "title": "REST mean latency by status",
       "gridPos": {
         "x": 0,
-        "y": 16,
+        "y": 26,
         "w": 12,
         "h": 8
       },
@@ -162,7 +359,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (status) (rate(http_server_requests_seconds_sum{job=\"$job\", uri=~\"/api.*\"}[5m])) / sum by (status) (rate(http_server_requests_seconds_count{job=\"$job\", uri=~\"/api.*\"}[5m]))",
+          "expr": "sum by (status) (rate(http_server_requests_sum{job=\"$job\", uri=~\"/api.*\"}[5m])) / sum by (status) (rate(http_server_requests_count{job=\"$job\", uri=~\"/api.*\"}[5m]))",
           "legendFormat": "{{status}}"
         }
       ]
@@ -172,7 +369,7 @@
       "title": "Active subscriptions",
       "gridPos": {
         "x": 12,
-        "y": 16,
+        "y": 26,
         "w": 12,
         "h": 8
       },
@@ -199,7 +396,7 @@
       "title": "Subscription updates/s",
       "gridPos": {
         "x": 0,
-        "y": 24,
+        "y": 34,
         "w": 12,
         "h": 8
       },
@@ -216,12 +413,12 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (format) (rate(japc_subscription_updates_sent_total{job=\"$job\"}[5m]))",
+          "expr": "sum by (format) (rate(japc_subscription_updates_sent{job=\"$job\"}[5m]))",
           "legendFormat": "sent {{format}}"
         },
         {
           "refId": "B",
-          "expr": "sum(rate(japc_subscription_updates_dropped_total{job=\"$job\"}[5m]))",
+          "expr": "sum(rate(japc_subscription_updates_dropped{job=\"$job\"}[5m]))",
           "legendFormat": "dropped"
         }
       ]
@@ -231,7 +428,7 @@
       "title": "Cached RBAC sessions",
       "gridPos": {
         "x": 12,
-        "y": 24,
+        "y": 34,
         "w": 12,
         "h": 8
       },
@@ -258,7 +455,7 @@
       "title": "Heap used",
       "gridPos": {
         "x": 0,
-        "y": 32,
+        "y": 42,
         "w": 12,
         "h": 8
       },
@@ -275,8 +472,8 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (pod) (jvm_memory_used_bytes{job=\"$job\", area=\"heap\"})",
-          "legendFormat": "{{pod}}"
+          "expr": "sum(jvm_memory_used{job=\"$job\", area=\"heap\"})",
+          "legendFormat": "heap used"
         }
       ]
     },
@@ -285,7 +482,7 @@
       "title": "CPU",
       "gridPos": {
         "x": 12,
-        "y": 32,
+        "y": 42,
         "w": 12,
         "h": 8
       },
@@ -302,8 +499,8 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (pod) (process_cpu_usage{job=\"$job\"})",
-          "legendFormat": "{{pod}}"
+          "expr": "sum(process_cpu_usage{job=\"$job\"})",
+          "legendFormat": "cpu"
         }
       ]
     }

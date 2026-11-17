@@ -32,6 +32,12 @@
 
     <section data-panel="info">
         <dl id="info" class="info"></dl>
+        <p class="muted">Grafana dashboards:</p>
+        <ul class="muted">
+            <li><a href="https://monit-grafana.cern.ch/d/rade-japc/rade-japc-service?orgId=209">Service</a>: reachable from outside, requests, errors, subscriptions, heap, CPU.</li>
+            <li><a href="https://monit-grafana.cern.ch/d/rade-japc-pods/rade-japc-pods?orgId=209">Pods</a>: pod state, restarts, memory and CPU against limits.</li>
+            <li><a href="https://monit-grafana.cern.ch/d/rade-japc-logs/rade-japc-logs?orgId=209">Logs</a>: errors, warnings, log lines.</li>
+        </ul>
     </section>
 
     <section data-panel="sessions" hidden>
@@ -47,7 +53,7 @@
     </section>
 
     <section data-panel="clients" hidden>
-        <p class="muted">Requests since the service started, per RBAC user. Rates over time are in Grafana; per-address detail is in the request log.</p>
+        <p class="muted">Requests since the service started, per RBAC user. Rates over time are in the <a href="https://monit-grafana.cern.ch/d/rade-japc/rade-japc-service?orgId=209">Grafana dashboard</a>; per-address detail is in the request log.</p>
         <table id="clients"></table>
     </section>
 

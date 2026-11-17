@@ -9,7 +9,7 @@ claim to be, or with more rights than RBAC gives them.
   redirected. The service itself listens on plain HTTP inside the cluster.
 - **Authentication.** RBAC. A client logs in at `PUT /rbac/session` with one of the `Rbac` schemes and receives a
   cached id; see [ADR 1](adr/0001-rbac-header-and-cached-sessions.md). The admin panel logs in with CERN SSO and the
-  SSO token is exchanged for an RBAC login.
+  SSO token is exchanged for an RBAC login; setup and the forms involved are in [sso_setup.md](sso_setup.md).
 - **Authorisation, twice.** The service requires an RBAC role to use the API (`required-role`) and another for the
   admin API (`admin-role`). The device server then applies its own RBAC rules to the user's token, which the service
   forwards with every JAPC call. The service never uses a token of its own for device access.

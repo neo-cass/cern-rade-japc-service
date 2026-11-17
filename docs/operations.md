@@ -61,7 +61,8 @@ Undo:
 oc set env deployment/japc LOGGING_LEVEL_CERN_RADE_SERVICES_JAPC_STATS_REQUESTMETRICS- -n rade-services
 ```
 
-Setup of MONIT, Grafana and the alerts: [deploy/monit/README.md](../deploy/monit/README.md).
+Setup of MONIT, Grafana and the alerts: [deploy/monit/README.md](../deploy/monit/README.md). Where to look at
+metrics, logs, probes and alerts: [monitoring_links.md](monitoring_links.md).
 
 ## Runbook
 
@@ -91,6 +92,6 @@ Setup of MONIT, Grafana and the alerts: [deploy/monit/README.md](../deploy/monit
 | CERN libraries (JAPC, CMW, RBAC) | With the dependency update, and when CERN announces the end of a version | Pinned in `build.gradle.kts`. Set them together to the current PRO versions; CI refuses a release with a floating `PRO`. |
 | Images: Java base image (`Dockerfile`), CI images (`.gitlab-ci.yml`) | With the dependency update | Pinned by tag. A newer patch tag of the Java image brings security fixes: do not let it age. Move to the next Java LTS when CBNG and the CERN libraries support it. |
 | SSO client secret | When the Application Portal says it expires | Update the OpenShift secret, restart. |
-| Grafana pod-metrics token | Yearly | `deploy/monit/README.md`, step A4. |
+| Grafana pod-metrics token | Never with the default non-expiring token; yearly only if the expiring alternative was used | `deploy/monit/README.md`, step A4. |
 | RBAC roles | When people change | E-groups / RBAC, not this service. |
 | TLS certificate | Automatic (router) | The MONIT probe warns 30 days before expiry. |
