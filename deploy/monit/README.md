@@ -389,8 +389,10 @@ Notes:
   only creates a counter after its first increment.
 - The probe row at the bottom of the service dashboard needs MONIT to forward the probe metrics to your tenant (B3).
   Without that it shows "No data"; use MONIT's own Remote Probes Overview instead.
-- The pods dashboard filters on `pod=~"japc.*"`, because the OpenShift project also runs other workloads. The data
-  source needs the custom query parameter `namespace=rade-services` (C4).
+- The pods dashboard filters on pod names starting with `japc` (the **Deployment** selector offers `japc`,
+  `japc-master` or All), because the OpenShift project also runs other workloads. The selector is a fixed list: a
+  `label_values` query against `PaaS metrics` timed out, so add new deployments to the `deployment` variable by hand.
+  The data source needs the custom query parameter `namespace=rade-services` (C4).
 - The logs dashboard needs the **Message field name** and **Level field name** from C3. Its Lucene queries use the
   fields `severity.text` (level), `resource.service.name` (deployment), `body` (message) and
   `instrumentationScope.name` (logger).
@@ -423,9 +425,9 @@ For each row of the table below:
      ServiceNow sends on its own goes to named people.
    - **`be-dep-cem-mta` stays in the list** in case group delivery starts working. Per KB0004555, ServiceNow can
      only mail an e-group that has no posting restrictions, or whose **Custom senders** contain **both**
-     `service-desk` and `noreply-service-desk`. On https://groups-portal.web.cern.ch open the e-group, **Email
-     Properties** → **Email posting restrictions** (its owner has to do this). `be-dep-cem-mta` currently lists only
-     `service-desk`.
+     `service-desk` and `noreply-service-desk`. The KB's example also has **Restrict to authenticated senders**
+     switched **off**. On https://groups-portal.web.cern.ch open the e-group, **Email Properties** → **Email posting
+     restrictions** (its owner has to do this).
    - Keep the same list in `snow_watchlist` of the probe (`deploy/monit/probes.yaml`, A1) when people join or leave.
 6. **Annotations** → **Add custom annotation**: `gni_correlation` = `{{ $values.A.Value }}`.
 7. Under **Configure no data and error handling**, set **Alert state if no data** to **Normal** and leave **Alert state

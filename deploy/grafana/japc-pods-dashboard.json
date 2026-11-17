@@ -16,6 +16,36 @@
         "query": "prometheus",
         "regex": "/PaaS/",
         "label": "Datasource"
+      },
+      {
+        "name": "deployment",
+        "type": "custom",
+        "label": "Deployment",
+        "multi": true,
+        "includeAll": true,
+        "allValue": "(japc|japc-master)",
+        "query": "japc,japc-master",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": [
+          {
+            "text": "All",
+            "value": "$__all",
+            "selected": true
+          },
+          {
+            "text": "japc",
+            "value": "japc",
+            "selected": false
+          },
+          {
+            "text": "japc-master",
+            "value": "japc-master",
+            "selected": false
+          }
+        ]
       }
     ]
   },
@@ -58,7 +88,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "max by (pod) (kube_pod_status_phase{pod=~\"japc.*\", phase=\"Running\"})",
+          "expr": "max by (pod) (kube_pod_status_phase{pod=~\"$deployment-[0-9a-z]+-[0-9a-z]+\", phase=\"Running\"})",
           "legendFormat": "{{pod}}",
           "instant": true
         }
@@ -114,7 +144,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "max by (pod) (kube_pod_container_status_ready{pod=~\"japc.*\", container=\"japc\"})",
+          "expr": "max by (pod) (kube_pod_container_status_ready{pod=~\"$deployment-[0-9a-z]+-[0-9a-z]+\", container=\"japc\"})",
           "legendFormat": "{{pod}}",
           "instant": true
         }
@@ -154,7 +184,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "max by (pod, reason) (kube_pod_container_status_last_terminated_reason{pod=~\"japc.*\"} == 1)",
+          "expr": "max by (pod, reason) (kube_pod_container_status_last_terminated_reason{pod=~\"$deployment-[0-9a-z]+-[0-9a-z]+\"} == 1)",
           "legendFormat": "{{pod}} {{reason}}"
         }
       ]
@@ -181,7 +211,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (pod) (kube_pod_container_status_restarts_total{pod=~\"japc.*\", container=\"japc\"})",
+          "expr": "sum by (pod) (kube_pod_container_status_restarts_total{pod=~\"$deployment-[0-9a-z]+-[0-9a-z]+\", container=\"japc\"})",
           "legendFormat": "{{pod}}"
         }
       ]
@@ -208,7 +238,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "max by (pod, reason) (kube_pod_container_status_waiting_reason{pod=~\"japc.*\"} == 1)",
+          "expr": "max by (pod, reason) (kube_pod_container_status_waiting_reason{pod=~\"$deployment-[0-9a-z]+-[0-9a-z]+\"} == 1)",
           "legendFormat": "{{pod}} {{reason}}"
         }
       ]
@@ -235,12 +265,12 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (pod) (container_memory_working_set_bytes{pod=~\"japc.*\", container=\"japc\"})",
+          "expr": "sum by (pod) (container_memory_working_set_bytes{pod=~\"$deployment-[0-9a-z]+-[0-9a-z]+\", container=\"japc\"})",
           "legendFormat": "{{pod}}"
         },
         {
           "refId": "B",
-          "expr": "sum by (pod) (kube_pod_container_resource_limits{pod=~\"japc.*\", container=\"japc\", resource=\"memory\"})",
+          "expr": "sum by (pod) (kube_pod_container_resource_limits{pod=~\"$deployment-[0-9a-z]+-[0-9a-z]+\", container=\"japc\", resource=\"memory\"})",
           "legendFormat": "{{pod}} limit"
         }
       ]
@@ -267,12 +297,12 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{pod=~\"japc.*\", container=\"japc\"}[5m]))",
+          "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{pod=~\"$deployment-[0-9a-z]+-[0-9a-z]+\", container=\"japc\"}[5m]))",
           "legendFormat": "{{pod}}"
         },
         {
           "refId": "B",
-          "expr": "sum by (pod) (kube_pod_container_resource_limits{pod=~\"japc.*\", container=\"japc\", resource=\"cpu\"})",
+          "expr": "sum by (pod) (kube_pod_container_resource_limits{pod=~\"$deployment-[0-9a-z]+-[0-9a-z]+\", container=\"japc\", resource=\"cpu\"})",
           "legendFormat": "{{pod}} limit"
         }
       ]
@@ -299,12 +329,12 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (pod) (rate(container_network_receive_bytes_total{pod=~\"japc.*\"}[5m]))",
+          "expr": "sum by (pod) (rate(container_network_receive_bytes_total{pod=~\"$deployment-[0-9a-z]+-[0-9a-z]+\"}[5m]))",
           "legendFormat": "in {{pod}}"
         },
         {
           "refId": "B",
-          "expr": "sum by (pod) (rate(container_network_transmit_bytes_total{pod=~\"japc.*\"}[5m]))",
+          "expr": "sum by (pod) (rate(container_network_transmit_bytes_total{pod=~\"$deployment-[0-9a-z]+-[0-9a-z]+\"}[5m]))",
           "legendFormat": "out {{pod}}"
         }
       ]
