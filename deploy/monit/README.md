@@ -432,6 +432,12 @@ For each row of the table below:
      switched **off**. On https://groups-portal.web.cern.ch open the e-group, **Email Properties** → **Email posting
      restrictions** (its owner has to do this).
    - Keep the same list in `snow_watchlist` of the probe (`deploy/monit/probes.yaml`, A1) when people join or leave.
+
+   Also add `email_to` = `rade-admins@cern.ch`. That makes MONIT's notification service (GNI) send a plain email
+   itself, with no ServiceNow in between, and one rule can carry both the ticket and the email labels. It was tested:
+   the alert record shows `targets: email` and `rade-admins` received the mail (after a delay). `email_cc`,
+   `email_bcc`, `email_reply_to` and `email_send_ok` (also mail on recovery) exist too; see
+   https://monit.docs.cern.ch/alerts/alertmanager/. Texts use `sms_to` (CERN numbers, `+4175411xxxx`) the same way.
 6. **Annotations** → **Add custom annotation**: `gni_correlation` = `{{ $values.A.Value }}`.
 7. Under **Configure no data and error handling**, set **Alert state if no data** to **Normal** and leave **Alert state
    if execution error** at its default (**Error**). No data is normal here: a counter such as `japc_requests` does not
@@ -448,6 +454,12 @@ For each row of the table below:
 | Updates dropped | MONIT metrics | `sum(rate(japc_subscription_updates_dropped{job="japc"}[5m]))` | is above 0, for 15m |
 | Internal errors | MONIT metrics | `sum(rate(japc_errors{job="japc",code="5004"}[5m]))` | is above 0.1, for 15m |
 | Pod restarted | PaaS metrics | `increase(kube_pod_container_status_restarts_total{container="japc"}[15m])` | is above 0, for 0s |
+| Probe failing | MONIT metrics | `min(probe_success{remote_producer="rade"})` | is **below** 1, for 5m |
+
+**Probe failing** is the only rule with different labels: `gni_entities` = `japc`, `email_to` = `rade-admins@cern.ch`
+and `email_send_ok` = `true`, and no `snow_*` labels. The remote probe (A1) opens its own ticket after 10 minutes, and
+its labels accept only `snow_*`, so this rule is how an outage also reaches `rade-admins` by email. Use the
+annotation `gni_correlation` = `probe_success = {{ $values.B.Value }}`. It needs `monit_shared` (B3).
 
 MONIT drops the `_total` and `_bytes` suffixes that Prometheus adds, so the names above are the unsuffixed ones.
 Counters such as `japc_requests` and `japc_errors` only appear after their first increment. Series from OTLP carry
