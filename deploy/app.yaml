@@ -25,7 +25,8 @@ spec:
               name: management
           env:
             - name: JAVA_TOOL_OPTIONS
-              value: "-XX:MaxRAMPercentage=75"
+              # -XX:-UseBASE64Intrinsics: interim Java4Shell (CVE-2026-114938) mitigation; remove once the base image has a fixed Temurin 21 build
+              value: "-XX:MaxRAMPercentage=75 -XX:-UseBASE64Intrinsics"
             - name: SPRING_PROFILES_ACTIVE
               value: "prod,sso,monit"
             - name: OTEL_SERVICE_NAME
