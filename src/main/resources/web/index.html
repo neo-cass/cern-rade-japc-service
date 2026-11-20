@@ -63,8 +63,9 @@
     <h2>Access</h2>
     <ol class="steps">
         <li>Join the <a href="https://groups-portal.web.cern.ch/group/rade-services-japc-users">rade-services-japc-users</a> e-group. Only its members can use the service.</li>
-        <li>Log in once with <code>PUT /rbac/session</code>, sending <code>Rbac: Explicit</code>, <code>Rbac: Kerberos</code>, <code>Rbac: Oauth</code> or <code>Rbac: Token</code>.</li>
-        <li>Send the returned <code>Rbac: Cached</code> header on every other request. A <code>Token</code> login is not renewed: log in again with a new token once it expires.</li>
+        <li>Log in once with <code>PUT /rbac/session</code>, sending <code>Rbac: Explicit</code>, <code>Rbac: Kerberos</code> or <code>Rbac: Oauth</code>.</li>
+        <li>Send the returned <code>Rbac: Cached</code> header on every other request.</li>
+        <li>Or skip the login and send <code>Rbac: Token &lt;base64url(token)&gt;</code>, an RBAC token you obtained yourself, on every request. No session is created, and the token is not renewed: get a new one once it expires.</li>
     </ol>
     <p>The rade-admins group can use the <a href="/admin">admin panel</a>.</p>
 

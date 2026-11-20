@@ -10,6 +10,7 @@ import cern.rade.services.japc.rbac.RbacSession;
 import cern.rade.services.japc.rbac.RbacSessionRegistry;
 import cern.rade.services.japc.rbac.login.RbacCredentials;
 import cern.rade.services.japc.rbac.login.RbacLoginService;
+import cern.rade.services.japc.rbac.login.TokenLogin;
 import cern.rbac.client.authentication.AuthenticationException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -24,10 +25,11 @@ import java.io.IOException;
 
 /**
  * Authenticates requests carrying {@code Rbac: <scheme> <value>}. Requests without the header pass through
- * unauthenticated; rejected credentials get a 401. Login schemes (Explicit, Kerberos, Oauth, Token) are only accepted on
- * the login request, {@code PUT /rbac/session}; everywhere else the header must be {@code Cached <id>}. A session logged
- * in for a request whose response did not hand out its cached id (missing role, ...) is dropped afterwards. Failed
- * logins are counted per client address, and an address that has too many is answered with a 429 instead of being tried.
+ * unauthenticated; rejected credentials get a 401. Login schemes (Explicit, Kerberos, Oauth) are only accepted on the
+ * login request, {@code PUT /rbac/session}; everywhere else the header must be {@code Cached <id>} or {@code Token}, which
+ * is sent on every request and creates no session. A session logged in for a request whose response did not hand out
+ * its cached id (missing role, ...) is dropped afterwards. Failed logins and failed tokens are counted per client
+ * address, and an address that has too many is answered with a 429 instead of being tried.
  */
 public class RbacHeaderFilter extends OncePerRequestFilter {
     private final RbacLoginService loginService;
@@ -66,7 +68,8 @@ public class RbacHeaderFilter extends OncePerRequestFilter {
                 throw new AuthenticationException("Rbac " + credentials.scheme() + " is only accepted by PUT " + ApiPaths.RBAC_SESSION
                         + ". Log in there, then send Rbac: Cached <id>");
             }
-            session = loggingIn ? throttledLogin(request, response, credentials) : loginService.login(credentials);
+            boolean throttled = loggingIn || TokenLogin.SCHEME.equals(credentials.scheme());
+            session = throttled ? throttledLogin(request, response, credentials) : loginService.login(credentials);
             authentication = new RbacAuthentication(session, tokenSupport.authorities(session));
         } catch (RateLimitedException e) {
             SecurityContextHolder.clearContext();

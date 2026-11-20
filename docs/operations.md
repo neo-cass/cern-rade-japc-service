@@ -69,10 +69,10 @@ metrics, logs, probes and alerts: [monitoring_links.md](monitoring_links.md).
 | Symptom | Likely cause | Action |
 |---|---|---|
 | All clients get 401 with code 5002 | Service restarted; sessions are gone | Nothing: clients log in again. If they do not, the client does not handle 401. |
-| One user gets 401 | Session idle for 24 h, revoked, above the per-user limit, or a `Token` login expired | Client logs in again. Log line "exceeded … RBAC sessions" means a client logs in on every call instead of reusing its id. |
+| One user gets 401 | Session idle for 24 h, revoked, above the per-user limit, or a `Token` expired (every request with it gets 401) | Client logs in again, or obtains a new `Token`. Log line "exceeded … RBAC sessions" means a client logs in on every call instead of reusing its id. |
 | 403 with code 5002 | User lacks the RBAC role, or the device refuses the user | Message says which: "RBAC role … required" is this service, anything else is the device's access map. |
 | 429 with code 5005 | Per-user rate or subscription limit | Check "Clients" in the admin panel. Fix the client, or set `requests-per-second-by-user.<user>`. |
-| 429 with code 5005 on `PUT /rbac/session` | Too many failed logins from that address | Wait a minute. A client with a wrong or expired password is retrying in a loop; find it in the log (401 lines for `PUT /rbac/session`). |
+| 429 with code 5005 on `PUT /rbac/session`, or on any call with `Rbac: Token` | Too many failed logins or failed `Token` requests from that address | Wait a minute. A client with a wrong or expired password, or an expired `Token`, is retrying in a loop; find it in the log (401 lines from that address). |
 | 413 with code 5003 | Request body above `max-request-body` | Raise `service-properties.max-request-body` if the value is legitimate. |
 | 502 or 504 with code 5000 | Device, front-end or middleware problem | Not this service. Message carries the JAPC error; check the device. |
 | 500 with code 5004 | Bug | Find the ERROR with stack trace in the log at that time. Alert "Internal errors". |

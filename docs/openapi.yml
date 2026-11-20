@@ -197,17 +197,19 @@ paths:
       summary: Log in
       description: |
         The only call that accepts login credentials: `Rbac: Explicit <base64url(username:password)>`,
-        `Rbac: Kerberos <base64url(ticket)>`, `Rbac: Oauth <access token>` or `Rbac: Token <base64url(token)>`. The service keeps the login as a cached RBAC session.
+        `Rbac: Kerberos <base64url(ticket)>` or `Rbac: Oauth <access token>`. The service keeps the login as a cached RBAC session.
         The cached id in the response is a secret, like a password: send it as
         `Rbac: Cached <id>` on every other call. The service renews the cached RBAC session, so the id keeps working until it
         is revoked, unused for 24 hours, or the service restarts. Admins can list and revoke it under `/admin/api/sessions`.
-        A `Token` session cannot be renewed (RBAC only renews a token from the machine it was issued to): its cached id stops
-        working when the token expires, and the client must log in again with a new token.
+        `Rbac: Token <base64url(token)>` is not a login: the client sends it on every call and the service keeps no session for it,
+        so PUT and DELETE /rbac/session with a `Token` answer 400. A `Token` cannot be renewed (RBAC only renews a token from the
+        machine it was issued to): it stops working when it expires, and the client must obtain a new one.
 
         With `Rbac: Cached <id>` the same id is returned again.
 
-        Failed logins are limited per client address (10 per minute by default). Once the limit is reached, every login from
-        that address gets 429 with code 5005 and `Retry-After`, until the address has recovered.
+        Failed logins are limited per client address (10 per minute by default); failed `Token` requests count too. Once the
+        limit is reached, every login and `Token` request from that address gets 429 with code 5005 and `Retry-After`, until
+        the address has recovered.
         PUT rather than POST because the LabVIEW client cannot send POST.
         ```
         curl -X PUT -D - -H 'Rbac: Explicit <base64url(username:password)>' 'https://<host>/rbac/session'
@@ -234,12 +236,13 @@ paths:
       description: |
         Works with `Rbac: Cached <id>`. The secret id is not returned.
         Admins see the same entry under `GET /admin/api/sessions`.
+        With `Rbac: Token` it describes the token itself; nothing is cached and admins see no entry.
         ```
         curl -H 'Rbac: Cached <id>' 'https://<host>/rbac/session'
         ```
       responses:
         '200':
-          description: The cached RBAC session the request was authenticated with.
+          description: The cached RBAC session, or the `Token`, the request was authenticated with.
           content:
             application/json:
               schema:
@@ -437,10 +440,10 @@ components:
         | `Explicit <base64url(username:password)>` | Login with username and password. `username:password` is encoded as UTF-8 before Base64; ISO-8859-1 is still accepted. | `PUT /rbac/session` only |
         | `Kerberos <base64url(ticket)>` | Kerberos service ticket (GSS-API AP-REQ) for the RBAC server, `RBAC/rbac-pro-lb.cern.ch@CERN.CH` in PRO. Not a ticket for this service. | `PUT /rbac/session` only |
         | `Oauth <access token>` | CERN SSO access token whose audience is the RBAC server. Sent as-is, not Base64. The service logs in to RBAC with it and holds a renewable cached RBAC session, like Explicit and Kerberos. | `PUT /rbac/session` only |
-        | `Token <base64url(token)>` | Serialized RBAC token the client obtained itself. Cached like the other logins, but never renewed: the cached RBAC session ends when the token expires. | `PUT /rbac/session` only |
+        | `Token <base64url(token)>` | Serialized RBAC token the client obtained itself. Sent on every request and never cached or renewed: no session is created, and the token stops working when it expires. | every call |
         | `Cached <id>` | Id of the cached RBAC session, returned in the `Rbac` response header of `PUT /rbac/session`. | every call |
 
-        A login scheme on any other call is rejected with 401. The service renews a cached RBAC session (except `Token`) for up to a year,
+        A login scheme (`Explicit`, `Kerberos`, `Oauth`) on any other call is rejected with 401. The service renews a cached RBAC session for up to a year,
         so its cached id keeps working; a cached RBAC session unused for 24 hours is dropped, and so is the oldest one of a user above the
         per-user limit. Cached RBAC sessions are held in memory by the serving instance and are lost on restart.
       x-rbac-schemes: [Explicit, Kerberos, Oauth, Cached, Token]
@@ -620,7 +623,7 @@ components:
         | 406 | 5003 | `Accept` not supported by the route |
         | 413 | 5003 | Request body larger than the service accepts (16 MiB unless configured otherwise) |
         | 415 | 5003 | `Content-Type` not supported by the route |
-        | 429 | 5005 | Rate limit of the RBAC user exceeded: requests per second (wait `Retry-After` seconds) or open subscriptions. On `PUT /rbac/session`: too many failed logins from the client's address (wait `Retry-After` seconds) |
+        | 429 | 5005 | Rate limit of the RBAC user exceeded: requests per second (wait `Retry-After` seconds) or open subscriptions. On `PUT /rbac/session`, or on any call with `Rbac: Token`: too many failed logins or `Token` requests from the client's address (wait `Retry-After` seconds) |
         | 500 | 5001 | Value cannot be encoded in the requested format, e.g. a JAPC type LabVIEW cannot represent |
         | 500 | 5004 | Internal error. The message is always `Internal error`; the cause is in the service log |
         | 502 | 5000 | Device or middleware error |
@@ -849,14 +852,14 @@ components:
         elements: [status Boolean, code I32, source String]
     SessionInfo:
       type: object
-      description: The caller's own cached RBAC session. Unlike `AdminSession` it has no `handle`, address or timestamps of use; the secret id is never included.
+      description: The caller's own cached RBAC session, or its `Token` (`loginType` `TOKEN`). Unlike `AdminSession` it has no `handle`, address or timestamps of use; the secret id is never included.
       properties:
         user: {type: string}
         roles: {type: array, items: {type: string}}
         loginType: {$ref: '#/components/schemas/LoginType'}
         location: {type: [string, 'null']}
         tokenExpiry: {type: string, format: date-time, description: When the current application token expires; the service renews it for a cached RBAC session}
-        sessionExpiry: {type: string, format: date-time, description: "When the cached RBAC session can no longer be used. Equals `tokenExpiry` for `TOKEN`, which is not renewed"}
+        sessionExpiry: {type: string, format: date-time, description: "When the cached RBAC session can no longer be used. For `TOKEN`, which is neither cached nor renewed, equals `tokenExpiry`"}
     AdminMe:
       type: object
       properties:

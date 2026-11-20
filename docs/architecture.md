@@ -32,8 +32,9 @@ parameters.
 
 ## A GET or SET request
 
-1. **Security** (`SecurityConfiguration`, API chain). `RbacHeaderFilter` reads `Rbac: Cached <id>`, finds the
-   `RbacSession` and puts it in the security context with its RBAC roles as authorities. No header, unknown id or
+1. **Security** (`SecurityConfiguration`, API chain). `RbacHeaderFilter` reads `Rbac: Cached <id>` and finds the
+   `RbacSession`, or reads `Rbac: Token`, checks it through `TokenValidationCache` and builds an unregistered
+   `RbacSession` for this request only. It puts the session in the security context with its RBAC roles as authorities. No header, unknown id or
    missing role ends here with 401 or 403, written by `SecurityErrorWriter` in the client's format.
 2. **Rate limit and metrics** (`RequestInterceptor`). One token bucket per RBAC user; over the limit gives 429.
 3. **Controller** (`ParameterEndpoint`). Spring's message converters (`JSONConverter`, `LabVIEWConverter`) decode the
@@ -58,8 +59,10 @@ parameters.
 
 `PUT /rbac/session` is the only request on which `RbacHeaderFilter` accepts a login scheme. `RbacLoginService` picks
 the `RbacLogin` for the scheme, which obtains tokens through `RbacGateway`; the session is stored in
-`RbacSessionRegistry` and its id returned by `RbacSessionEndpoint`. See [security.md](security.md) and
-[ADR 1](adr/0001-rbac-header-and-cached-sessions.md).
+`RbacSessionRegistry` and its id returned by `RbacSessionEndpoint`. `Token` is not a login: it is accepted on every
+request, validated once per token by `TokenValidationCache` (kept until the token expires), and never registered. See
+[security.md](security.md), [ADR 1](adr/0001-rbac-header-and-cached-sessions.md) and
+[ADR 7](adr/0007-stateless-rbac-tokens.md).
 
 ## Two filter chains
 

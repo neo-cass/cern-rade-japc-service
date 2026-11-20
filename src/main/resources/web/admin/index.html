@@ -42,7 +42,7 @@
 
     <section data-panel="sessions" hidden>
         <div class="toolbar">
-            <span class="muted">Cached logins reused with <code>Rbac: Cached</code>. Revoking one makes its client log in again.</span>
+            <span class="muted">Cached logins reused with <code>Rbac: Cached</code>. Revoking one makes its client log in again. Clients sending <code>Rbac: Token</code> have no session and are not listed.</span>
             <button data-action="revoke-all">Revoke all</button>
         </div>
         <div id="sessions"></div>

@@ -10,7 +10,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Logs in with whichever {@link RbacLogin} handles the scheme of the {@code Rbac} header, and caches the session.
+ * Logs in with whichever {@link RbacLogin} handles the scheme of the {@code Rbac} header, and caches the session of the
+ * schemes that log in. A {@code Token} session is not cached, and a {@code Cached} one already is.
  */
 public class RbacLoginService {
     private final Map<String, RbacLogin> logins;
@@ -22,7 +23,7 @@ public class RbacLoginService {
     }
 
     /**
-     * @return true if the scheme exists and logs in (credentials or a token) rather than presenting a cached session
+     * @return true if the scheme exists and logs in with credentials rather than presenting a token or a cached session
      * @see RbacLogin#performsLogin()
      */
     public boolean performsLogin(String scheme) {
@@ -41,6 +42,6 @@ public class RbacLoginService {
                     + ". Expected one of " + logins.keySet());
         }
         RbacSession session = login.login(credentials);
-        return registry.register(session);
+        return login.performsLogin() ? registry.register(session) : session;
     }
 }

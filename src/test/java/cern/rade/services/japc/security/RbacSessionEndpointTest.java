@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -28,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Login, info and logout of the caller's own session, called without a web server.
  */
 class RbacSessionEndpointTest {
-    private final RbacProperties properties = new RbacProperties("USER", "ADMIN", Duration.ofHours(1), Duration.ofDays(1), Duration.ZERO, 0);
+    private final RbacProperties properties = new RbacProperties("USER", "ADMIN", Duration.ofHours(1), Duration.ofDays(1), Duration.ZERO, 0, 20000);
     private final RbacSessionFactory sessions = new RbacSessionFactory(null, properties, Clock.systemUTC());
     private final RbacSessionRegistry registry = new RbacSessionRegistry(properties, Clock.systemUTC());
     private final RbacSessionEndpoint endpoint = new RbacSessionEndpoint(registry);
@@ -53,14 +54,22 @@ class RbacSessionEndpointTest {
     }
 
     @Test
-    void loginWithATokenReturnsTheCachedId() {
+    void loginWithATokenIsRejectedAndIssuesNothing() {
         RbacSession session = authenticated(LoginType.TOKEN);
 
-        ResponseEntity<Void> response = endpoint.login();
+        ResponseStatusException e = assertThrows(ResponseStatusException.class, endpoint::login);
 
-        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
-        assertEquals("Cached " + session.id(), response.getHeaders().getFirst("Rbac"));
-        assertTrue(session.issued());
+        assertEquals(HttpStatus.BAD_REQUEST, e.getStatusCode());
+        assertFalse(session.issued());
+    }
+
+    @Test
+    void logoutWithATokenIsRejected() {
+        authenticated(LoginType.TOKEN);
+
+        ResponseStatusException e = assertThrows(ResponseStatusException.class, endpoint::logout);
+
+        assertEquals(HttpStatus.BAD_REQUEST, e.getStatusCode());
     }
 
     @Test

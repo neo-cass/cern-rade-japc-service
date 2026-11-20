@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Rate limits, in memory, so they reset on restart: one token bucket per RBAC user for requests, and one per client
- * address for failed logins.
+ * address for failed logins and failed {@code Rbac: Token} requests.
  */
 @Component
 public class RateLimiter {

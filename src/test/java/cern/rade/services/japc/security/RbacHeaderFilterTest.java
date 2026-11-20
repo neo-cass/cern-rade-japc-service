@@ -51,7 +51,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class RbacHeaderFilterTest {
     private static final RequestMatcher PUT_SESSION = request -> "PUT".equals(request.getMethod()) && "/rbac/session".equals(request.getRequestURI());
-    private final RbacProperties properties = new RbacProperties("USER", "ADMIN", Duration.ofHours(1), Duration.ofDays(1), Duration.ZERO, 0);
+    private final RbacProperties properties = new RbacProperties("USER", "ADMIN", Duration.ofHours(1), Duration.ofDays(1), Duration.ZERO, 0, 20000);
     private final RbacSessionFactory sessions = new RbacSessionFactory(null, properties, Clock.systemUTC());
     private final RbacSessionRegistry registry = new RbacSessionRegistry(properties, Clock.systemUTC());
     private final RbacTokenSupport tokenSupport = new RbacTokenSupport() {
@@ -66,7 +66,7 @@ class RbacHeaderFilterTest {
         }
     };
     private final RbacLoginService loginService = new RbacLoginService(
-            List.of(new FixedLogin("Explicit", LoginType.EXPLICIT, true), new FixedLogin("Token", LoginType.TOKEN, true), new CachedLogin(registry),
+            List.of(new FixedLogin("Explicit", LoginType.EXPLICIT, true), new FixedLogin("Token", LoginType.TOKEN, false), new CachedLogin(registry),
                     new FailingLogin()),
             registry);
     private final RbacHeaderFilter filter = new RbacHeaderFilter(loginService, tokenSupport, registry, PUT_SESSION,
@@ -120,16 +120,30 @@ class RbacHeaderFilterTest {
     }
 
     @Test
-    void tokenIsOnlyAcceptedByTheLoginRequestAndIsCached() throws Exception {
-        for (String[] call : new String[][]{{"GET", "/api/v1/DEV/PROP"}, {"GET", "/ws/v1/DEV/PROP"}, {"GET", "/rbac/session"}}) {
-            assertEquals(401, filter(call[0], call[1], "Token abc").status, call[0] + " " + call[1]);
+    void tokenAuthenticatesEveryRequestWithoutRegistering() throws Exception {
+        for (String[] call : new String[][]{{"GET", "/api/v1/DEV/PROP"}, {"GET", "/ws/v1/DEV/PROP"}, {"GET", "/rbac/session"},
+                {"PUT", "/rbac/session"}}) {
+            seenByChain.set(null);
+            assertEquals(200, filter(call[0], call[1], "Token abc").status, call[0] + " " + call[1]);
+            assertEquals(LoginType.TOKEN, seenByChain.get().loginType());
         }
-        assertNull(seenByChain.get());
+        assertTrue(registry.list().isEmpty());
+    }
 
-        CapturingChain issuing = new CapturingChain(session -> RbacHeaders.setCached(new HttpHeaders(), session));
-        filter.doFilterInternal(request("PUT", "/rbac/session", "Token abc"), new StubResponse().proxy(), issuing);
-        assertEquals(LoginType.TOKEN, issuing.session.loginType());
-        assertSame(issuing.session, registry.find(issuing.session.id()).orElseThrow());
+    @Test
+    void addressIsRefusedAfterTooManyFailedTokens() throws Exception {
+        RbacLoginService failingTokens = new RbacLoginService(List.of(new FailingLogin("Token", false)), registry);
+        RbacHeaderFilter tokenFilter = new RbacHeaderFilter(failingTokens, tokenSupport, registry, PUT_SESSION,
+                new RateLimiter(new RateLimitProperties(50, 100, 200, Map.of(), 2)));
+        for (int i = 0; i < 2; i++) {
+            StubResponse response = new StubResponse();
+            tokenFilter.doFilterInternal(request("GET", "/api/v1/DEV/PROP", "Token x", "10.0.0.1"), response.proxy(), chain);
+            assertEquals(401, response.status);
+        }
+        StubResponse blocked = new StubResponse();
+        tokenFilter.doFilterInternal(request("GET", "/api/v1/DEV/PROP", "Token x", "10.0.0.1"), blocked.proxy(), chain);
+        assertEquals(429, blocked.status);
+        assertNull(seenByChain.get());
     }
 
     @Test
@@ -274,14 +288,26 @@ class RbacHeaderFilterTest {
      * A login scheme whose credentials are always rejected.
      */
     private static final class FailingLogin implements RbacLogin {
+        private final String scheme;
+        private final boolean performsLogin;
+
+        FailingLogin() {
+            this("Bad", true);
+        }
+
+        FailingLogin(String scheme, boolean performsLogin) {
+            this.scheme = scheme;
+            this.performsLogin = performsLogin;
+        }
+
         @Override
         public String scheme() {
-            return "Bad";
+            return scheme;
         }
 
         @Override
         public boolean performsLogin() {
-            return true;
+            return performsLogin;
         }
 
         @Override

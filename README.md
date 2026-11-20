@@ -5,7 +5,8 @@ HTTP and WebSocket access to CERN accelerator device parameters through JAPC, fo
 - `GET` / `PUT` `/api/v1/{device}/{property}[/{field}]` reads and sets a parameter.
 - `wss://…/ws/v1/{device}/{property}[/{field}]` subscribes to it.
 - Bodies are JSON or LabVIEW flattened data, chosen by `Accept`, `Content-Type` or `Sec-WebSocket-Protocol`.
-- Every call runs with the caller's RBAC token. Log in once at `PUT /rbac/session`, then send `Rbac: Cached <id>`.
+- Every call runs with the caller's RBAC token. Log in once at `PUT /rbac/session`, then send `Rbac: Cached <id>`;
+  or send an RBAC token you obtained yourself as `Rbac: Token <base64url(token)>` on every call, with no login.
 
 The API contract is `docs/openapi.yml` (REST) and `docs/asyncapi.yml` (WebSocket). The running service serves both,
 rendered, under `/docs`.
@@ -26,6 +27,7 @@ health on `http://localhost:8081/actuator/health`.
 ```bash
 curl -X PUT -D - -H "Rbac: Explicit $(printf '%s' 'user:password' | base64 | tr '+/' '-_')" http://localhost:8443/rbac/session
 curl -H 'Rbac: Cached <id from the Rbac response header>' http://localhost:8443/api/v1/RADE.TEST/Get
+curl -H 'Rbac: Token <base64url(serialized RBAC token)>' http://localhost:8443/api/v1/RADE.TEST/Get   # no login needed
 ```
 
 `/docs` is only populated when the API documentation was built first (CI job `build_docs`, see `.gitlab-ci.yml`).

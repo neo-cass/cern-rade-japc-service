@@ -59,8 +59,13 @@ public class RbacConfiguration {
     }
 
     @Bean
-    public TokenLogin tokenLogin(RbacGateway gateway, RbacSessionFactory sessions) {
-        return new TokenLogin(gateway, sessions);
+    public TokenLogin tokenLogin(TokenValidationCache tokenCache, RbacSessionFactory sessions) {
+        return new TokenLogin(tokenCache, sessions);
+    }
+
+    @Bean
+    public TokenValidationCache tokenValidationCache(RbacGateway gateway, RbacProperties properties, Clock clock) {
+        return new TokenValidationCache(gateway, properties, clock);
     }
 
     @Bean

@@ -28,7 +28,8 @@ OpenShift runs `prod,sso,monit` (`deploy/app.yaml`).
 | `token-lifetime` | `12h` (maximum) | Lifetime of application tokens. Also how long a removed role keeps working. |
 | `session-lifetime` | `365d` (maximum) | Lifetime of master tokens: how long a cached session can be renewed. |
 | `session-idle-timeout` | `24h` | Sessions unused for this long are dropped. `0` disables. |
-| `sessions-per-user` | `20` | Cached sessions per user; the least recently used are revoked beyond it. `0` disables. |
+| `sessions-per-user` | `20` | Cached sessions per user; the least recently used are revoked beyond it. `0` disables. `Rbac: Token` requests have no session and are not counted. |
+| `token-cache-max-entries` | `20000` | Most validated `Rbac: Token` tokens kept, each until it expires. Beyond it new tokens are validated on every request. |
 
 ## Rate limits: `service-properties.rate-limit` (`RateLimitProperties`)
 
@@ -40,7 +41,7 @@ Per RBAC user. `0` disables a limit.
 | `burst` | `100` | Requests allowed at once before the rate applies. |
 | `subscriptions-per-user` | `200` | Open subscriptions per user. |
 | `requests-per-second-by-user.<user>` | none | Override of `requests-per-second` for one user, e.g. an account shared by many machines. |
-| `login-failures-per-minute` | `10` | Failed logins allowed per client address per minute. Beyond it, every login from that address gets 429 until it recovers. Not per user. |
+| `login-failures-per-minute` | `10` | Failed logins and failed `Rbac: Token` requests allowed per client address per minute. Beyond it, every login and `Token` request from that address gets 429 until it recovers. Not per user. |
 
 The router adds per-IP limits (`deploy/route.yaml`); keep them above the per-user limits so that clients get the
 service's 429 with `Retry-After`.

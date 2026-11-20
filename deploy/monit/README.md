@@ -419,10 +419,10 @@ For each row of the table below:
 4. **Folder:** create `JAPC` the first time. **Evaluation group:** create `japc` with interval `1m` the first time.
    **Pending period:** the "for" value of the Condition column.
 5. **Labels** → **Add labels**: `gni_entities` = `japc`, `snow_functional_element` = `LabVIEW Support`,
-   `snow_auto_closing` = `true`, and `snow_watchlist` = the people to email about the ticket, comma-separated with no
-   spaces: `be-dep-cem-mta@cern.ch,neo.michael.cass@cern.ch,odd.oyvind.andreassen@cern.ch,piotr.koziol@cern.ch`.
-   The watch list is the only way you get email about a ticket: the caller is the GNI service account and the ticket
-   is assigned to the LabVIEW Support group, so nobody else is notified.
+   `snow_auto_closing` = `true`, `snow_assignment_level` = `2` and `snow_watchlist` = `be-dep-cem-mta@cern.ch`.
+   The support group named by the level gets the assignment mail on its own. The watch list adds the section e-group:
+   its members can open and comment on the ticket (tickets have "SE Level" visibility, KB0001413) and it is mailed
+   about ticket updates.
    - **An e-group address works in the watch list** (tested: the mail to `be-dep-cem-mta` arrived about 5 minutes
      after the alert). ServiceNow mails the watch list exactly as written, so the e-group must accept that mail. Until
      it did, the mail was logged as `sent` by ServiceNow but never arrived. All of these must hold:
@@ -436,9 +436,14 @@ For each row of the table below:
 
      Set these on https://groups-portal.web.cern.ch, e-group → **Email Properties** → **Email posting restrictions**
      (its owner has to do it). I changed several things at once, so I can't say which one fixed `be-dep-cem-mta`.
-   - **Keep individual addresses too.** They are delivered whatever the group's settings are, so they remain a safe
-     fallback if the group's settings are ever changed. A group alone is enough while its settings stay as above.
-   - Keep the same list in `snow_watchlist` of the probe (`deploy/monit/probes.yaml`, A1) when people join or leave.
+   - The probe (`deploy/monit/probes.yaml`, A1) uses the same `snow_assignment_level` and `snow_watchlist`. If the
+     group's settings are ever changed and mail stops, individual addresses added to the list are delivered whatever
+     the group allows.
+
+   **Which support group gets the ticket** is set with `snow_assignment_level` (integer, default 3). Tested for this
+   FE: the default 3 lands in *LabVIEW Support Functional Manager*; `2` lands in *LabVIEW Support 2nd Line Support*,
+   where user tickets go. Levels 1 and 4 are untested. The four ticket rules (Pod restarted, App not reporting, Heap
+   nearly full, Internal errors) and the probe use level `2`.
 
    Also add `email_to` = `rade-admins@cern.ch`. That makes MONIT's notification service (GNI) send a plain email
    itself, with no ServiceNow in between, and one rule can carry both the ticket and the email labels. It was tested:

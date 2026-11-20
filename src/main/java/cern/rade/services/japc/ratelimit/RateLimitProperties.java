@@ -12,8 +12,8 @@ import java.util.Map;
  * @param burst                   requests allowed at once before the per-second rate applies
  * @param subscriptionsPerUser    most open subscriptions per user
  * @param requestsPerSecondByUser overrides of {@code requestsPerSecond}, e.g. for accounts shared by many machines
- * @param loginFailuresPerMinute  failed logins allowed per client address per minute; further logins from that address
- *                                are refused until it recovers
+ * @param loginFailuresPerMinute  failed logins and failed {@code Rbac: Token} requests allowed per client address per
+ *                                minute; further ones from that address are refused until it recovers
  */
 @ConfigurationProperties(prefix = "service-properties.rate-limit")
 public record RateLimitProperties(

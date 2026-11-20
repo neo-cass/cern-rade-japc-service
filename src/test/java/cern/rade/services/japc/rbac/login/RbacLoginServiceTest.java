@@ -24,33 +24,34 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Dispatch of a login to the scheme named in the {@code Rbac} header.
  */
 class RbacLoginServiceTest {
-    private final RbacProperties properties = new RbacProperties("USER", "ADMIN", Duration.ofHours(1), Duration.ofDays(1), Duration.ZERO, 0);
+    private final RbacProperties properties = new RbacProperties("USER", "ADMIN", Duration.ofHours(1), Duration.ofDays(1), Duration.ZERO, 0, 20000);
     private final RbacSessionFactory sessions = new RbacSessionFactory(null, properties, Clock.systemUTC());
     private final RbacSessionRegistry registry = new RbacSessionRegistry(properties, Clock.systemUTC());
 
     @Test
     void dispatchesOnSchemeAndCachesSession() {
-        RbacLoginService service = new RbacLoginService(List.of(fixedLogin("Explicit", LoginType.EXPLICIT)), registry);
+        RbacLoginService service = new RbacLoginService(List.of(fixedLogin("Explicit", LoginType.EXPLICIT, true)), registry);
         RbacSession session = service.login("Explicit dXNlcjpwYXNz");
         assertEquals(LoginType.EXPLICIT, session.loginType());
         assertSame(session, registry.find(session.id()).orElseThrow());
     }
 
     @Test
-    void cachesTokens() {
-        RbacLoginService service = new RbacLoginService(List.of(fixedLogin("Token", LoginType.TOKEN)), registry);
+    void doesNotCacheTokens() {
+        RbacLoginService service = new RbacLoginService(List.of(fixedLogin("Token", LoginType.TOKEN, false)), registry);
         RbacSession session = service.login("Token abc");
         assertEquals(LoginType.TOKEN, session.loginType());
-        assertSame(session, registry.find(session.id()).orElseThrow());
+        assertTrue(registry.find(session.id()).isEmpty());
+        assertTrue(registry.list().isEmpty());
     }
 
     @Test
-    void everySchemeButCachedPerformsALogin() {
-        RbacLoginService service = new RbacLoginService(List.of(fixedLogin("Explicit", LoginType.EXPLICIT),
+    void onlyCredentialSchemesPerformALogin() {
+        RbacLoginService service = new RbacLoginService(List.of(fixedLogin("Explicit", LoginType.EXPLICIT, true),
                 new CachedLogin(registry), new TokenLogin(null, null)), registry);
         assertTrue(service.performsLogin("Explicit"));
         assertFalse(service.performsLogin("Cached"));
-        assertTrue(service.performsLogin("Token"));
+        assertFalse(service.performsLogin("Token"));
         assertFalse(service.performsLogin("Unknown"));
     }
 
@@ -63,14 +64,14 @@ class RbacLoginServiceTest {
     @Test
     void cachedLoginFindsRegisteredSession() {
         RbacLoginService service = new RbacLoginService(
-                List.of(fixedLogin("Explicit", LoginType.EXPLICIT), new CachedLogin(registry)), registry);
+                List.of(fixedLogin("Explicit", LoginType.EXPLICIT, true), new CachedLogin(registry)), registry);
         RbacSession session = service.login("Explicit dXNlcjpwYXNz");
         assertSame(session, service.login("Cached " + session.id()));
     }
 
     @Test
     void rejectsUnknownScheme() {
-        RbacLoginService service = new RbacLoginService(List.of(fixedLogin("Explicit", LoginType.EXPLICIT)), registry);
+        RbacLoginService service = new RbacLoginService(List.of(fixedLogin("Explicit", LoginType.EXPLICIT, true)), registry);
         assertThrows(AuthenticationException.class, () -> service.login("Basic dXNlcjpwYXNz"));
     }
 
@@ -80,11 +81,16 @@ class RbacLoginServiceTest {
         assertThrows(AuthenticationException.class, () -> service.login("Cached 00000000-0000-0000-0000-000000000000"));
     }
 
-    private RbacLogin fixedLogin(String scheme, LoginType loginType) {
+    private RbacLogin fixedLogin(String scheme, LoginType loginType, boolean performsLogin) {
         return new RbacLogin() {
             @Override
             public String scheme() {
                 return scheme;
+            }
+
+            @Override
+            public boolean performsLogin() {
+                return performsLogin;
             }
 
             @Override

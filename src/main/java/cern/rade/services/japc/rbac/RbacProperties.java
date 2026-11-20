@@ -19,6 +19,8 @@ import java.util.Objects;
  * @param sessionIdleTimeout cached sessions unused for this long are dropped; zero disables it
  * @param sessionsPerUser    most cached sessions one user may hold, least recently used ones are revoked beyond it;
  *                           zero disables the limit
+ * @param tokenCacheMaxEntries most validated {@code Rbac: Token} tokens remembered; beyond it tokens are validated on
+ *                           every request
  */
 @ConfigurationProperties(prefix = "service-properties.rbac")
 public record RbacProperties(
@@ -27,7 +29,8 @@ public record RbacProperties(
         @DefaultValue("12h") Duration tokenLifetime,
         @DefaultValue("365d") Duration sessionLifetime,
         @DefaultValue("24h") Duration sessionIdleTimeout,
-        @DefaultValue("20") int sessionsPerUser) {
+        @DefaultValue("20") int sessionsPerUser,
+        @DefaultValue("20000") int tokenCacheMaxEntries) {
 
     public static final Duration MAX_TOKEN_LIFETIME = Duration.ofHours(12);
     public static final Duration MAX_SESSION_LIFETIME = Duration.ofDays(365);

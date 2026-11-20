@@ -7,9 +7,9 @@
 # and 30 days before the TLS certificate expires. Internal mode (default): the Route is Intranet only.
 # The monit_shared label forwards the probe's metrics to the rade tenant so they can be charted and alerted on in our
 # Grafana org. It has an effect only once MONIT has enabled shared metrics for the tenant.
-# snow_watchlist lists the people emailed about the ticket. ServiceNow mails it as written. An e-group address works
-# only if the e-group allows ServiceNow's mail (see deploy/monit/README.md, C7 step 5); the individual addresses are
-# kept as a fallback.
+# snow_assignment_level 2 puts the ticket in "LabVIEW Support 2nd Line Support" (the default 3 is the Functional
+# Manager group). snow_watchlist gives the e-group access to the ticket and mails it; ServiceNow mails it as written, so
+# the e-group must allow ServiceNow's mail (see deploy/monit/README.md, C7 step 5).
 http_ipv4:
   targets:
     - url: https://rade-services-japc.web.cern.ch/readyz
@@ -21,4 +21,5 @@ http_ipv4:
         monit_shared: "rade"
         snow_functional_element: "LabVIEW Support"
         snow_auto_closing: "true"
-        snow_watchlist: "be-dep-cem-mta@cern.ch,neo.michael.cass@cern.ch,odd.oyvind.andreassen@cern.ch,piotr.koziol@cern.ch"
+        snow_assignment_level: 2
+        snow_watchlist: "be-dep-cem-mta@cern.ch"

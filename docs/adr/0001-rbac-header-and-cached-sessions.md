@@ -1,6 +1,7 @@
 # 1. RBAC login through the `Rbac` header and cached sessions
 
-Status: accepted
+Status: accepted. Amended by [ADR 7](0007-stateless-rbac-tokens.md): `Token` is sent on every request and no longer
+creates a cached session.
 
 ## Context
 

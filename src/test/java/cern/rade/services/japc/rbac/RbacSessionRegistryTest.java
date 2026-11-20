@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Caching, revoking and limiting RBAC sessions.
  */
 class RbacSessionRegistryTest {
-    private final RbacProperties properties = new RbacProperties("USER", "ADMIN", Duration.ofHours(1), Duration.ofDays(1), Duration.ZERO, 0);
+    private final RbacProperties properties = new RbacProperties("USER", "ADMIN", Duration.ofHours(1), Duration.ofDays(1), Duration.ZERO, 0, 20000);
     private final RbacSessionFactory sessions = new RbacSessionFactory(null, properties, Clock.systemUTC());
     private final RbacSessionRegistry registry = new RbacSessionRegistry(properties, Clock.systemUTC());
 
@@ -74,7 +74,7 @@ class RbacSessionRegistryTest {
     void revokesLeastRecentlyUsedSessionsAboveTheUserLimit() {
         MutableClock clock = new MutableClock(Instant.parse("2026-11-10T12:00:00Z"));
         RbacSessionRegistry limited = new RbacSessionRegistry(
-                new RbacProperties("USER", "ADMIN", Duration.ofHours(1), Duration.ofDays(1), Duration.ZERO, 2), clock);
+                new RbacProperties("USER", "ADMIN", Duration.ofHours(1), Duration.ofDays(1), Duration.ZERO, 2, 20000), clock);
         RbacSession oldest = limited.register(sessionOf("alice", clock));
         clock.advance(Duration.ofMinutes(1));
         RbacSession middle = limited.register(sessionOf("alice", clock));

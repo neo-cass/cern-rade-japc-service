@@ -1,9 +1,9 @@
 package cern.rade.services.japc.rbac;
 
 /**
- * How an {@link RbacSession} was obtained. Every login is cached, so clients reuse it with {@code Rbac: Cached <id>}.
- * Explicit, Kerberos and Oauth sessions hold a master token and are renewed; Token sessions are used until the token
- * expires.
+ * How an {@link RbacSession} was obtained. Explicit, Kerberos and Oauth sessions are cached, so clients reuse them with
+ * {@code Rbac: Cached <id>}; they hold a master token and are renewed. Token sessions are not cached: the client sends
+ * the token on every request, and it is used until it expires.
  */
 public enum LoginType {
     EXPLICIT,
