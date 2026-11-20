@@ -1,7 +1,7 @@
-# Graph Report - japc-new  (2026-11-17)
+# Graph Report - japc-new  (2026-11-19)
 
 ## Corpus Check
-- 142 files · ~48,666 words
+- 142 files · ~48,684 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 15 file(s) not represented in the graph (top: (none) 5, .properties 2, .css 2)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `7b574e1c`
+- Built from commit: `75d28254`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -491,7 +491,7 @@ Nodes (6): Configuration, Dependencies (`build.gradle.kts`), Minimum code, Not r
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `MONIT setup checklist` connect `README.md` to `Remote probe (down alert)`?**
-  _High betweenness centrality (0.037) - this node is a cross-community bridge._
+  _High betweenness centrality (0.042) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `ApiContractTest` (e.g. with `5. Tests` and `Where things are`) actually correct?**
   _`ApiContractTest` has 2 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `GET`, `SET`, `SUBSCRIBE` to the rest of the system?**
@@ -499,7 +499,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `EndpointTest` be split into smaller, more focused modules?**
   _Cohesion score 0.1294871794871795 - nodes in this community are weakly interconnected._
 - **Why does `Remote probe (down alert)` connect `Remote probe (down alert)` to `README.md`, `MONIT tenant rade`?**
-  _High betweenness centrality (0.036) - this node is a cross-community bridge._
+  _High betweenness centrality (0.041) - this node is a cross-community bridge._
 - **Are the 5 inferred relationships involving `EndpointTest` (e.g. with `Tests` and `Recurring maintenance`) actually correct?**
   _`EndpointTest` has 5 INFERRED edges - model-reasoned connections that need verification._
 - **Should `Python Subscription Tests` be split into smaller, more focused modules?**

@@ -423,14 +423,21 @@ For each row of the table below:
    spaces: `be-dep-cem-mta@cern.ch,neo.michael.cass@cern.ch,odd.oyvind.andreassen@cern.ch,piotr.koziol@cern.ch`.
    The watch list is the only way you get email about a ticket: the caller is the GNI service account and the ticket
    is assigned to the LabVIEW Support group, so nobody else is notified.
-   - **Use individual addresses.** ServiceNow mails the watch list exactly as written. In our tests the mail to an
-     e-group address (`be-dep-cem-mta`, `rade-admins`) was logged as sent but never arrived, while every mail
-     ServiceNow sends on its own goes to named people.
-   - **`be-dep-cem-mta` stays in the list** in case group delivery starts working. Per KB0004555, ServiceNow can
-     only mail an e-group that has no posting restrictions, or whose **Custom senders** contain **both**
-     `service-desk` and `noreply-service-desk`. The KB's example also has **Restrict to authenticated senders**
-     switched **off**. On https://groups-portal.web.cern.ch open the e-group, **Email Properties** → **Email posting
-     restrictions** (its owner has to do this).
+   - **An e-group address works in the watch list** (tested: the mail to `be-dep-cem-mta` arrived about 5 minutes
+     after the alert). ServiceNow mails the watch list exactly as written, so the e-group must accept that mail. Until
+     it did, the mail was logged as `sent` by ServiceNow but never arrived. All of these must hold:
+     - Per KB0004555, **Custom senders** contain **both** `service-desk` and `noreply-service-desk` (or there are no
+       posting restrictions at all).
+     - **Restrict to authenticated senders is switched off.** KB0001413 (the watch-list article) says the e-group
+       otherwise receives no mail from ServiceNow.
+     - Per KB0003648, the e-group is registered in ServiceNow (member of `snow-egroup-whitelist`, imported every 6
+       hours, nested e-groups too) and **Membership visibility** is *CERN Users*. That registration gives members
+       *access to the ticket*.
+
+     Set these on https://groups-portal.web.cern.ch, e-group → **Email Properties** → **Email posting restrictions**
+     (its owner has to do it). I changed several things at once, so I can't say which one fixed `be-dep-cem-mta`.
+   - **Keep individual addresses too.** They are delivered whatever the group's settings are, so they remain a safe
+     fallback if the group's settings are ever changed. A group alone is enough while its settings stay as above.
    - Keep the same list in `snow_watchlist` of the probe (`deploy/monit/probes.yaml`, A1) when people join or leave.
 
    Also add `email_to` = `rade-admins@cern.ch`. That makes MONIT's notification service (GNI) send a plain email
@@ -455,6 +462,11 @@ For each row of the table below:
 | Internal errors | MONIT metrics | `sum(rate(japc_errors{job="japc",code="5004"}[5m]))` | is above 0.1, for 15m |
 | Pod restarted | PaaS metrics | `increase(kube_pod_container_status_restarts_total{container="japc"}[15m])` | is above 0, for 0s |
 | Probe failing | MONIT metrics | `min(probe_success{remote_producer="rade"})` | is **below** 1, for 5m |
+
+**Email only, no ticket.** **CPU high**, **Clients rate limited** and **Updates dropped** are noisy and not a LabVIEW
+Support matter (a client hitting the rate limit is not a support case), so they carry only `gni_entities` and
+`email_to` and no `snow_*` labels in step 5. All the other rules in the table keep the full set: ticket, watchlist
+and `email_to`.
 
 **Probe failing** is the only rule with different labels: `gni_entities` = `japc`, `email_to` = `rade-admins@cern.ch`
 and `email_send_ok` = `true`, and no `snow_*` labels. The remote probe (A1) opens its own ticket after 10 minutes, and
