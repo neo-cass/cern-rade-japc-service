@@ -78,7 +78,7 @@ servers:
       a client that cannot follow a new version must use `/ws/v1`. `/ws/v<n>` of a version that does not exist is 404.
     variables:
       host:
-        default: japc-rade-services.app.cern.ch
+        default: rade-services-japc.web.cern.ch
         description: Route host of the deployment.
     security:
       - $ref: '#/components/securitySchemes/Rbac'
